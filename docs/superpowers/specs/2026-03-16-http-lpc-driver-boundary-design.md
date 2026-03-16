@@ -1,121 +1,121 @@
-# HTTP Protocol Helpers for LPC HTTP Services
+# LPC HTTP 服务的驱动层协议辅助设计
 
-## Summary
+## 摘要
 
-This design proposes a small set of HTTP-related driver helpers to remove protocol glue code from LPC HTTP services without turning the driver into a full web framework.
+本设计提议在驱动层补一组小而实用的 HTTP 相关辅助能力，把 LPC HTTP 服务里的协议胶水代码下沉出去，但不把驱动做成一个完整的 Web 框架。
 
-The current LPC example in `lpc_example_http/httpd.c` mixes transport concerns, HTTP parsing, form decoding, routing, controller dispatch, IP filtering, and response formatting in one file. The heaviest part is not controller dispatch itself, but the protocol work around partial reads, request assembly, header parsing, URL decoding, and response construction.
+当前 `lpc_example_http/httpd.c` 把传输处理、HTTP 解析、表单解码、路由、控制器调度、IP 过滤和响应拼装都混在一个文件里。这里面真正重的并不是控制器调度，而是“半包、组包、请求拆解、URL 解码、响应格式化”这一层协议杂活。
 
-The proposed change keeps routing and business logic in LPC while moving low-level, stable, protocol-oriented utilities into the driver.
+这次改动的目标，是把低层、稳定、重复的协议处理收进驱动，同时继续把路由和业务逻辑留在 LPC。
 
-## Problem
+## 问题
 
-The current LPC implementation has several maintenance and correctness risks:
+当前 LPC 实现有几个明显的维护和正确性风险：
 
-- A single socket read is treated as a complete HTTP request.
-- Request headers and body are split with one `sscanf`, which assumes the full payload is already available.
-- `Content-Length` is not used to assemble partial bodies across reads.
-- Query string and form parsing only keep values and discard keys.
-- URL decoding is ad hoc and duplicated in LPC code.
-- Response strings are hand-built with `sprintf`.
-- Header normalization is left to application code.
+- 一次 socket 读取就被当作一个完整 HTTP 请求。
+- 请求行、请求头、请求体用一条 `sscanf` 直接拆，隐含假设是数据已经一次读全。
+- 没有根据 `Content-Length` 做跨多次读取的 body 组装。
+- 查询串和表单串现在只保留 value，不保留 key。
+- URL 解码是临时写在 LPC 里的，重复且不完整。
+- 响应报文是手写 `sprintf` 拼接的。
+- header 规范化留给了应用层自己处理。
 
-These are all protocol glue concerns. They are possible to implement in LPC, but they are tedious, repetitive, easy to get subtly wrong, and distract from actual application logic.
+这些都属于协议胶水层。它们不是不能在 LPC 写，但写起来繁琐、容易漏边角，而且会持续挤占业务代码的可读性和维护精力。
 
-## Goals
+## 目标
 
-- Keep HTTP routing and controller dispatch in LPC.
-- Move repetitive HTTP protocol helpers into the driver.
-- Provide a minimal API surface that is broadly useful and easy to test.
-- Support incremental parsing from raw socket chunks.
-- Decode URL query strings and URL-encoded form bodies into mappings.
-- Provide a standard response builder to eliminate hand-written response formatting.
+- 保持 HTTP 路由和控制器调度在 LPC 层。
+- 把重复的 HTTP 协议辅助能力下沉到驱动。
+- 提供一组足够小、但通用且容易测试的接口。
+- 支持基于原始 socket chunk 的增量解析。
+- 能把 URL 查询串和 URL 编码表单解码成 mapping。
+- 提供标准响应拼装函数，去掉手写响应报文。
 
-## Non-Goals
+## 非目标
 
-- Do not add a complete HTTP server framework to the driver.
-- Do not move routing or controller lookup into the driver.
-- Do not automatically invoke LPC callbacks from inside the parser.
-- Do not implement multipart form parsing in this iteration.
-- Do not add automatic JSON response generation in the driver.
-- Do not tightly couple the parser to socket `fd` state in the public API.
+- 不把驱动做成完整 HTTP 服务器框架。
+- 不把路由和控制器查找逻辑移进驱动。
+- 不在解析器内部直接回调 LPC 业务逻辑。
+- 这一轮不实现 multipart 表单解析。
+- 不在驱动里自动生成 JSON 响应。
+- 不把公开 API 设计成强依赖 socket `fd` 的形式。
 
-## Current LPC Boundary
+## LPC 与驱动的职责边界
 
-The intended LPC responsibilities remain:
+保留在 LPC 的职责：
 
-- Route request path to controller and action.
-- Validate allowed HTTP method.
-- Apply IP whitelist checks.
-- Invoke controller functions.
-- Encode business data to JSON.
-- Decide status codes and headers for application responses.
+- 根据请求路径做路由
+- 校验允许的 HTTP method
+- 做 IP 白名单判断
+- 调用控制器函数
+- 把业务结果编码成 JSON
+- 决定应用层的状态码与响应头
 
-The intended driver responsibilities become:
+下沉到驱动的职责：
 
-- URL encoding and decoding.
-- Query string and form decoding.
-- HTTP request boundary detection.
-- Header normalization.
-- `Content-Length`-driven body assembly.
-- Response string construction.
+- URL 编码 / 解码
+- 查询串与表单串解码
+- HTTP 请求边界判断
+- header 规范化
+- 基于 `Content-Length` 的 body 组包
+- HTTP 响应字符串拼装
 
-## Approaches Considered
+## 考虑过的方案
 
-### 1. Socket `fd`-bound parser
+### 方案一：按 socket `fd` 绑定的解析器
 
-The driver stores parser state per socket descriptor and LPC feeds chunks by `fd`.
+驱动按 socket 描述符保存 HTTP 解析状态，LPC 用 `fd` 把 chunk 喂进去。
 
-Pros:
+优点：
 
-- Minimal LPC state management.
-- Very small call surface at the LPC layer.
+- LPC 侧状态管理最少
+- LPC 调用面很小
 
-Cons:
+缺点：
 
-- Tightly couples HTTP parsing to socket internals.
-- Harder to test independently from the socket layer.
-- Less reusable for non-socket or offline parsing scenarios.
+- HTTP 解析逻辑和 socket 内部实现绑得太紧
+- 不利于独立测试
+- 以后想做离线解析或其他传输层复用时不够灵活
 
-### 2. Parser handle plus helper efuns
+### 方案二：解析器句柄 + 通用辅助 efun
 
-LPC creates a parser handle per connection and feeds raw chunks into it. The driver owns parsing state, request assembly, header normalization, and form/query decoding. LPC receives completed request mappings.
+LPC 为每个连接创建一个 parser handle，把原始 chunk 送进解析器。驱动内部负责解析状态、请求组包、header 规范化以及 query/form 解码。LPC 拿到完整 request mapping 后，再做业务流程。
 
-Pros:
+优点：
 
-- Clean separation between transport and protocol helpers.
-- Easy to test incrementally.
-- Keeps routing and business logic in LPC.
-- More reusable than an `fd`-bound design.
+- 传输层和协议辅助层边界清晰
+- 易于做增量测试
+- 路由和业务逻辑仍然留在 LPC
+- 比 `fd` 绑定方案更通用、可复用
 
-Cons:
+缺点：
 
-- LPC must manage parser lifecycle per connection.
-- Slightly larger public API than a fully `fd`-bound design.
+- LPC 需要自己管理每个连接对应的 parser 生命周期
+- 公开 API 会比完全 `fd` 绑定方案稍大一点
 
-Recommendation:
+推荐：
 
-This is the recommended approach. It moves the fragile protocol work into the driver without introducing a heavy framework or over-coupling to the socket subsystem.
+这是本次推荐方案。它把最脆弱的协议处理从 LPC 挪到驱动，但又不会把驱动做成一个沉重的 HTTP 框架，也不会过度耦合 socket 子系统。
 
-### 3. High-level driver-managed HTTP service
+### 方案三：驱动直接提供高层 HTTP 服务
 
-The driver would provide a higher-level service abstraction that accepts requests and dispatches controllers directly.
+例如驱动直接接受请求并帮 LPC 做控制器调度。
 
-Pros:
+优点：
 
-- Smallest LPC implementation.
+- LPC 代码量最少
 
-Cons:
+缺点：
 
-- Pushes application design decisions into the driver.
-- Harder to preserve existing LPC controller patterns.
-- Too opinionated for the current goal.
+- 会把应用层的设计决策写死在驱动里
+- 不利于保留现有 LPC 控制器模式
+- 对当前目标来说过重、过早
 
-This approach is intentionally rejected.
+因此这个方案不采用。
 
-## Proposed API
+## 建议的 API
 
-### String and form helpers
+### 字符串与表单辅助函数
 
 ```c
 string url_decode(string s);
@@ -124,20 +124,20 @@ mapping http_decode_query(string s);
 mapping http_decode_form(string body);
 ```
 
-Behavior:
+语义：
 
-- `url_decode` decodes percent-encoded sequences and treats `+` as space where appropriate for query/form data.
-- `url_encode` encodes reserved characters into a safe URL form.
-- `http_decode_query` converts a query string such as `a=1&b=2` into a mapping.
-- `http_decode_form` decodes `application/x-www-form-urlencoded` payloads into a mapping.
+- `url_decode` 负责解码 `%xx` 形式的转义，并在 query/form 场景下正确处理 `+`
+- `url_encode` 负责把保留字符编码成可安全放进 URL 的形式
+- `http_decode_query` 把 `a=1&b=2` 这样的查询串转成 mapping
+- `http_decode_form` 把 `application/x-www-form-urlencoded` 请求体转成 mapping
 
-Initial mapping behavior:
+初始版本的 mapping 行为建议如下：
 
-- Keys and values are decoded strings.
-- Empty values are allowed.
-- Repeated keys may either collect into an array or use last-write-wins semantics. For this iteration, last-write-wins is the simpler default unless the existing codebase strongly prefers arrays.
+- key 和 value 都是解码后的字符串
+- 允许空值
+- 重复 key 先采用“后值覆盖前值”的简单语义，除非实现阶段确认现有代码更需要数组聚合
 
-### Stateful HTTP parser helpers
+### 有状态 HTTP 解析器接口
 
 ```c
 mixed http_parser_create();
@@ -145,23 +145,23 @@ mapping http_parser_feed(mixed parser, string chunk);
 void http_parser_close(mixed parser);
 ```
 
-Behavior:
+语义：
 
-- `http_parser_create` returns an opaque parser handle.
-- `http_parser_feed` accepts the next raw chunk and returns a structured result.
-- `http_parser_close` frees parser state.
+- `http_parser_create` 返回一个不透明的 parser handle
+- `http_parser_feed` 接收下一段原始字节串并返回结构化结果
+- `http_parser_close` 释放解析器状态
 
-`http_parser_feed` returns a mapping with this shape:
+`http_parser_feed` 的返回值形状建议为：
 
 ```c
 ([
-  "requests": ({ /* zero or more request mappings */ }),
+  "requests": ({ /* 0 个或多个完整请求 mapping */ }),
   "error": 0,
   "need_more": 1,
 ])
 ```
 
-Or, on parse failure:
+如果解析失败，则返回：
 
 ```c
 ([
@@ -175,33 +175,33 @@ Or, on parse failure:
 ])
 ```
 
-Semantics:
+语义说明：
 
-- `requests` contains zero or more complete requests assembled from the current parser buffer.
-- `need_more` is true when no error occurred but the parser needs more bytes to finish the current request.
-- `error` is either `0` or a structured error mapping suitable for direct HTTP error handling in LPC.
+- `requests` 表示当前缓冲区里已经凑齐的完整请求，可以是 0 个、1 个或多个
+- `need_more` 表示当前没有错误，但还需要更多字节才能组成完整请求
+- `error` 为 `0` 或一个结构化错误 mapping，便于 LPC 直接据此返回 HTTP 错误响应
 
-The array form for `requests` allows one chunk to yield zero, one, or multiple complete requests.
+之所以用 `requests` 数组，是因为一次读取可能读不到完整请求，也可能刚好读到一个完整请求，甚至可能一次读到多个完整请求。
 
-### HTTP response builder
+### HTTP 响应拼装函数
 
 ```c
 string http_build_response(int status, mapping headers, string body);
 ```
 
-Behavior:
+语义：
 
-- Builds a valid HTTP response string.
-- Uses a built-in reason phrase for common status codes.
-- Auto-populates `Content-Length`.
-- Defaults `Connection` to `close` when not provided.
-- Leaves body generation to LPC.
+- 生成标准 HTTP 响应字符串
+- 内置常见状态码对应的 reason phrase
+- 自动补 `Content-Length`
+- 如果未显式指定，则默认补 `Connection: close`
+- body 内容由 LPC 自己准备
 
-This helper does not encode JSON and does not choose content type automatically.
+这个函数不负责 JSON 编码，也不自动推断 `content-type`。
 
-## Request Mapping Shape
+## 请求对象的结构
 
-Each complete request returned by `http_parser_feed` should use a stable, plain mapping shape:
+`http_parser_feed` 返回的每个完整请求，建议使用一个稳定、朴素的 mapping 结构：
 
 ```c
 ([
@@ -219,102 +219,102 @@ Each complete request returned by `http_parser_feed` should use a stable, plain 
 ])
 ```
 
-Notes:
+补充说明：
 
-- Header keys are normalized to lowercase.
-- Both raw and decoded request data are preserved.
-- `form` is populated for `application/x-www-form-urlencoded` only.
-- Request metadata such as remote address remains outside the parser for now and can still be obtained from socket APIs in LPC.
+- `headers` 的 key 统一小写
+- 原始数据和解码后的结果同时保留
+- `form` 仅在 `application/x-www-form-urlencoded` 时填充
+- 诸如远端地址这类连接元数据，当前先不放进 parser 结果里，仍然由 LPC 通过 socket API 获取
 
-## LPC Integration Plan
+## LPC 集成后的形态
 
-`lpc_example_http/httpd.c` becomes much thinner:
+`lpc_example_http/httpd.c` 会明显变薄，主流程大致变成：
 
-1. Accept a socket connection.
-2. Create a parser handle for that connection.
-3. Feed each raw chunk to `http_parser_feed`.
-4. If `need_more`, wait for more data.
-5. If `error`, build an error response with `http_build_response` and close.
-6. For each request:
-   - parse controller and function from the path
-   - validate method
-   - check IP whitelist
-   - call the controller
-   - `json_encode` the result
-   - use `http_build_response` to format the response
-7. Close the parser when the connection ends.
+1. 接受 socket 连接
+2. 为该连接创建 parser handle
+3. 每次读到 chunk 时调用 `http_parser_feed`
+4. 如果 `need_more` 为真，就继续等待更多数据
+5. 如果有 `error`，就用 `http_build_response` 生成错误响应并关闭连接
+6. 对每个完整请求执行：
+   - 从 path 中拆出 controller 和 function
+   - 校验 method
+   - 检查 IP 白名单
+   - 调用控制器
+   - 对结果执行 `json_encode`
+   - 用 `http_build_response` 生成响应
+7. 连接结束时关闭 parser
 
-This removes the need for LPC to implement:
+这样以后 LPC 不再需要自己处理：
 
-- request-line and header/body splitting
-- partial body assembly
-- header normalization
-- URL decoding helpers scattered across controllers
-- handwritten response formatting
+- 请求行和 header/body 边界拆分
+- 半包 body 组装
+- header 规范化
+- 控制器里零散的 URL 解码函数
+- 手写 HTTP 响应字符串
 
-## Compatibility Strategy
+## 兼容策略
 
-The initial migration should preserve current controller behavior as much as possible.
+第一阶段建议尽量保持现有控制器调用方式不变。
 
-Short term:
+短期策略：
 
-- Controllers can continue to receive positional string arguments if the HTTP daemon maps decoded query/form values into the existing call shape.
-- The HTTP daemon becomes the only place that translates from request mappings to current controller invocation style.
+- 控制器仍然可以继续接收位置参数字符串
+- HTTP 守护进程负责把 `request["query"]` / `request["form"]` 转换成现有控制器所需的参数形式
 
-Later, if desired:
+后续如果需要，再考虑：
 
-- Controllers may be upgraded to accept a full request mapping directly.
-- That change should be optional and separate from the protocol-helper introduction.
+- 让控制器直接接收完整 request mapping
+- 但这应当是单独的一步，不和本次协议层下沉耦合在一起
 
-This staged approach keeps the protocol cleanup independent from business-layer interface changes.
+这样能把“协议层整理”与“业务接口升级”拆开，降低一次改动的风险。
 
-## Error Handling
+## 错误处理
 
-The parser should report structured HTTP-friendly errors instead of throwing generic LPC-visible failures for malformed input.
+解析器对于畸形请求，应返回结构化、可直接映射到 HTTP 的错误，而不是抛出笼统异常让 LPC 自己猜。
 
-Expected categories include:
+至少应覆盖这些类别：
 
-- malformed request line
-- malformed header line
-- missing or invalid `Content-Length`
-- incomplete body
-- unsupported transfer mode
+- 错误的请求行
+- 错误的 header 行
+- 缺失或非法的 `Content-Length`
+- body 未接收完整
+- 暂不支持的传输模式
 
-This lets LPC return a standard error response without guessing how to interpret parser failures.
+这样 LPC 层只需要根据 `error` mapping 统一返回标准 HTTP 错误响应。
 
-## Testing Strategy
+## 测试策略
 
-The highest-value tests are protocol boundary tests rather than routing tests.
+最有价值的测试不是路由，而是协议边界测试。
 
-Required coverage:
+需要覆盖：
 
-- request split across multiple reads
-- request headers in one read and body in later reads
-- complete request in a single read
-- multiple complete requests in one read
-- valid and invalid `Content-Length`
-- URL decoding for `%xx` and `+`
-- query string decoding into mappings
-- form decoding for `application/x-www-form-urlencoded`
-- header normalization to lowercase keys
-- response `Content-Length` correctness for UTF-8 content
+- 一个请求被拆成多次读取
+- header 在一次读取里，body 在后续读取里
+- 一次读取正好是一个完整请求
+- 一次读取里包含多个完整请求
+- 合法和非法的 `Content-Length`
+- `%xx` 与 `+` 的 URL 解码
+- 查询串解码为 mapping
+- `application/x-www-form-urlencoded` 表单解码
+- header key 规范化为小写
+- UTF-8 内容下 `Content-Length` 的正确性
 
-Recommended testing layers:
+建议的测试层次：
 
-- driver-level unit tests for parser behavior and helper efuns
-- LPC example tests to verify the simplified daemon flow still works end to end
+- 驱动层单元测试，验证 parser 与辅助 efun 的行为
+- LPC 示例的端到端测试，验证简化后的 `httpd.c` 流程仍然可用
 
-## Open Choices
+## 暂时保留的开放点
 
-These are intentionally deferred unless implementation pressure says otherwise:
+以下问题先不在本轮定死，除非实现时确实需要立刻拍板：
 
-- whether repeated query/form keys should collect into arrays
-- whether `HEAD` should suppress body emission in `http_build_response` or remain an LPC concern
-- whether a future parser version should expose additional metadata such as raw request line or connection flags
+- 重复 query/form key 是否要聚合成数组
+- `HEAD` 请求是否要在 `http_build_response` 中特殊处理为“不发 body”
+- 将来是否需要额外暴露更底层的元数据，例如原始请求行、连接标志等
 
-## Recommendation
+## 最终建议
 
-Implement the parser-handle design with these efuns:
+本次建议在驱动里实现以下 efun：
 
 - `url_decode`
 - `url_encode`
@@ -325,4 +325,4 @@ Implement the parser-handle design with these efuns:
 - `http_parser_close`
 - `http_build_response`
 
-This is the smallest useful set that meaningfully reduces LPC protocol glue while preserving application control in LPC.
+这是一组“最小但足够有用”的能力集合，能明显减轻 LPC 里的协议胶水负担，同时又保留应用控制权在 LPC 层。
