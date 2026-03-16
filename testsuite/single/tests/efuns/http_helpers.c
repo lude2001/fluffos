@@ -6,11 +6,12 @@ void do_tests() {
   ASSERT_EQ("/adm/foo bar", url_decode("%2Fadm%2Ffoo+bar"));
   ASSERT_EQ("%2Fadm%2Ffoo%20bar", url_encode("/adm/foo bar"));
 
-  query = http_decode_query("a=1&b=2&empty=&encoded=%2Fadm%2Ffoo+bar");
+  query = http_decode_query("a=1&b=2&empty=&encoded=%2Fadm%2Ffoo+bar&encoded2=hello%20world");
   ASSERT_EQ("1", query["a"]);
   ASSERT_EQ("2", query["b"]);
   ASSERT_EQ("", query["empty"]);
   ASSERT_EQ("/adm/foo bar", query["encoded"]);
+  ASSERT_EQ("hello world", query["encoded2"]);
   ASSERT_EQ(([]), http_decode_query(""));
 
   form = http_decode_form("file=%2Fadm%2Ffoo.c&name=hello+world");
