@@ -4,31 +4,31 @@ title: sockets / url_decode
 ---
 # url_decode
 
-### NAME
+### 名称
 
-    url_decode() - decode a percent-encoded URL string
+    url_decode() - 解码百分号编码的 URL 字符串
 
-### SYNOPSIS
+### 语法
 
     string url_decode(string value);
 
-### DESCRIPTION
+### 说明
 
-    url_decode() decodes `%xx` escape sequences and also converts `+` into a
-    space. This matches the behavior commonly needed for query strings and
-    `application/x-www-form-urlencoded` request bodies.
+    url_decode() 会解码 `%xx` 形式的转义序列，同时把 `+` 转换为空格。
+    这与查询字符串以及 `application/x-www-form-urlencoded`
+    请求体常见所需的行为一致。
 
-    Invalid `%` sequences are left in place.
+    非法的 `%` 转义序列会原样保留。
 
-### RETURN VALUE
+### 返回值
 
-    Returns the decoded string.
+    返回解码后的字符串。
 
-### EXAMPLE
+### 示例
 
     url_decode("%2Fadm%2Ffoo+bar")
-    // returns "/adm/foo bar"
+    // 返回 "/adm/foo bar"
 
-### SEE ALSO
+### 另见
 
     url_encode(3), http_decode_query(3), http_decode_form(3)

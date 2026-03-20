@@ -500,5 +500,41 @@ void f_http_parser_close() {
 }
 #endif
 
+#ifdef F_HTTP_RESPONSE_PARSER_CREATE
+void f_http_response_parser_create() { push_number(http_response_parser_create_handle()); }
+#endif
+
+#ifdef F_HTTP_RESPONSE_PARSER_FEED
+void f_http_response_parser_feed() {
+  auto *arg = sp - 1;
+  mapping_t *result;
+
+  if (arg[0].type != T_NUMBER) {
+    bad_arg(1, F_HTTP_RESPONSE_PARSER_FEED);
+  }
+  if (arg[1].type != T_STRING) {
+    bad_arg(2, F_HTTP_RESPONSE_PARSER_FEED);
+  }
+
+  result = http_response_parser_feed_handle(arg[0].u.number, arg[1].u.string);
+  free_string_svalue(sp);
+  sp--;
+  sp->type = T_MAPPING;
+  sp->subtype = 0;
+  sp->u.map = result;
+}
+#endif
+
+#ifdef F_HTTP_RESPONSE_PARSER_CLOSE
+void f_http_response_parser_close() {
+  if (sp->type != T_NUMBER) {
+    bad_arg(1, F_HTTP_RESPONSE_PARSER_CLOSE);
+  }
+
+  http_response_parser_close_handle(sp->u.number);
+  pop_stack();
+}
+#endif
+
 
 #endif

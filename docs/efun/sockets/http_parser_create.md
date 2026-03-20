@@ -4,30 +4,30 @@ title: sockets / http_parser_create
 ---
 # http_parser_create
 
-### NAME
+### 名称
 
-    http_parser_create() - create an incremental HTTP request parser
+    http_parser_create() - 创建一个增量式 HTTP 请求解析器
 
-### SYNOPSIS
+### 语法
 
     mixed http_parser_create();
 
-### DESCRIPTION
+### 说明
 
-    http_parser_create() creates a parser handle that can be passed to
-    http_parser_feed() and http_parser_close().
+    http_parser_create() 会创建一个解析器句柄，可传给
+    `http_parser_feed()` 和 `http_parser_close()` 使用。
 
-    The handle keeps the parser's buffered byte stream between calls so LPC
-    code can feed socket data incrementally.
+    该句柄会在多次调用之间保留解析器缓存的字节流，因此 LPC 代码可以按
+    chunk 逐步喂入 socket 数据。
 
-### RETURN VALUE
+### 返回值
 
-    Returns a parser handle.
+    返回一个解析器句柄。
 
-### EXAMPLE
+### 示例
 
     mixed parser = http_parser_create();
 
-### SEE ALSO
+### 另见
 
     http_parser_feed(3), http_parser_close(3)

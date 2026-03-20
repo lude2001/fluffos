@@ -4,39 +4,38 @@ title: sockets / http_build_response
 ---
 # http_build_response
 
-### NAME
+### 名称
 
-    http_build_response() - build an HTTP/1.1 response string
+    http_build_response() - 构造一个 HTTP/1.1 响应字符串
 
-### SYNOPSIS
+### 语法
 
     string http_build_response(int status, mapping headers, string body);
 
-### DESCRIPTION
+### 说明
 
-    http_build_response() assembles a complete HTTP/1.1 response message from
-    a status code, header mapping, and body string.
+    http_build_response() 会根据状态码、响应头 mapping 和响应体字符串，
+    组装出一条完整的 HTTP/1.1 响应报文。
 
-    The efun automatically adds:
+    该 efun 会自动补充：
 
-    - `Content-Length` when it is not already present
-    - `Connection: close` when it is not already present
-    - a standard reason phrase for common status codes
+    - 如果尚未提供，则补上 `Content-Length`
+    - 如果尚未提供，则补上 `Connection: close`
+    - 为常见状态码补上标准 reason phrase
 
-    Header values passed in `headers` are preserved as provided.
+    `headers` 中传入的 header value 会按原样保留。
 
-### RETURN VALUE
+### 返回值
 
-    Returns the full response string, including the status line, headers, the
-    blank line, and the body.
+    返回完整的响应字符串，其中包含状态行、响应头、空行以及响应体。
 
-### EXAMPLE
+### 示例
 
     string body = "{\"ok\":true}";
     string res = http_build_response(200, ([
         "content-type": "application/json; charset=UTF-8",
     ]), body);
 
-### SEE ALSO
+### 另见
 
     http_parser_feed(3)

@@ -4,24 +4,24 @@ title: sockets / http_parser_feed
 ---
 # http_parser_feed
 
-### NAME
+### 名称
 
-    http_parser_feed() - feed raw bytes into an incremental HTTP parser
+    http_parser_feed() - 向增量式 HTTP 解析器喂入原始字节数据
 
-### SYNOPSIS
+### 语法
 
     mapping http_parser_feed(mixed parser, string chunk);
 
-### DESCRIPTION
+### 说明
 
-    http_parser_feed() appends `chunk` to the parser's buffered data and
-    returns a mapping with three keys:
+    http_parser_feed() 会把 `chunk` 追加到解析器缓存中，并返回一个
+    包含三个 key 的 mapping：
 
-    - `requests` : an array of zero or more complete request mappings
-    - `error` : `0` on success, or an error mapping on parse failure
-    - `need_more` : non-zero when more bytes are required to finish a request
+    - `requests` : 0 个或多个完整请求 mapping 组成的数组
+    - `error` : 成功时为 `0`，解析失败时为一个错误 mapping
+    - `need_more` : 非 0 表示还需要更多字节才能组成完整请求
 
-    Each request mapping contains:
+    每个请求 mapping 包含：
 
     - `method`
     - `path`
@@ -32,16 +32,16 @@ title: sockets / http_parser_feed
     - `body`
     - `form`
 
-    Header names are normalized to lowercase.
+    header 名会统一规范化为小写。
 
-    The parser currently supports request bodies framed by `Content-Length`.
-    It does not implement `Transfer-Encoding: chunked`.
+    当前解析器支持按 `Content-Length` 定界的请求体。
+    目前不支持 `Transfer-Encoding: chunked`。
 
-### RETURN VALUE
+### 返回值
 
-    Returns the result mapping described above.
+    返回上面描述的结果 mapping。
 
-### EXAMPLE
+### 示例
 
     mixed parser = http_parser_create();
     mapping result = http_parser_feed(parser,
@@ -49,7 +49,7 @@ title: sockets / http_parser_feed
         "Host: example.com\r\n"
         "\r\n");
 
-### SEE ALSO
+### 另见
 
     http_parser_create(3), http_parser_close(3), http_decode_query(3),
     http_decode_form(3)

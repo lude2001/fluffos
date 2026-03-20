@@ -23,6 +23,9 @@
     mixed http_parser_create();
     mapping http_parser_feed(mixed, string);
     void http_parser_close(mixed);
+    mixed http_response_parser_create();
+    mapping http_response_parser_feed(mixed, string);
+    void http_response_parser_close(mixed);
     /*
      * ret[0] = (int) fd
      * ret[1] = (string) state

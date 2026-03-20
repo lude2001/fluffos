@@ -4,30 +4,31 @@ title: sockets / url_encode
 ---
 # url_encode
 
-### NAME
+### 名称
 
-    url_encode() - percent-encode a URL string
+    url_encode() - 对 URL 字符串做百分号编码
 
-### SYNOPSIS
+### 语法
 
     string url_encode(string value);
 
-### DESCRIPTION
+### 说明
 
-    url_encode() percent-encodes all characters outside the unreserved URL
-    set (`A-Z`, `a-z`, `0-9`, `-`, `_`, `.`, `~`).
+    url_encode() 会把 URL 中所有不属于保留安全字符集合的字符进行
+    百分号编码。该安全字符集合为：
+    `A-Z`、`a-z`、`0-9`、`-`、`_`、`.`、`~`。
 
-    Spaces are encoded as `%20`.
+    空格会被编码为 `%20`。
 
-### RETURN VALUE
+### 返回值
 
-    Returns the encoded string.
+    返回编码后的字符串。
 
-### EXAMPLE
+### 示例
 
     url_encode("/adm/foo bar")
-    // returns "%2Fadm%2Ffoo%20bar"
+    // 返回 "%2Fadm%2Ffoo%20bar"
 
-### SEE ALSO
+### 另见
 
     url_decode(3), http_decode_query(3), http_decode_form(3)

@@ -17,6 +17,7 @@ struct HttpParserState {
 };
 
 std::vector<HttpParserState> g_http_parsers;
+std::vector<HttpParserState> g_http_response_parsers;
 
 std::string lower_ascii(std::string_view input) {
   std::string lowered;
@@ -163,19 +164,72 @@ mapping_t *build_request_mapping(const std::string &method, const std::string &p
   return request;
 }
 
-mapping_t *build_feed_result(const std::vector<mapping_t *> &requests, mapping_t *error,
-                             bool need_more) {
-  mapping_t *result = allocate_mapping(3);
-  array_t *request_array = allocate_empty_array(requests.size());
+bool parse_status_line(std::string_view line, std::string *version, int *status_code,
+                       std::string *reason) {
+  size_t first_space = line.find(' ');
+  size_t second_space;
+  std::string_view status_view;
 
-  for (size_t i = 0; i < requests.size(); i++) {
-    request_array->item[i].type = T_MAPPING;
-    request_array->item[i].subtype = 0;
-    request_array->item[i].u.map = requests[i];
+  if (first_space == std::string_view::npos) {
+    return false;
   }
 
-  add_mapping_array(result, "requests", request_array);
-  request_array->ref--;
+  second_space = line.find(' ', first_space + 1);
+  if (second_space == std::string_view::npos) {
+    second_space = line.size();
+  }
+
+  *version = std::string(line.substr(0, first_space));
+  status_view = line.substr(first_space + 1, second_space - first_space - 1);
+  *reason = second_space == line.size() ? "" : std::string(line.substr(second_space + 1));
+
+  if (version->size() <= 5 || version->substr(0, 5) != "HTTP/" || status_view.size() != 3) {
+    return false;
+  }
+
+  *status_code = 0;
+  for (unsigned char ch : status_view) {
+    if (!std::isdigit(ch)) {
+      return false;
+    }
+    *status_code = *status_code * 10 + (ch - '0');
+  }
+
+  return true;
+}
+
+bool response_status_has_no_body(int status_code) {
+  return (status_code >= 100 && status_code < 200) || status_code == 204 || status_code == 304;
+}
+
+mapping_t *build_response_mapping(const std::string &version, int status_code,
+                                  const std::string &reason, mapping_t *headers,
+                                  const std::string &body) {
+  mapping_t *response = allocate_mapping(5);
+
+  add_mapping_string(response, "version", version.c_str());
+  add_mapping_pair(response, "status_code", status_code);
+  add_mapping_string(response, "reason", reason.c_str());
+  add_mapping_mapping(response, "headers", headers);
+  headers->ref--;
+  add_mapping_string(response, "body", body.c_str());
+
+  return response;
+}
+
+mapping_t *build_feed_result(const char *items_key, const std::vector<mapping_t *> &items,
+                             mapping_t *error, bool need_more) {
+  mapping_t *result = allocate_mapping(3);
+  array_t *item_array = allocate_empty_array(items.size());
+
+  for (size_t i = 0; i < items.size(); i++) {
+    item_array->item[i].type = T_MAPPING;
+    item_array->item[i].subtype = 0;
+    item_array->item[i].u.map = items[i];
+  }
+
+  add_mapping_array(result, items_key, item_array);
+  item_array->ref--;
 
   if (error) {
     add_mapping_mapping(result, "error", error);
@@ -194,6 +248,19 @@ HttpParserState *find_http_parser(LPC_INT handle) {
   }
 
   auto &state = g_http_parsers[handle - 1];
+  if (!state.in_use) {
+    return nullptr;
+  }
+
+  return &state;
+}
+
+HttpParserState *find_http_response_parser(LPC_INT handle) {
+  if (handle < 1 || static_cast<size_t>(handle) > g_http_response_parsers.size()) {
+    return nullptr;
+  }
+
+  auto &state = g_http_response_parsers[handle - 1];
   if (!state.in_use) {
     return nullptr;
   }
@@ -310,11 +377,149 @@ mapping_t *http_parser_feed_handle(LPC_INT handle, std::string_view chunk) {
     }
   }
 
-  return build_feed_result(requests, error_map, need_more);
+  return build_feed_result("requests", requests, error_map, need_more);
 }
 
 void http_parser_close_handle(LPC_INT handle) {
   auto *state = find_http_parser(handle);
+
+  if (!state) {
+    return;
+  }
+
+  state->buffer.clear();
+  state->in_use = false;
+}
+
+LPC_INT http_response_parser_create_handle() {
+  for (size_t i = 0; i < g_http_response_parsers.size(); i++) {
+    if (!g_http_response_parsers[i].in_use) {
+      g_http_response_parsers[i].in_use = true;
+      g_http_response_parsers[i].buffer.clear();
+      return static_cast<LPC_INT>(i + 1);
+    }
+  }
+
+  g_http_response_parsers.push_back(HttpParserState{true, ""});
+  return static_cast<LPC_INT>(g_http_response_parsers.size());
+}
+
+mapping_t *http_response_parser_feed_handle(LPC_INT handle, std::string_view chunk) {
+  auto *state = find_http_response_parser(handle);
+  std::vector<mapping_t *> responses;
+  mapping_t *error_map = nullptr;
+  bool need_more = false;
+
+  if (!state) {
+    error("Attempt to use an invalid HTTP response parser handle\n");
+  }
+
+  state->buffer.append(chunk.data(), chunk.size());
+
+  while (true) {
+    size_t header_end = state->buffer.find("\r\n\r\n");
+    std::string version;
+    std::string reason;
+    int status_code = 0;
+    mapping_t *headers;
+    size_t content_length = 0;
+    bool has_content_length = false;
+    bool has_transfer_encoding = false;
+
+    if (header_end == std::string::npos) {
+      need_more = true;
+      break;
+    }
+
+    std::string_view head(state->buffer.data(), header_end);
+    size_t line_end = head.find("\r\n");
+    std::string_view status_line =
+        line_end == std::string_view::npos ? head : head.substr(0, line_end);
+    size_t offset = line_end == std::string_view::npos ? head.size() : line_end + 2;
+
+    if (!parse_status_line(status_line, &version, &status_code, &reason)) {
+      error_map = make_error(400, "malformed_status_line", "Invalid HTTP status line");
+      break;
+    }
+
+    headers = allocate_mapping(4);
+    while (offset < head.size()) {
+      size_t next_end = head.find("\r\n", offset);
+      std::string_view raw_line =
+          next_end == std::string_view::npos ? head.substr(offset) : head.substr(offset, next_end - offset);
+      size_t colon = raw_line.find(':');
+      std::string header_name;
+      std::string header_value;
+
+      if (colon == std::string_view::npos || colon == 0) {
+        free_mapping(headers);
+        error_map = make_error(400, "malformed_header", "Invalid HTTP header line");
+        break;
+      }
+
+      header_name = lower_ascii(trim_ascii(raw_line.substr(0, colon)));
+      header_value = trim_ascii(raw_line.substr(colon + 1));
+      add_mapping_string(headers, header_name.c_str(), header_value.c_str());
+
+      if (header_name == "content-length") {
+        if (!parse_content_length(header_value, &content_length)) {
+          free_mapping(headers);
+          error_map = make_error(400, "invalid_content_length", "Invalid Content-Length header");
+          break;
+        }
+        has_content_length = true;
+      } else if (header_name == "transfer-encoding") {
+        has_transfer_encoding = true;
+      }
+
+      if (next_end == std::string_view::npos) {
+        offset = head.size();
+      } else {
+        offset = next_end + 2;
+      }
+    }
+
+    if (error_map) {
+      break;
+    }
+
+    if (has_transfer_encoding) {
+      free_mapping(headers);
+      error_map = make_error(400, "unsupported_transfer_encoding",
+                             "Transfer-Encoding is not supported");
+      break;
+    }
+
+    if (!has_content_length) {
+      if (!response_status_has_no_body(status_code)) {
+        free_mapping(headers);
+        error_map = make_error(400, "unsupported_body_framing",
+                               "HTTP response requires Content-Length");
+        break;
+      }
+      content_length = 0;
+    }
+
+    if (state->buffer.size() < header_end + 4 + content_length) {
+      free_mapping(headers);
+      need_more = true;
+      break;
+    }
+
+    std::string body = state->buffer.substr(header_end + 4, content_length);
+    responses.push_back(build_response_mapping(version, status_code, reason, headers, body));
+    state->buffer.erase(0, header_end + 4 + content_length);
+
+    if (state->buffer.empty()) {
+      break;
+    }
+  }
+
+  return build_feed_result("responses", responses, error_map, need_more);
+}
+
+void http_response_parser_close_handle(LPC_INT handle) {
+  auto *state = find_http_response_parser(handle);
 
   if (!state) {
     return;
