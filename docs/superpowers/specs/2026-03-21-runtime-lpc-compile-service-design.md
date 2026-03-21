@@ -1,57 +1,57 @@
-# Runtime LPC Compile Service Design
+# 运行时 LPC 编译服务设计
 
-**Goal:** Expose FluffOS's real LPC compile-and-load behavior to local development tools through a driver-owned IPC service, so external programs can request file or directory recompilation and receive structured diagnostics without booting a separate temporary environment.
+**目标：** 通过由 `driver` 持有的本地 IPC 服务，把 FluffOS 的真实 LPC 编译与装载行为暴露给本地开发工具，使外部程序可以请求单文件或目录级重编译，并拿到结构化诊断结果，而不需要为每次请求临时启动一套独立环境。
 
-**Context:**
-- LPC compilation is defined by the running FluffOS VM and its current mud environment, not by a standalone compiler process.
-- A valid compile request depends on the live runtime context established by the active config file, including mudlib root, include paths, master object, simul_efun object, and package configuration.
-- Starting a separate temporary process per request would be too slow, too wasteful, and would not reflect the actual running driver state that developers care about.
+**背景：**
+- LPC 的“编译”语义由运行中的 FluffOS 虚拟机和当前 mud 环境共同定义，而不是一个完全独立的离线编译器。
+- 一次有效的编译请求依赖当前 config 文件建立起来的真实运行上下文，包括 mudlib 根目录、include 路径、master object、simul_efun object 以及启用的 package。
+- 如果每次请求都临时拉起一个新的进程，既慢、又浪费，也不能准确反映开发者真正关心的“当前运行中的 driver 环境”。
 
-**Core decision:**
-- The running `driver` process owns the compile service.
-- A new local CLI client, `lpccp`, sends compile requests to that running driver over local IPC.
-- Requests use a stable `id` derived from the config file identity of the running driver instance.
-- Compilation uses real object reload semantics inside the current VM rather than a separate pure-analysis path.
+**核心决策：**
+- 编译服务由运行中的 `driver` 进程直接持有。
+- 新增一个本地命令行客户端 `lpccp`，通过本地 IPC 向正在运行的 `driver` 发送编译请求。
+- 请求使用从运行中 driver 的 config 文件身份派生出来的稳定 `id`。
+- 编译行为采用当前虚拟机中的真实重编译与重装载语义，而不是单独再做一条纯分析路径。
 
-**Non-goals:**
-- No TCP or HTTP transport in the first version.
-- No mudlib socket or mudlib HTTP forwarding layer.
-- No temporary one-shot `lpcc`-style boot per request.
-- No dependency-graph planner or parallel compilation scheduler.
+**非目标：**
+- 第一版不做 TCP 或 HTTP 传输。
+- 不通过 mudlib 的 socket 或 HTTP 层转发编译请求。
+- 不做每次请求都单独启动一次 `lpcc` 风格的一次性进程。
+- 不做依赖图分析器，也不做并行编译调度。
 
-**Identifier model:**
-- Each running driver instance is identified by its normalized config file path.
-- The compile service derives a stable `id` from that config path.
-- Repository assumptions guarantee that one config file is not used by two concurrent driver processes, so config identity is sufficient.
-- `lpccp` never discovers processes dynamically; it resolves a local IPC endpoint from the provided `id`.
+**标识模型：**
+- 每个运行中的 driver 实例都由其规范化后的 config 文件路径唯一标识。
+- 编译服务基于该 config 路径生成稳定的 `id`。
+- 当前仓库约定保证同一份 config 文件不会被两个 driver 同时使用，因此 config 身份足够作为实例身份。
+- `lpccp` 不负责动态发现进程，只根据传入的 `id` 解析出对应的本地 IPC 端点。
 
-**Transport:**
-- Use local IPC only.
-- On Windows, the first implementation uses a named pipe:
+**传输方式：**
+- 仅使用本地 IPC。
+- Windows 第一版使用 named pipe：
   - `\\\\.\\pipe\\fluffos-lpccp-<id>`
-- The driver creates the pipe during startup after config loading is complete.
-- The client connects, sends one request, receives one response, and disconnects.
+- driver 在配置加载完成后创建该管道。
+- 客户端建立连接，发送一次请求，接收一次响应，然后断开。
 
-**Request model:**
+**请求模型：**
 - `lpccp <id> <path>`
-- `<path>` may be:
-  - A single LPC source file
-  - A directory to compile recursively
-- Internally, the request payload is JSON:
+- `<path>` 可以是：
+  - 单个 LPC 源文件
+  - 需要递归编译的目录
+- 进程内部请求负载统一使用 JSON：
 
 ```json
 {"version":1,"op":"compile","target":"/adm/foo/bar.c"}
 ```
 
-or
+或者：
 
 ```json
 {"version":1,"op":"compile","target":"/adm/foo/"}
 ```
 
-**Response model:**
-- The service always returns JSON.
-- File compile response:
+**响应模型：**
+- 服务始终返回 JSON。
+- 单文件编译响应：
 
 ```json
 {
@@ -70,7 +70,7 @@ or
 }
 ```
 
-- Directory compile response:
+- 目录编译响应：
 
 ```json
 {
@@ -103,82 +103,82 @@ or
 }
 ```
 
-**Compilation semantics:**
-- This service performs real runtime recompilation inside the active driver.
-- The service does not use `reload_object()` because `reload_object()` resets runtime state but does not reparse source or load new code.
-- For each target file:
-  - Normalize the target to the object path used by the driver.
-  - If the object is already loaded, find it with `find_object2()`.
-  - Destruct the loaded object with `destruct_object()`.
-  - Flush pending destruct cleanup with `remove_destructed_objects()`.
-  - Recompile and reload by calling the normal object loading path.
-- Successful compilation means the running driver now holds the newly compiled object.
-- Failed compilation means the object may remain absent after the request, which is acceptable for development-mode behavior.
+**编译语义：**
+- 该服务在当前运行中的 driver 内执行真实的运行时重编译。
+- 该服务不使用 `reload_object()`，因为 `reload_object()` 只会重置运行时状态，不会重新解析源码，也不会载入新的程序。
+- 对每个目标文件：
+  - 先把目标路径规范化为 driver 使用的 object path。
+  - 如果对象已经加载，则通过 `find_object2()` 找到它。
+  - 用 `destruct_object()` 销毁已加载对象。
+  - 调用 `remove_destructed_objects()` 刷新待析构队列。
+  - 再调用正常的对象加载路径重新编译并装载。
+- 编译成功意味着当前运行中的 driver 已经持有新的对象版本。
+- 编译失败意味着该对象在请求结束后可能处于未加载状态；对开发环境来说这是可以接受的行为。
 
-**Directory compilation semantics:**
-- Recursively scan the target directory for `.c` files.
-- Sort files lexicographically before compilation so execution order is stable and predictable.
-- Compile files one by one using the same single-file runtime recompilation path.
-- Do not stop on first failure.
-- Aggregate all per-file results into one JSON response.
+**目录编译语义：**
+- 递归扫描目标目录下所有 `.c` 文件。
+- 按字典序稳定排序后逐个编译，确保执行顺序可预测。
+- 每个文件都复用同一套单文件真实重编译逻辑。
+- 某个文件失败时不中断整个目录请求。
+- 最终把所有文件的结果汇总到同一个 JSON 响应里。
 
-**Diagnostics collection:**
-- Reuse the driver's existing compiler diagnostics pipeline rather than inventing a separate warning system.
-- `smart_log()` remains the canonical source for compile warnings and errors.
-- During an IPC compile request, the driver attaches a request-scoped diagnostics collector.
-- `smart_log()` continues to:
-  - emit the normal debug output
-  - invoke `master->log_error`
-- It also appends a structured diagnostic record into the active request collector when one exists.
-- This preserves current runtime behavior while making the same information consumable by tools.
+**诊断收集：**
+- 复用 driver 当前已有的编译诊断链路，而不是再发明一套独立 warning 系统。
+- `smart_log()` 仍然是编译 warning 和 error 的权威出口。
+- 在一次 IPC 编译请求期间，driver 挂载一个请求级别的 diagnostics collector。
+- `smart_log()` 继续保留当前行为：
+  - 输出普通 debug 日志
+  - 调用 `master->log_error`
+- 同时在 collector 存在时，附加写入一条结构化诊断记录。
+- 这样既不会改变现有运行时行为，也能把同样的信息交给外部工具消费。
 
-**Concurrency model:**
-- Compile requests are processed serially.
-- The current FluffOS compile path is not reentrant, so parallel compilation requests are explicitly out of scope.
-- If the service receives a new request while one is active, it should either queue it or reject it with a busy error. The first version should prefer a simple serialized queue.
+**并发模型：**
+- 编译请求串行处理。
+- 当前 FluffOS 的编译链路不是可重入的，所以并行编译显式不在第一版范围内。
+- 如果服务在一个请求还未完成时收到新请求，第一版优先采用简单串行队列，而不是复杂的并发执行模型。
 
-**Failure handling:**
-- IPC connection failure returns a client-side error from `lpccp`.
-- Invalid `id` means no matching local pipe endpoint could be found.
-- Invalid path, access denial, missing files, and parser errors are returned as normal diagnostics or fatal request errors depending on where they occur.
-- Directory requests should preserve partial results even when one file fails.
+**失败处理：**
+- IPC 连接失败由 `lpccp` 以客户端错误返回。
+- 无效 `id` 表示找不到对应的本地 pipe 端点。
+- 非法路径、权限拒绝、文件缺失、语法错误等，根据发生位置返回为正常诊断或请求级致命错误。
+- 目录请求即使部分文件失败，也要保留并返回已经完成的部分结果。
 
-**Implementation split:**
+**实现职责划分：**
 - `driver`
-  - owns service startup and shutdown
-  - resolves config-path-based `id`
-  - listens on named pipe
-  - executes compile requests
-  - collects diagnostics
+  - 负责服务启动与关闭
+  - 负责解析 config-path 对应的 `id`
+  - 负责监听 named pipe
+  - 负责执行编译请求
+  - 负责收集诊断结果
 - `lpccp`
-  - parses CLI arguments
-  - resolves named pipe from `id`
-  - sends one compile request
-  - prints response JSON
-  - sets process exit code from response outcome
+  - 负责解析命令行参数
+  - 负责根据 `id` 解析 named pipe 名称
+  - 负责发送单次编译请求
+  - 负责打印 JSON 响应
+  - 负责根据结果设置进程退出码
 
-**Expected source changes:**
-- Add a compile service module for IPC server behavior.
-- Add a request-scoped diagnostics collector for structured compiler messages.
-- Hook service startup into driver initialization and shutdown.
-- Add a new `lpccp` executable entry point.
-- Add a runtime compile helper that performs force-destruct plus real reload for one LPC file.
-- Add directory traversal and aggregation logic.
+**预期源码变更：**
+- 新增 compile service 模块，承载 IPC 服务行为。
+- 新增请求级 diagnostics collector，用于收集结构化编译信息。
+- 在 driver 初始化和退出流程中挂接 compile service 的启动与关闭。
+- 新增 `lpccp` 可执行程序入口。
+- 新增单文件运行时重编译辅助逻辑，负责“强制销毁 + 真实重载”。
+- 新增目录遍历与聚合逻辑。
 
-**Testing strategy:**
-- Unit-level validation for diagnostics collector formatting.
-- Integration test for single-file compile through the service.
-- Integration test for directory compile aggregation.
-- Regression test proving changed source is actually recompiled, not merely reset.
-- Failure test for syntax errors returning structured diagnostics.
+**测试策略：**
+- 为 diagnostics collector 的格式化逻辑补单元测试。
+- 为单文件 IPC 编译流程补集成测试。
+- 为目录编译聚合结果补集成测试。
+- 为“源码修改后确实重新编译，而不是仅仅 reset”补回归测试。
+- 为语法错误返回结构化诊断补失败路径测试。
 
-**Trade-offs:**
-- Using real runtime recompilation keeps semantics aligned with actual LPC behavior, but it does allow development-time compile requests to affect live object state.
-- This is acceptable because the feature is explicitly intended for local development environments.
-- Avoiding a separate pure-analysis path keeps the implementation smaller and the results closer to what developers see in practice.
+**权衡：**
+- 采用真实运行时重编译，能够保证语义和 LPC 实际运行方式一致，但也意味着开发态编译请求会影响当前对象状态。
+- 这个代价是可接受的，因为该特性明确面向本地开发环境，而不是生产运行时隔离场景。
+- 不再额外维护一条纯分析路径，也让实现更小、更贴近开发者平时看到的真实行为。
 
-**Open assumptions carried into implementation:**
-- Compile service is local-development-only.
-- One config file maps to one running driver instance.
-- Windows named pipes are the initial target transport.
-- Existing warning behavior controlled by LPC pragmas remains unchanged; the service reports what the driver actually emits.
+**进入实现阶段时沿用的前提假设：**
+- 编译服务仅面向本地开发环境。
+- 一份 config 文件只对应一个运行中的 driver 实例。
+- Windows named pipe 是第一版目标传输方式。
+- 现有由 LPC pragma 控制的 warning 行为保持不变，服务只负责把 driver 实际发出的诊断结构化输出。
