@@ -42,11 +42,15 @@ function Sync-Directory {
 }
 
 $driverPath = Join-Path $BuildDir "src\driver.exe"
+$lpccpPath = Join-Path $BuildDir "src\lpccp.exe"
 $msysBinDir = Join-Path $Msys2Root "mingw64\bin"
 $objdumpPath = Join-Path $msysBinDir "objdump.exe"
 
 if (-not (Test-Path $driverPath)) {
     throw "Missing driver.exe at $driverPath"
+}
+if (-not (Test-Path $lpccpPath)) {
+    throw "Missing lpccp.exe at $lpccpPath"
 }
 if (-not (Test-Path $objdumpPath)) {
     throw "Missing objdump.exe at $objdumpPath"
@@ -54,6 +58,7 @@ if (-not (Test-Path $objdumpPath)) {
 
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 Copy-Item -Force $driverPath (Join-Path $DistDir "driver.exe")
+Copy-Item -Force $lpccpPath (Join-Path $DistDir "lpccp.exe")
 
 $systemDlls = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 @(
@@ -75,6 +80,7 @@ $copiedDlls = [System.Collections.Generic.HashSet[string]]::new([System.StringCo
 $queued = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 $queue = [System.Collections.Generic.Queue[string]]::new()
 $queue.Enqueue((Join-Path $DistDir "driver.exe"))
+$queue.Enqueue((Join-Path $DistDir "lpccp.exe"))
 
 while ($queue.Count -gt 0) {
     $current = $queue.Dequeue()
