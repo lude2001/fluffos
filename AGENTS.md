@@ -67,6 +67,23 @@ FluffOS is an LPMUD driver based on the last release of MudOS (v22.2b14) with 10
 
 ## Build Commands
 
+### Preferred Windows Output Workflow
+
+On Windows, the canonical build entry point is the repository-root [`build.cmd`](/D:/code/fluffos/build.cmd).
+
+- Treat `build.cmd` as the primary way to produce runnable Windows artifacts.
+- Treat [`build/dist`](/D:/code/fluffos/build/dist) as the only supported publish/output directory for local Windows builds.
+- Treat [`build/work`](/D:/code/fluffos/build/work) and any other build subdirectories as internal intermediate state only.
+- Do not ask users to run executables out of ad-hoc build directories when `build/dist` is available.
+- Driver-related deliverables should be staged into `build/dist`, currently including:
+  - `driver.exe`
+  - `lpccp.exe`
+  - runtime DLL dependencies
+  - `run-driver.cmd`
+  - `include/`, `std/`, and `www/`
+
+If a task changes how the Windows driver is produced, update `build.cmd` and the dist staging scripts so the final runnable artifacts still land in `build/dist`.
+
 ### Development Build
 
 ```bash
