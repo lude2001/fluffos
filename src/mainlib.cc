@@ -35,6 +35,7 @@
 #include "vm/vm.h"                               // for push_constant_string, etc
 #include "comm.h"                                // for init_user_conn
 #include "backend.h"                             // for backend();
+#include "compile_service.h"
 #include "thirdparty/backward-cpp/backward.hpp"  // for backtracing
 
 // from lex.cc
@@ -211,6 +212,10 @@ void init_tz() {
 }
 }  // namespace
 
+namespace {
+std::string g_current_config_path;
+}
+
 // Return the argument at the given position, start from 0.
 std::string get_argument(unsigned int pos, int argc, char **argv) {
   int argpos = 0;
@@ -245,6 +250,8 @@ struct event_base *init_main(std::string_view config_file) {
 #ifdef _WIN32
   init_win32();
 #endif
+
+  g_current_config_path = std::string(config_file);
 
   read_config(config_file.data());
 
@@ -392,6 +399,7 @@ int driver_main(int argc, char **argv) {
 
   // Start running.
   vm_start();
+  start_compile_service(config_file);
 
   for (int i = 1; i < argc; i++) {
     if (argv[i][0] != '-') {
@@ -439,6 +447,9 @@ int driver_main(int argc, char **argv) {
   debug_message("Initializations complete.\n\n");
   setup_signal_handlers();
   backend(base);
+  stop_compile_service();
 
   return 0;
 }
+
+std::string current_config_path() { return g_current_config_path; }

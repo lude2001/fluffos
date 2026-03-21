@@ -353,8 +353,10 @@ endif()
 set(SRC
   "backend.cc"
   "comm.cc"
+  "compile_service.cc"
   "mainlib.cc"
   "user.cc"
+  "runtime_compile_request.cc"
   "symbol.cc"
   "ofile.cc"
   "net/msp.cc"

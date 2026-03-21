@@ -1,11 +1,14 @@
 #ifndef COMPILE_SERVICE_PROTOCOL_H
 #define COMPILE_SERVICE_PROTOCOL_H
 
+#include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
 #include <iomanip>
 #include <nlohmann/json.hpp>
 #include <sstream>
+#include <system_error>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -30,17 +33,32 @@ struct CompileServiceResponse {
   bool ok = false;
   std::string kind;
   std::string target;
+  int files_total = 0;
+  int files_ok = 0;
+  int files_failed = 0;
   std::vector<CompileServiceDiagnostic> diagnostics;
+  std::vector<nlohmann::json> results;
 };
 
 inline std::string normalize_compile_service_path(std::string_view path) {
   std::filesystem::path p(path);
   std::error_code ec;
   auto absolute = std::filesystem::absolute(p, ec);
+  std::filesystem::path normalized = !ec ? absolute.lexically_normal() : p.lexically_normal();
+
+  ec.clear();
+  auto canonical = std::filesystem::weakly_canonical(normalized, ec);
   if (!ec) {
-    return absolute.lexically_normal().generic_string();
+    normalized = canonical;
   }
-  return p.lexically_normal().generic_string();
+
+  auto result = normalized.generic_string();
+#ifdef _WIN32
+  std::transform(result.begin(), result.end(), result.begin(), [](unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+  });
+#endif
+  return result;
 }
 
 inline std::uint64_t fnv1a_64(std::string_view text) {
@@ -102,7 +120,11 @@ inline void to_json(nlohmann::json &j, const CompileServiceResponse &value) {
                      {"ok", value.ok},
                      {"kind", value.kind},
                      {"target", value.target},
-                     {"diagnostics", value.diagnostics}};
+                     {"files_total", value.files_total},
+                     {"files_ok", value.files_ok},
+                     {"files_failed", value.files_failed},
+                     {"diagnostics", value.diagnostics},
+                     {"results", value.results}};
 }
 
 inline void from_json(const nlohmann::json &j, CompileServiceResponse &value) {
@@ -110,7 +132,21 @@ inline void from_json(const nlohmann::json &j, CompileServiceResponse &value) {
   j.at("ok").get_to(value.ok);
   j.at("kind").get_to(value.kind);
   j.at("target").get_to(value.target);
-  j.at("diagnostics").get_to(value.diagnostics);
+  if (j.contains("files_total")) {
+    j.at("files_total").get_to(value.files_total);
+  }
+  if (j.contains("files_ok")) {
+    j.at("files_ok").get_to(value.files_ok);
+  }
+  if (j.contains("files_failed")) {
+    j.at("files_failed").get_to(value.files_failed);
+  }
+  if (j.contains("diagnostics")) {
+    j.at("diagnostics").get_to(value.diagnostics);
+  }
+  if (j.contains("results")) {
+    j.at("results").get_to(value.results);
+  }
 }
 
 }  // namespace compile_service

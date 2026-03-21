@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
+#include "compile_service_client.h"
 #include "compile_service_protocol.h"
 
 #ifdef _WIN32
@@ -13,85 +12,21 @@
 #endif
 
 namespace {
-struct ParsedArgs {
-  bool use_explicit_id = false;
-  std::string config_or_id;
-  std::string target;
-};
-
 void print_usage() {
-  std::cerr << "Usage: lpccp <config-path> <path>\n"
-               "   or: lpccp --id <id> <path>\n";
+  std::cerr << compile_service::format_compile_service_usage();
 }
 
-bool parse_args(int argc, char **argv, ParsedArgs *out) {
-  if (argc == 3) {
-    out->config_or_id = argv[1];
-    out->target = argv[2];
-    return true;
-  }
-
-  if (argc == 4 && std::string_view(argv[1]) == "--id") {
-    out->use_explicit_id = true;
-    out->config_or_id = argv[2];
-    out->target = argv[3];
-    return true;
-  }
-
-  return false;
-}
-
-nlohmann::json build_stub_response(const ParsedArgs &args, const std::string &id) {
-  nlohmann::json j;
-  j["version"] = 1;
-  j["ok"] = false;
-  j["kind"] = "client_stub";
-  j["target"] = args.target;
-  j["id"] = id;
-  j["pipe_name"] = compile_service::make_compile_service_pipe_name(id);
-  if (!args.use_explicit_id) {
-    j["config_path"] = compile_service::normalize_compile_service_path(args.config_or_id);
-  }
-  auto diagnostics = nlohmann::json::array();
-  diagnostics.push_back(
-      {{"severity", "info"},
-       {"file", args.use_explicit_id
-                    ? std::string{}
-                    : compile_service::normalize_compile_service_path(args.config_or_id)},
-       {"line", 0},
-       {"message", "lpccp transport stub"}});
-  j["diagnostics"] = diagnostics;
-  return j;
-}
-
-#ifdef _WIN32
-bool can_connect_to_pipe(const std::string &pipe_name) {
-  HANDLE pipe = CreateFileA(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING,
-                            0, nullptr);
-  if (pipe == INVALID_HANDLE_VALUE) {
-    return false;
-  }
-  CloseHandle(pipe);
-  return true;
-}
-
-void print_pipe_connect_error(const std::string &pipe_name) {
-  auto error = GetLastError();
-  std::cerr << "Error: cannot connect to compile service pipe " << pipe_name << " (win32=" << error
-            << ")\n";
-}
-#else
-bool can_connect_to_pipe(const std::string &) { return false; }
-
-void print_pipe_connect_error(const std::string &pipe_name) {
-  std::cerr << "Error: named-pipe transport is only available on Windows for " << pipe_name << '\n';
-}
-#endif
 }  // namespace
 
 int main(int argc, char **argv) {
-  ParsedArgs args;
-  if (!parse_args(argc, argv, &args)) {
+  compile_service::ParsedCompileServiceClientArgs args;
+  std::vector<std::string_view> argv_view;
+  argv_view.reserve(argc > 0 ? static_cast<size_t>(argc - 1) : 0);
+  for (int i = 1; i < argc; i++) {
+    argv_view.emplace_back(argv[i]);
+  }
+
+  if (!compile_service::parse_compile_service_client_args(argv_view, &args)) {
     print_usage();
     return 1;
   }
@@ -99,12 +34,52 @@ int main(int argc, char **argv) {
   const std::string id =
       args.use_explicit_id ? args.config_or_id : compile_service::make_compile_service_id(args.config_or_id);
   const auto pipe_name = compile_service::make_compile_service_pipe_name(id);
-  if (!can_connect_to_pipe(pipe_name)) {
-    print_pipe_connect_error(pipe_name);
+  auto request = compile_service::CompileServiceRequest{};
+  request.target = args.target;
+
+#ifdef _WIN32
+  HANDLE pipe =
+      CreateFileA(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+  if (pipe == INVALID_HANDLE_VALUE) {
+    std::cerr << compile_service::format_compile_service_connect_error(pipe_name, GetLastError());
     return 2;
   }
 
-  const auto response = build_stub_response(args, id);
-  std::cout << response.dump(2) << '\n';
-  return 0;
+  auto payload = nlohmann::json(request).dump() + "\n";
+  DWORD bytes_written = 0;
+  if (!WriteFile(pipe, payload.data(), static_cast<DWORD>(payload.size()), &bytes_written, nullptr)) {
+    std::cerr << compile_service::format_compile_service_connect_error(pipe_name, GetLastError());
+    CloseHandle(pipe);
+    return 2;
+  }
+
+  std::string response_text;
+  char buffer[4096];
+  DWORD bytes_read = 0;
+  while (ReadFile(pipe, buffer, sizeof buffer, &bytes_read, nullptr) && bytes_read > 0) {
+    response_text.append(buffer, buffer + bytes_read);
+    auto pos = response_text.find('\n');
+    if (pos != std::string::npos) {
+      response_text.resize(pos);
+      break;
+    }
+  }
+  CloseHandle(pipe);
+
+  if (response_text.empty()) {
+    auto response = compile_service::build_compile_service_stub_response(args, id);
+    std::cout << response.dump(2) << '\n';
+    return 2;
+  }
+
+  auto response_json = nlohmann::json::parse(response_text);
+  std::cout << response_json.dump(2) << '\n';
+  if (response_json.value("ok", false)) {
+    return 0;
+  }
+  return 1;
+#else
+  std::cerr << compile_service::format_compile_service_connect_error(pipe_name, 0);
+  return 2;
+#endif
 }

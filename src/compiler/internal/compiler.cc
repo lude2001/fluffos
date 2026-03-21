@@ -1,6 +1,7 @@
 #include "base/std.h"
 
 #include "compiler.h"
+#include "compile_service_protocol.h"
 
 #include <cstdlib>  // for qsort
 #include <cstdio>   // for sprintf
@@ -41,6 +42,10 @@ char *inherit_file;
 extern object_t *simul_efun_ob;
 // FIXME: This is used by smart_log().cc
 extern svalue_t *safe_apply_master_ob(int, int);
+
+namespace {
+std::vector<compile_service::CompileServiceDiagnostic> *g_compile_service_diagnostics = nullptr;
+}
 
 static void clean_parser(void);
 static void prolog(std::unique_ptr<LexStream>, const char * /*name*/);
@@ -2790,8 +2795,19 @@ void smart_log(const char *error_file, int line, const char *what, int flag) {
     debug_message("%s", log.c_str());
   }
 
+  if (g_compile_service_diagnostics) {
+    g_compile_service_diagnostics->push_back(
+        compile_service::CompileServiceDiagnostic{flag ? "warning" : "error", add_slash(error_file),
+                                                  line, what});
+  }
+
   auto res = fmt::to_string(fmt::join(logs, ""));
   push_malloced_string(add_slash(error_file));
   copy_and_push_string(res.c_str());
   safe_apply_master_ob(APPLY_LOG_ERROR, 2);
 } /* smart_log() */
+
+void set_compile_service_diagnostics_collector(
+    std::vector<compile_service::CompileServiceDiagnostic> *collector) {
+  g_compile_service_diagnostics = collector;
+}
