@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 为运行中的 FluffOS driver 增加一个本地 IPC 编译服务，并提供 `lpccp <id> <path>` 客户端，让本地工具可以请求单文件或目录级真实重编译并获得 JSON 诊断结果。
+**Goal:** 为运行中的 FluffOS driver 增加一个本地 IPC 编译服务，并提供 `lpccp <config-path> <path>` 客户端，让本地工具可以请求单文件或目录级真实重编译并获得 JSON 诊断结果。
 
 **Architecture:** `driver` 在完成 config 加载和 VM 启动后创建一个基于 config 身份的 named pipe 服务端；每个编译请求都在当前 VM 内按真实 LPC 语义执行“销毁旧对象 -> 重新 load_object() -> 收集 smart_log() 诊断”。`lpccp` 是一个轻量客户端，只负责连 pipe、发 JSON 请求、收 JSON 响应并据此设置退出码。
 
@@ -13,7 +13,7 @@
 ## 文件结构
 
 - 新建 `D:/code/fluffos/src/compile_service_protocol.h`
-  - 共享请求/响应结构、`id` 生成规则、pipe 名称生成规则。
+  - 共享请求/响应结构、`id` 生成规则、pipe 名称生成规则、config 路径规范化规则。
 - 新建 `D:/code/fluffos/src/compile_service.h`
   - 暴露 driver 侧服务生命周期接口。
 - 新建 `D:/code/fluffos/src/compile_service.cc`
@@ -23,7 +23,7 @@
 - 新建 `D:/code/fluffos/src/runtime_compile_request.cc`
   - 实现“强制销毁 + 真实重编译 + 目录聚合”逻辑。
 - 新建 `D:/code/fluffos/src/main_lpccp.cc`
-  - 实现 `lpccp <id> <path>` 客户端入口。
+  - 实现 `lpccp <config-path> <path>` 客户端入口，并保留 `--id` 调试入口。
 - 修改 `D:/code/fluffos/src/mainlib.cc`
   - 在 `driver_main()` 中挂接 compile service 的启动与关闭。
 - 修改 `D:/code/fluffos/src/CMakeLists.txt`
@@ -49,10 +49,10 @@
 - Modify: `D:/code/fluffos/src/CMakeLists.txt`
 - Test: `D:/code/fluffos/src/tests/test_compile_service.cc`
 
-- [ ] 新增协议级测试用例，先只断言 `id` 生成、pipe 名称生成、请求 JSON 编解码接口的期望形状。
+- [ ] 新增协议级测试用例，先只断言 config 路径规范化、`id` 生成、pipe 名称生成、请求 JSON 编解码接口的期望形状。
 - [ ] 运行 `cmake --build build --target lpc_tests`，确认新增测试因为符号缺失或文件缺失而失败。
 - [ ] 在 `compile_service_protocol.h` 中定义共享结构：请求类型、响应类型、诊断记录、`make_compile_service_id()`、`make_compile_service_pipe_name()`。
-- [ ] 在 `main_lpccp.cc` 中写出最小客户端骨架：参数解析、pipe 名称解析、标准输出打印响应文本、标准错误打印连接错误。
+- [ ] 在 `main_lpccp.cc` 中写出最小客户端骨架：参数解析、config 路径转 `id`、pipe 名称解析、标准输出打印响应文本、标准错误打印连接错误。
 - [ ] 在 `src/CMakeLists.txt` 中新增 `lpccp` 目标和安装规则。
 - [ ] 重新运行 `cmake --build build --target lpccp lpc_tests`，确认协议级测试通过、`lpccp` 能完成编译。
 - [ ] 提交本任务，提交信息使用 `feat: add lpccp protocol scaffolding`。
@@ -152,7 +152,7 @@
 - Modify: `D:/code/fluffos/src/main_lpccp.cc`
 - Modify: `D:/code/fluffos/src/tests/test_compile_service.cc`
 
-- [ ] 在测试中先写客户端端到端断言：客户端能连接 pipe、发送单文件请求、打印返回 JSON、按 `ok` 状态设置退出码。
+- [ ] 在测试中先写客户端端到端断言：客户端能接收 config 路径、内部计算 `id`、连接 pipe、发送单文件请求、打印返回 JSON、按 `ok` 状态设置退出码。
 - [ ] 运行 `cmake --build build --target lpccp lpc_tests`，确认端到端测试先失败。
 - [ ] 完成 `main_lpccp.cc` 的 Windows pipe 连接与单请求收发逻辑。
 - [ ] 明确退出码规则：`0` 表示全部成功，`1` 表示存在编译失败，`2` 表示 IPC 或请求级异常。
@@ -160,8 +160,8 @@
 - [ ] 运行 `ctest --test-dir build --output-on-failure -R lpc_tests`，确认端到端测试通过。
 - [ ] 手工验证：
   - 启动 driver：`build/src/driver.exe lpc_example_http/config.hell`
-  - 单文件请求：`build/src/lpccp.exe <id> /adm/single/master.c`
-  - 目录请求：`build/src/lpccp.exe <id> /adm/single/`
+  - 单文件请求：`build/src/lpccp.exe lpc_example_http/config.hell /adm/single/master.c`
+  - 目录请求：`build/src/lpccp.exe lpc_example_http/config.hell /adm/single/`
 - [ ] 提交本任务，提交信息使用 `feat: add lpccp runtime compile client`。
 
 ---
@@ -175,7 +175,7 @@
 - Create or Modify: `D:/code/fluffos/docs/cli/lpccp.md`
 - Verify: `D:/code/fluffos/docs/superpowers/specs/2026-03-21-runtime-lpc-compile-service-design.md`
 
-- [ ] 补充 `lpccp` CLI 文档，覆盖 `id`、文件编译、目录编译、退出码和 JSON 输出。
+- [ ] 补充 `lpccp` CLI 文档，覆盖 config 路径入口、可选 `--id` 调试入口、文件编译、目录编译、退出码和 JSON 输出。
 - [ ] 运行 `cmake --build build --target driver lpccp lpc_tests`。
 - [ ] 运行 `ctest --test-dir build --output-on-failure -R lpc_tests`。
 - [ ] 手工验证一组成功请求和一组语法错误请求，确认 JSON 中 `diagnostics` 字段完整。
