@@ -5,6 +5,8 @@
 
 #include "base/package_api.h"
 
+#include "packages/sockets/http_efuns.h"
+#include "packages/sockets/http_parser.h"
 #include "packages/sockets/socket_efuns.h"
 
 #ifdef _WIN32
@@ -386,6 +388,151 @@ void f_socket_get_option() {
       error("Unknown socket option: %d\n", option);
   }
   pop_2_elems();
+}
+#endif
+
+#ifdef F_URL_DECODE
+void f_url_decode() {
+  if (sp->type != T_STRING) {
+    bad_arg(1, F_URL_DECODE);
+  }
+
+  auto decoded = http_url_decode(sp->u.string, true);
+  free_string_svalue(sp);
+  put_malloced_string(string_copy(decoded.c_str(), "f_url_decode"));
+}
+#endif
+
+#ifdef F_URL_ENCODE
+void f_url_encode() {
+  if (sp->type != T_STRING) {
+    bad_arg(1, F_URL_ENCODE);
+  }
+
+  auto encoded = http_url_encode(sp->u.string);
+  free_string_svalue(sp);
+  put_malloced_string(string_copy(encoded.c_str(), "f_url_encode"));
+}
+#endif
+
+#ifdef F_HTTP_DECODE_QUERY
+void f_http_decode_query() {
+  if (sp->type != T_STRING) {
+    bad_arg(1, F_HTTP_DECODE_QUERY);
+  }
+
+  auto *decoded = http_decode_kv_string(sp->u.string);
+  free_string_svalue(sp);
+  sp->type = T_MAPPING;
+  sp->u.map = decoded;
+}
+#endif
+
+#ifdef F_HTTP_DECODE_FORM
+void f_http_decode_form() {
+  if (sp->type != T_STRING) {
+    bad_arg(1, F_HTTP_DECODE_FORM);
+  }
+
+  auto *decoded = http_decode_kv_string(sp->u.string);
+  free_string_svalue(sp);
+  sp->type = T_MAPPING;
+  sp->u.map = decoded;
+}
+#endif
+
+#ifdef F_HTTP_BUILD_RESPONSE
+void f_http_build_response() {
+  auto *arg = sp - 2;
+
+  if (arg[0].type != T_NUMBER) {
+    bad_arg(1, F_HTTP_BUILD_RESPONSE);
+  }
+  if (arg[1].type != T_MAPPING) {
+    bad_arg(2, F_HTTP_BUILD_RESPONSE);
+  }
+  if (arg[2].type != T_STRING) {
+    bad_arg(3, F_HTTP_BUILD_RESPONSE);
+  }
+
+  auto response = http_build_response_string(arg[0].u.number, arg[1].u.map, arg[2].u.string);
+  free_string_svalue(sp);
+  sp--;
+  free_mapping(sp->u.map);
+  sp--;
+  put_malloced_string(string_copy(response.c_str(), "f_http_build_response"));
+}
+#endif
+
+#ifdef F_HTTP_PARSER_CREATE
+void f_http_parser_create() { push_number(http_parser_create_handle()); }
+#endif
+
+#ifdef F_HTTP_PARSER_FEED
+void f_http_parser_feed() {
+  auto *arg = sp - 1;
+  mapping_t *result;
+
+  if (arg[0].type != T_NUMBER) {
+    bad_arg(1, F_HTTP_PARSER_FEED);
+  }
+  if (arg[1].type != T_STRING) {
+    bad_arg(2, F_HTTP_PARSER_FEED);
+  }
+
+  result = http_parser_feed_handle(arg[0].u.number, arg[1].u.string);
+  free_string_svalue(sp);
+  sp--;
+  sp->type = T_MAPPING;
+  sp->subtype = 0;
+  sp->u.map = result;
+}
+#endif
+
+#ifdef F_HTTP_PARSER_CLOSE
+void f_http_parser_close() {
+  if (sp->type != T_NUMBER) {
+    bad_arg(1, F_HTTP_PARSER_CLOSE);
+  }
+
+  http_parser_close_handle(sp->u.number);
+  pop_stack();
+}
+#endif
+
+#ifdef F_HTTP_RESPONSE_PARSER_CREATE
+void f_http_response_parser_create() { push_number(http_response_parser_create_handle()); }
+#endif
+
+#ifdef F_HTTP_RESPONSE_PARSER_FEED
+void f_http_response_parser_feed() {
+  auto *arg = sp - 1;
+  mapping_t *result;
+
+  if (arg[0].type != T_NUMBER) {
+    bad_arg(1, F_HTTP_RESPONSE_PARSER_FEED);
+  }
+  if (arg[1].type != T_STRING) {
+    bad_arg(2, F_HTTP_RESPONSE_PARSER_FEED);
+  }
+
+  result = http_response_parser_feed_handle(arg[0].u.number, arg[1].u.string);
+  free_string_svalue(sp);
+  sp--;
+  sp->type = T_MAPPING;
+  sp->subtype = 0;
+  sp->u.map = result;
+}
+#endif
+
+#ifdef F_HTTP_RESPONSE_PARSER_CLOSE
+void f_http_response_parser_close() {
+  if (sp->type != T_NUMBER) {
+    bad_arg(1, F_HTTP_RESPONSE_PARSER_CLOSE);
+  }
+
+  http_response_parser_close_handle(sp->u.number);
+  pop_stack();
 }
 #endif
 
