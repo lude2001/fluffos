@@ -79,7 +79,7 @@ TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   response.kind = "file";
   response.target = "/adm/single/master.c";
   response.diagnostics.push_back(
-      CompileServiceDiagnostic{"warning", "/adm/single/master.c", 12, "Unused local variable"});
+      CompileServiceDiagnostic{"warning", "/adm/single/master.c", 12, 7, "Unused local variable"});
 
   nlohmann::json j = response;
   EXPECT_EQ(j["version"], 1);
@@ -88,6 +88,7 @@ TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   EXPECT_EQ(j["target"], "/adm/single/master.c");
   EXPECT_EQ(j["diagnostics"].size(), 1);
   EXPECT_EQ(j["diagnostics"][0]["severity"], "warning");
+  EXPECT_EQ(j["diagnostics"][0]["column"], 7);
 
   auto parsed = j.get<CompileServiceResponse>();
   EXPECT_EQ(parsed.version, response.version);
@@ -98,6 +99,7 @@ TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   EXPECT_EQ(parsed.diagnostics[0].severity, "warning");
   EXPECT_EQ(parsed.diagnostics[0].file, "/adm/single/master.c");
   EXPECT_EQ(parsed.diagnostics[0].line, 12);
+  EXPECT_EQ(parsed.diagnostics[0].column, 7);
   EXPECT_EQ(parsed.diagnostics[0].message, "Unused local variable");
 }
 

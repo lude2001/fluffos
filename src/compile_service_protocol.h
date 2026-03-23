@@ -19,6 +19,7 @@ struct CompileServiceDiagnostic {
   std::string severity;
   std::string file;
   int line = 0;
+  int column = 0;
   std::string message;
 };
 
@@ -96,12 +97,18 @@ inline void to_json(nlohmann::json &j, const CompileServiceDiagnostic &value) {
                      {"file", value.file},
                      {"line", value.line},
                      {"message", value.message}};
+  if (value.column > 0) {
+    j["column"] = value.column;
+  }
 }
 
 inline void from_json(const nlohmann::json &j, CompileServiceDiagnostic &value) {
   j.at("severity").get_to(value.severity);
   j.at("file").get_to(value.file);
   j.at("line").get_to(value.line);
+  if (j.contains("column")) {
+    j.at("column").get_to(value.column);
+  }
   j.at("message").get_to(value.message);
 }
 

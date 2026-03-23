@@ -151,7 +151,9 @@ void free_all_local_names(int flag) {
 
   for (i = 0; i < current_number_of_locals; i++) {
     if (flag && (type_of_locals_ptr[locals_ptr[i].runtime_index] & LOCAL_MOD_UNUSED)) {
-      yywarn("Unused local variable '%s'", locals_ptr[i].ihe->name);
+      smart_log(current_file, locals_ptr[i].declaration_line, locals_ptr[i].declaration_column,
+                fmt::format(FMT_STRING("Unused local variable '{}'"), locals_ptr[i].ihe->name).c_str(),
+                1);
     }
     locals_ptr[i].ihe->sem_value--;
     locals_ptr[i].ihe->dn.local_num = -1;
@@ -207,7 +209,11 @@ void pop_n_locals(int num) {
   i1 = num;
   while (i1--) {
     if (type_of_locals_ptr[ltype_start] & LOCAL_MOD_UNUSED) {
-      yywarn("Unused local variable '%s'", locals_ptr[lcur_start].ihe->name);
+      smart_log(current_file, locals_ptr[lcur_start].declaration_line,
+                locals_ptr[lcur_start].declaration_column,
+                fmt::format(FMT_STRING("Unused local variable '{}'"), locals_ptr[lcur_start].ihe->name)
+                    .c_str(),
+                1);
     }
     locals_ptr[lcur_start].ihe->sem_value--;
     locals_ptr[lcur_start].ihe->dn.local_num = -1;
@@ -216,7 +222,8 @@ void pop_n_locals(int num) {
   }
 }
 
-int add_local_name(const char *str, int type, parse_node_t* optional_default_arg_value) {
+int add_local_name(const char *str, int type, parse_node_t* optional_default_arg_value,
+                   int declaration_line, int declaration_column) {
   auto max_local_variables = CFG_INT(__MAX_LOCAL_VARIABLES__);
 
   if (max_num_locals == max_local_variables) {
@@ -229,6 +236,8 @@ int add_local_name(const char *str, int type, parse_node_t* optional_default_arg
   ihe = find_or_add_ident(str, FOA_NEEDS_MALLOC);
   type_of_locals_ptr[max_num_locals] = type;
   auto idx = current_number_of_locals++;
+  locals_ptr[idx].declaration_line = declaration_line > 0 ? declaration_line : current_line;
+  locals_ptr[idx].declaration_column = declaration_column;
   locals_ptr[idx].ihe = ihe;
   locals_ptr[idx].funcptr_default = optional_default_arg_value;
   locals_ptr[idx].runtime_index = max_num_locals;
@@ -920,8 +929,9 @@ static int find_matching_function(program_t *prog, const char *name, parse_node_
           flags = prog->function_flags[ri];
 
           if (flags & (FUNC_UNDEFINED | FUNC_PROTOTYPE)) {
-              yywarn("BUG: inherit function is undefined or prototype, flags: %d", flags);
-              return 0;
+              // A matching placeholder in this layer should not block lookup of
+              // the real implementation from deeper inherited programs.
+              break;
           }
           if (flags & DECL_PRIVATE) {
               return -1;
@@ -1213,7 +1223,10 @@ int define_new_function(const char *name, int num_arg, int num_local, int flags,
     if (!(flags & FUNC_PROTOTYPE)) {
       for (i = 0; i < current_number_of_locals; i++) {
         if (type_of_locals_ptr[locals_ptr[i].runtime_index] & LOCAL_MOD_UNUSED) {
-          yywarn("Unused local variable '%s'", locals_ptr[i].ihe->name);
+          smart_log(current_file, locals_ptr[i].declaration_line, locals_ptr[i].declaration_column,
+                    fmt::format(FMT_STRING("Unused local variable '{}'"), locals_ptr[i].ihe->name)
+                        .c_str(),
+                    1);
           type_of_locals_ptr[locals_ptr[i].runtime_index] &= ~LOCAL_MOD_UNUSED;
         }
       }
@@ -2790,7 +2803,11 @@ char *allocate_in_mem_block(int n, int size) {
  * message somewhere.
  */
 void smart_log(const char *error_file, int line, const char *what, int flag) {
-  auto logs = prepare_logs(error_file, line, what, flag, pragmas & PRAGMA_ERROR_CONTEXT);
+  smart_log(error_file, line, 0, what, flag);
+}
+
+void smart_log(const char *error_file, int line, int column, const char *what, int flag) {
+  auto logs = prepare_logs(error_file, line, column, what, flag, pragmas & PRAGMA_ERROR_CONTEXT);
   for (auto &log : logs) {
     debug_message("%s", log.c_str());
   }
@@ -2798,7 +2815,7 @@ void smart_log(const char *error_file, int line, const char *what, int flag) {
   if (g_compile_service_diagnostics) {
     g_compile_service_diagnostics->push_back(
         compile_service::CompileServiceDiagnostic{flag ? "warning" : "error", add_slash(error_file),
-                                                  line, what});
+                                                  line, column, what});
   }
 
   auto res = fmt::to_string(fmt::join(logs, ""));

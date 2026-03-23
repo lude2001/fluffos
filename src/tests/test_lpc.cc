@@ -3,7 +3,10 @@
 
 #include "mainlib.h"
 
+#include "compile_service_protocol.h"
 #include "compiler/internal/compiler.h"
+#include "vm/internal/apply.h"
+#include "vm/internal/simulate.h"
 
 // Test fixture class
 class DriverTest : public ::testing::Test {
@@ -62,6 +65,66 @@ TEST_F(DriverTest, TestInMemoryCompileFileFail) {
   prog = compile_file(std::move(stream), "test");
 
   ASSERT_EQ(prog, nullptr);
+}
+
+TEST_F(DriverTest, TestInMemoryCompileUnusedLocalWarningUsesDeclarationLocation) {
+  std::vector<compile_service::CompileServiceDiagnostic> diagnostics;
+  set_compile_service_diagnostics_collector(&diagnostics);
+
+  std::istringstream source("void test() {\n    int cc = 1;\n}\n");
+  auto stream = std::make_unique<IStreamLexStream>(source);
+  auto *prog = compile_file(std::move(stream), "test");
+
+  set_compile_service_diagnostics_collector(nullptr);
+
+  ASSERT_NE(prog, nullptr);
+  ASSERT_EQ(diagnostics.size(), 1u);
+  EXPECT_EQ(diagnostics[0].severity, "warning");
+  EXPECT_EQ(diagnostics[0].line, 2);
+  EXPECT_EQ(diagnostics[0].column, 9);
+  EXPECT_EQ(diagnostics[0].message, "Unused local variable 'cc'");
+
+  deallocate_program(prog);
+}
+
+TEST_F(DriverTest, TestExplicitInheritedCallSkipsPrototypePlaceholder) {
+  std::vector<compile_service::CompileServiceDiagnostic> diagnostics;
+  set_compile_service_diagnostics_collector(&diagnostics);
+
+  auto *obj = load_object("/single/tests/compiler/inherit_proto_child", 1);
+
+  set_compile_service_diagnostics_collector(nullptr);
+
+  ASSERT_NE(obj, nullptr);
+  for (const auto &diagnostic : diagnostics) {
+    EXPECT_EQ(diagnostic.message.find("BUG: inherit function is undefined or prototype"),
+              std::string::npos);
+  }
+
+  auto *result = safe_apply("call_parent", obj, 0, ORIGIN_DRIVER);
+  ASSERT_NE(result, nullptr);
+  ASSERT_EQ(result->type, T_STRING);
+  EXPECT_STREQ(result->u.string, "ok");
+}
+
+TEST_F(DriverTest, TestNamedInheritedCallThroughPrototypePlaceholder) {
+  std::vector<compile_service::CompileServiceDiagnostic> diagnostics;
+  set_compile_service_diagnostics_collector(&diagnostics);
+
+  auto *obj = load_object("/clone/user/inherit_named_call", 1);
+
+  set_compile_service_diagnostics_collector(nullptr);
+
+  ASSERT_NE(obj, nullptr);
+  for (const auto &diagnostic : diagnostics) {
+    EXPECT_EQ(diagnostic.message.find("BUG: inherit function is undefined or prototype"),
+              std::string::npos);
+  }
+
+  auto *result = safe_apply("test_call", obj, 0, ORIGIN_DRIVER);
+  ASSERT_NE(result, nullptr);
+  ASSERT_EQ(result->type, T_STRING);
+  EXPECT_STREQ(result->u.string, "foobar");
 }
 
 TEST_F(DriverTest, TestValidLPC_FunctionDeafultArgument) {

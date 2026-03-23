@@ -83,6 +83,8 @@ int current_line;       /* line number in this file */
 int current_line_base;  /* number of lines from other files */
 int current_line_saved; /* last line in this file where line num
                            info was saved */
+int last_identifier_line;
+int last_identifier_column;
 int total_lines;        /* Used to compute average compiled lines/s */
 const char *current_file;
 int current_file_id;
@@ -1581,13 +1583,19 @@ char *show_error_context() {
   return buf;
 }
 
-std::vector<std::string> prepare_logs(const char *error_file, int line, const char *what, int flag,
+std::vector<std::string> prepare_logs(const char *error_file, int line, int column, const char *what,
+                                      int flag,
                                       bool include_error_context) {
   std::vector<std::string> logs;
-  logs.emplace_back(fmt::format(FMT_STRING("/{} line {}: {}{}\n"), error_file, line,
-                                flag ? "Warning: " : "", what));
+  if (column > 0) {
+    logs.emplace_back(fmt::format(FMT_STRING("/{} line {}:{}: {}{}\n"), error_file, line, column,
+                                  flag ? "Warning: " : "", what));
+  } else {
+    logs.emplace_back(fmt::format(FMT_STRING("/{} line {}: {}{}\n"), error_file, line,
+                                  flag ? "Warning: " : "", what));
+  }
 
-  if (include_error_context) {
+  if (include_error_context && column == 0) {
     if (static_cast<unsigned char>(outp[-1]) != LEX_EOF) {
       const char *start = outp;
       while (start != &cur_lbuf->buf[0]) {
@@ -2575,6 +2583,13 @@ int yylex() {
           } else {
             outp--;
             if (!expand_define()) {
+              const char *line_start = outp;
+              while (line_start != &cur_lbuf->buf[0] && line_start[-1] != '\n' &&
+                     line_start[-1] != LEX_EOF) {
+                line_start--;
+              }
+              auto token_column =
+                  static_cast<int>((outp - line_start) - (yyp - yytext) + 1);
               ident_hash_elem_t *ihe;
               if ((ihe = lookup_ident(yytext))) {
                 if (ihe->token & IHE_RESWORD) {
@@ -2627,9 +2642,13 @@ int yylex() {
                   }
                   return L_NEW_FUNCTION_OPEN;
                 }
+                last_identifier_line = current_line;
+                last_identifier_column = token_column;
                 yylval.ihe = ihe;
                 return L_DEFINED_NAME;
               }
+              last_identifier_line = current_line;
+              last_identifier_column = token_column;
               yylval.string = scratch_copy(yytext);
               return L_IDENTIFIER;
             }
@@ -3335,6 +3354,8 @@ void start_new_file(std::unique_ptr<LexStream> stream) {
   current_line = 1;
   current_line_base = 0;
   current_line_saved = 0;
+  last_identifier_line = 0;
+  last_identifier_column = 0;
   function_flag = 0;
 
   auto glf = CONFIG_STR(__GLOBAL_INCLUDE_FILE__);
