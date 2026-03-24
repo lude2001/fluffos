@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 
+#include "compile_service.h"
 #include "compile_service_client.h"
 #include "compile_service_protocol.h"
 
@@ -150,5 +151,13 @@ TEST(CompileServiceClient, StubResponseIncludesDerivedFields) {
   EXPECT_EQ(response["target"], "/adm/single/master.c");
   EXPECT_EQ(response["kind"], "client_stub");
   EXPECT_EQ(response["diagnostics"].size(), 1);
+}
+
+TEST(CompileServiceLifecycle, StopResetsRunningState) {
+  ASSERT_FALSE(compile_service_running());
+  ASSERT_TRUE(start_compile_service("testsuite/etc/config.test"));
+  ASSERT_TRUE(compile_service_running());
+  stop_compile_service();
+  EXPECT_FALSE(compile_service_running());
 }
 }  // namespace

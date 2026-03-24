@@ -72,6 +72,31 @@ int fib_recur(int n) {
   }
 }
 
+mixed build_nested_json_value(int depth, int fanout) {
+  if (depth <= 0) {
+    return ([
+      "id" : fanout,
+      "name" : "node-name-abcdefghijklmnopqrstuvwxyz",
+      "flags" : ({ 1, 0, 0, 123, 45.67 }),
+    ]);
+  }
+
+  mixed *children = allocate(fanout);
+  for (int i = 0; i < fanout; i++) {
+    children[i] = build_nested_json_value(depth - 1, fanout);
+  }
+
+  return ([
+    "meta" : ([
+      "depth" : depth,
+      "active" : 1,
+      "title" : "nested-structure-benchmark",
+    ]),
+    "children" : children,
+    "values" : ({ 1, 2, 3, 4, 5, "text", 0, 0 }),
+  ]);
+}
+
 #define START do { reset_eval_cost();  set_eval_limit(0x7fffffff);  before = perf_counter_ns(); } while (0)
 #define END   do { after = perf_counter_ns(); time = (after - before); } while(0)
 
@@ -99,7 +124,7 @@ int main() {
     mixed *a, *a1, *a2, *a3;
 #endif
 #ifdef MAPPING_TESTS
-    mapping m, m1, m2;
+    mapping m, m1, m2, nested;
 #endif
     int empty300, empty1000, empty10000, empty20000, empty50000,
         empty100000, empty200000, empty1000000;
@@ -266,6 +291,10 @@ int main() {
     TIME("json_decode",200,json_decode(s));
     m = json_decode(s);
     TIME("json_encode",200,json_encode(m));
+    nested = build_nested_json_value(4, 4);
+    s = json_encode(nested);
+    TIME("json_decode nested",50,json_decode(s));
+    TIME("json_encode nested",50,json_encode(nested));
 
     write("\n");
     write(sprintf("Total: %d ns.\n", perf_counter_ns() - overall));

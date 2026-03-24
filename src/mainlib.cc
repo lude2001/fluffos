@@ -418,6 +418,7 @@ int driver_main(int argc, char **argv) {
         auto ret = safe_apply_master_ob(APPLY_FLAG, 1);
         if (ret == (svalue_t *)-1 || ret == nullptr || MudOS_is_being_shut_down) {
           debug_message("Shutdown by master object.\n");
+          stop_compile_service();
           return -1;
         }
       }
@@ -432,16 +433,19 @@ int driver_main(int argc, char **argv) {
         // fall-through
       default:
         debug_message("Unknown flag: %s\n", argv[i]);
-        exit(-1);
+        stop_compile_service();
+        return -1;
     }
   }
   if (MudOS_is_being_shut_down) {
-    exit(1);
+    stop_compile_service();
+    return 1;
   }
 
   // Initialize user connection socket
   if (!init_user_conn()) {
-    exit(1);
+    stop_compile_service();
+    return 1;
   }
 
   debug_message("Initializations complete.\n\n");
