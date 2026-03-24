@@ -299,6 +299,14 @@ apk add --no-cache linux-headers gcc g++ clang-dev make cmake bash \
 
 ## 开发工作流
 
+### GitHub / PR 安全规则
+
+- 本仓库的 GitHub 日常操作默认只允许针对 fork 仓库 `lude2001/fluffos` 执行。
+- 严禁代理向上游仓库 `fluffos/fluffos` 发起 Pull Request。
+- 严禁代理把任何分支推送到上游仓库 `fluffos/fluffos`。
+- 如果需要和上游仓库交互，必须先得到用户的明确、直接许可；没有明确许可时，一律视为禁止。
+- 当代理使用 `gh`、`git push`、`gh pr create`、`gh pr edit`、`gh pr reopen` 等命令时，必须显式检查目标仓库是否为 `lude2001/fluffos`；如果不是，必须停止并报错，而不是继续执行。
+
 ### 代码生成
 
 构建期间会自动生成几个源文件：
