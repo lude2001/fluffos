@@ -101,6 +101,8 @@ extern instr_t instrs[MAX_INSTRS];
 extern int current_line;
 extern int current_line_base;
 extern int current_line_saved;
+extern int last_identifier_line;
+extern int last_identifier_column;
 extern int total_lines;
 extern const char *current_file;
 extern int current_file_id;
@@ -139,5 +141,5 @@ void mark_all_defines(void);
 // Print all predefines using debug_message().
 void print_all_predefines();
 // Get error/warning message from lexer
-std::vector<std::string> prepare_logs(const char *, int, const char *, int, bool);
+std::vector<std::string> prepare_logs(const char *, int, int, const char *, int, bool);
 #endif

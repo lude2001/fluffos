@@ -353,8 +353,10 @@ endif()
 set(SRC
   "backend.cc"
   "comm.cc"
+  "compile_service.cc"
   "mainlib.cc"
   "user.cc"
+  "runtime_compile_request.cc"
   "symbol.cc"
   "ofile.cc"
   "net/msp.cc"
@@ -516,6 +518,9 @@ target_link_libraries(driver PUBLIC ${FLUFFOS_LINK})
 add_executable(lpcc "main_lpcc.cc")
 target_link_libraries(lpcc PUBLIC ${FLUFFOS_LINK})
 
+add_executable(lpccp "main_lpccp.cc")
+target_link_libraries(lpccp PUBLIC ${FLUFFOS_LINK})
+
 add_executable(symbol "main_symbol.cc")
 target_link_libraries(symbol PUBLIC ${FLUFFOS_LINK})
 
@@ -539,7 +544,7 @@ print_target_properties(driver)
 install(TARGETS ${GENERATED_DOCS}
         RUNTIME DESTINATION bin)
 
-install(TARGETS driver lpcc symbol o2json json2o
+install(TARGETS driver lpcc lpccp symbol o2json json2o
   RUNTIME DESTINATION bin)
 
 # LPC stdlib files

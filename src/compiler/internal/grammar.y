@@ -38,6 +38,8 @@ extern char *outp;
 int context;
 int num_refs;
 int func_present;
+int pending_new_local_name_line;
+int pending_new_local_name_column;
 /*
  * bison & yacc don't prototype this in y.tab.h
  */
@@ -330,11 +332,18 @@ type_decl:
 
 new_local_name:
   L_IDENTIFIER
+                                            {
+                                              pending_new_local_name_line = last_identifier_line;
+                                              pending_new_local_name_column = last_identifier_column;
+                                              $$ = $1;
+                                            }
   | L_DEFINED_NAME
                                             {
                                               if ($1->dn.local_num != -1) {
                                                 yyerror("Illegal to redeclare local name '%s'", $1->name);
                                               }
+                                              pending_new_local_name_line = last_identifier_line;
+                                              pending_new_local_name_column = last_identifier_column;
                                               $$ = scratch_copy($1->name);
                                             }
 ;
@@ -640,7 +649,8 @@ new_local_def:
         yyerror("Illegal to declare local variable as reference");
         current_type &= ~LOCAL_MOD_REF;
       }
-      add_local_name($2, current_type | $1 | LOCAL_MOD_UNUSED);
+      add_local_name($2, current_type | $1 | LOCAL_MOD_UNUSED, nullptr,
+                     pending_new_local_name_line, pending_new_local_name_column);
 
       scratch_free($2);
       $$ = 0;
@@ -673,7 +683,8 @@ new_local_def:
       $4 = do_promotions($4, type);
 
       CREATE_UNARY_OP_1($$, F_VOID_ASSIGN_LOCAL, 0, $4,
-          add_local_name($2, current_type | $1 | LOCAL_MOD_UNUSED));
+          add_local_name($2, current_type | $1 | LOCAL_MOD_UNUSED, nullptr,
+                         pending_new_local_name_line, pending_new_local_name_column));
       scratch_free($2);
     }
 ;
@@ -684,7 +695,8 @@ single_new_local_def:
       if ($1 == TYPE_VOID)
         yyerror("Illegal to declare local variable of type void.");
 
-      $$ = add_local_name($3, $1 | $2);
+      $$ = add_local_name($3, $1 | $2, nullptr, pending_new_local_name_line,
+                          pending_new_local_name_column);
       scratch_free($3);
     }
 ;

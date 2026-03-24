@@ -3,9 +3,15 @@
 
 class LexStream;
 
+#include <vector>
+
 #include "vm/internal/base/function.h"  // for function_t
 #include "vm/internal/base/program.h"   // for DECL_MODS etc
 #include "trees.h"
+
+namespace compile_service {
+struct CompileServiceDiagnostic;
+}
 
 /* The end of a static buffer */
 #define EndOf(x) (x + sizeof(x) / sizeof(x[0]))
@@ -83,6 +89,8 @@ struct mem_block_t {
 
 struct local_info_t {
   int runtime_index;
+  int declaration_line;
+  int declaration_column;
   parse_node_t *funcptr_default;
   struct ident_hash_elem_t *ihe;
 };
@@ -206,7 +214,7 @@ void pop_n_locals(int);
 void reactivate_current_locals(void);
 void clean_up_locals(void);
 void deactivate_current_locals(void);
-int add_local_name(const char *, int, parse_node_t* = nullptr);
+int add_local_name(const char *, int, parse_node_t* = nullptr, int = 0, int = 0);
 void reallocate_locals(void);
 void initialize_locals(void);
 int get_id_number(void);
@@ -273,6 +281,9 @@ char *allocate_in_mem_block(int, int);
 
 // Log errors during compiling
 void smart_log(const char *, int, const char *, int);
+void smart_log(const char *, int, int, const char *, int);
+void set_compile_service_diagnostics_collector(
+    std::vector<compile_service::CompileServiceDiagnostic> *collector);
 
 // FIXME: 'inherit_file' is used as a flag.
 extern char *inherit_file;
