@@ -5,8 +5,6 @@
 #include <globals.h>
 #include <lpctypes.h>
 
-// JSON sefun
-inherit "std/json";
 // Breakstring sefun
 inherit "std/break_string";
 // bitmap_font sefun

@@ -53,6 +53,7 @@ void db_cleanup(void);  // FIXME
 #include "comm.h"  // FIXME
 
 #include "vm/internal/trace.h"  // for dump_trace && get_svalue_trace
+#include "compile_service.h"
 /*
  * This one is called from HUP.
  */
@@ -94,6 +95,7 @@ void shutdownMudOS(int exit_code) {
   monitor(0, 0, 0, 0, 0); /* cause gmon.out to be written */
 #endif
   Tracer::collect();
+  stop_compile_service();
 
 #ifdef _WIN32
   WSACleanup();
