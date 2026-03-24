@@ -1,212 +1,212 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+此文件为 Codex (Codex.ai/code) 在处理此仓库代码时提供指导。
 
-## Project Overview
+## 项目概述
 
-FluffOS is an LPMUD driver based on the last release of MudOS (v22.2b14) with 10+ years of bug fixes and performance enhancements. It supports all LPC-based MUDs with minimal code changes and includes modern features like UTF-8 support, TLS, WebSocket protocol, async IO, and database integration.
+FluffOS 是一个 LPMUD 驱动程序，基于 MudOS 的最后一个版本 (v22.2b14)，拥有 10+ 年的错误修复和性能增强。它支持所有基于 LPC 的 MUD，只需最小的代码更改，并包括现代功能，如 UTF-8 支持、TLS、WebSocket 协议、异步 IO 和数据库集成。
 
-## Architecture
+## 架构
 
-### Core Components
+### 核心组件
 
-**Driver Layer** (`src/`)
+**驱动层** (`src/`)
 
-- `main.cc` - Entry point for the driver executable
-- `backend.cc` - Main game loop and event handling
-- `comm.cc` - Network communication layer
-- `user.cc` - User/session management
-- `symbol.cc` - Symbol table management
-- `ofile.cc` - Object file handling
+- `main.cc` - 驱动可执行文件的入口点
+- `backend.cc` - 主游戏循环和事件处理
+- `comm.cc` - 网络通信层
+- `user.cc` - 用户/会话管理
+- `symbol.cc` - 符号表管理
+- `ofile.cc` - 对象文件处理
 
-**VM Layer** (`src/vm/`)
+**VM 层** (`src/vm/`)
 
-- `vm.cc` - Virtual machine initialization and management
-- `interpret.cc` - LPC bytecode interpreter
-- `simulate.cc` - Simulation engine for object lifecycle
-- `master.cc` - Master object management
-- `simul_efun.cc` - Simulated external functions
+- `vm.cc` - 虚拟机初始化和管理
+- `interpret.cc` - LPC 字节码解释器
+- `simulate.cc` - 对象生命周期的模拟引擎
+- `master.cc` - 主对象管理
+- `simul_efun.cc` - 模拟外部函数
 
-**Compiler Layer** (`src/compiler/`)
+**编译器层** (`src/compiler/`)
 
-- `compiler.cc` - LPC-to-bytecode compiler
-- `grammar.y` - Grammar definition (Bison)
-- `lex.cc` - Lexical analyzer
-- `generate.cc` - Code generation
+- `compiler.cc` - LPC 到字节码编译器
+- `grammar.y` - 语法定义 (Bison)
+- `lex.cc` - 词法分析器
+- `generate.cc` - 代码生成
 
-**Packages** (`src/packages/`)
+**包** (`src/packages/`)
 
-- Modular functionality organized by feature (async, db, crypto, etc.)
-- Each package has `.spec` files defining available functions
-- Core packages: core, crypto, db, math, parser, sockets, etc.
+- 按功能组织的模块化功能 (async, db, crypto 等)
+- 每个包有 `.spec` 文件定义可用函数
+- 核心包：core, crypto, db, math, parser, sockets 等。
 
-**Networking** (`src/net/`)
+**网络** (`src/net/`)
 
-- `telnet.cc` - Telnet protocol implementation
-- `websocket.cc` - WebSocket support for web clients
-- `tls.cc` - SSL/TLS encryption support
-- `msp.cc` - MUD Sound Protocol support
+- `telnet.cc` - Telnet 协议实现
+- `websocket.cc` - WebSocket 支持用于 Web 客户端
+- `tls.cc` - SSL/TLS 加密支持
+- `msp.cc` - MUD 声音协议支持
 
-### Build System
+### 构建系统
 
-**CMake Configuration** (`CMakeLists.txt`, `src/CMakeLists.txt`)
+**CMake 配置** (`CMakeLists.txt`, `src/CMakeLists.txt`)
 
-- CMake 3.22+ required
-- C++17 and C11 standards
-- Jemalloc for memory management (recommended)
-- ICU for UTF-8 support
-- OpenSSL for crypto features
+- 需要 CMake 3.22+
+- C++17 和 C11 标准
+- Jemalloc 用于内存管理 (推荐)
+- ICU 用于 UTF-8 支持
+- OpenSSL 用于加密功能
 
-**Build Options** (key flags)
+**构建选项** (关键标志)
 
-- `MARCH_NATIVE=ON` (default) - Optimize for current CPU
-- `STATIC=ON/OFF` - Static vs dynamic linking
-- `USE_JEMALLOC=ON` - Use jemalloc memory allocator
-- `PACKAGE_*` - Enable/disable specific packages
-- `ENABLE_SANITIZER=ON` - Enable address sanitizer for debugging
+- `MARCH_NATIVE=ON` (默认) - 为当前 CPU 优化
+- `STATIC=ON/OFF` - 静态 vs 动态链接
+- `USE_JEMALLOC=ON` - 使用 jemalloc 内存分配器
+- `PACKAGE_*` - 启用/禁用特定包
+- `ENABLE_SANITIZER=ON` - 启用地址清理器用于调试
 
-## Build Commands
+## 构建命令
 
-### Preferred Windows Output Workflow
+### 首选 Windows 输出工作流
 
-On Windows, the canonical build entry point is the repository-root [`build.cmd`](/D:/code/fluffos/build.cmd).
+在 Windows 上，规范的构建入口点是仓库根目录的 [`build.cmd`](/D:/code/fluffos/build.cmd)。
 
-- Treat `build.cmd` as the primary way to produce runnable Windows artifacts.
-- Treat [`build/dist`](/D:/code/fluffos/build/dist) as the only supported publish/output directory for local Windows builds.
-- Treat [`build/work`](/D:/code/fluffos/build/work) and any other build subdirectories as internal intermediate state only.
-- Do not ask users to run executables out of ad-hoc build directories when `build/dist` is available.
-- Driver-related deliverables should be staged into `build/dist`, currently including:
+- 将 `build.cmd` 视为产生可运行 Windows 工件的主要方式。
+- 将 [`build/dist`](/D:/code/fluffos/build/dist) 视为本地 Windows 构建唯一支持的发布/输出目录。
+- 将 [`build/work`](/D:/code/fluffos/build/work) 和任何其他构建子目录视为内部中间状态。
+- 当 `build/dist` 可用时，不要要求用户从临时构建目录运行可执行文件。
+- 驱动相关交付物应分阶段放入 `build/dist`，目前包括：
   - `driver.exe`
   - `lpccp.exe`
-  - runtime DLL dependencies
+  - 运行时 DLL 依赖
   - `run-driver.cmd`
-  - `include/`, `std/`, and `www/`
+  - `include/`、`std/` 和 `www/`
 
-If a task changes how the Windows driver is produced, update `build.cmd` and the dist staging scripts so the final runnable artifacts still land in `build/dist`.
+如果任务更改了 Windows 驱动的生产方式，请更新 `build.cmd` 和 dist 分阶段脚本，以便最终可运行工件仍位于 `build/dist`。
 
-### Development Build
+### 开发构建
 
 ```bash
-# Standard development build
+# 标准开发构建
 mkdir build && cd build
 cmake ..
 make -j$(nproc) install
 
-# Debug build with sanitizer
+# 带清理器的调试构建
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON
 ```
 
-### Production Build
+### 生产构建
 
 ```bash
-# Production-ready static build
+# 生产就绪静态构建
 cmake .. -DCMAKE_BUILD_TYPE=Release -DSTATIC=ON -DMARCH_NATIVE=OFF
 make install
 ```
 
-### Package-Specific Builds
+### 包特定构建
 
 ```bash
-# Build without database support
+# 构建时不带数据库支持
 cmake .. -DPACKAGE_DB=OFF
 
-# Build with specific packages disabled
+# 构建时禁用特定包
 cmake .. -DPACKAGE_CRYPTO=OFF -DPACKAGE_COMPRESS=OFF
 ```
 
-## Testing
+## 测试
 
-### Unit Tests
+### 单元测试
 
 ```bash
-# Run all tests (requires GTest)
+# 运行所有测试 (需要 GTest)
 cd build
 make test
 
-# Run specific test executable
+# 运行特定测试可执行文件
 ./src/lpc_tests
 ./src/ofile_tests
 ```
 
-### LPC Tests
+### LPC 测试
 
 ```bash
-# Run LPC test suite
+# 运行 LPC 测试套件
 cd testsuite
 ../build/bin/driver etc/config.test -ftest
 ```
 
-### Integration Testing
+### 集成测试
 
 ```bash
-# Run driver with test configuration
+# 使用测试配置运行驱动
 ./build/bin/driver testsuite/etc/config.test
 ```
 
-## Continuous Integration
+## 持续集成
 
-FluffOS uses GitHub Actions for comprehensive CI/CD across multiple platforms and configurations.
+FluffOS 使用 GitHub Actions 在多个平台和配置上进行全面 CI/CD。
 
-### CI Matrix
+### CI 矩阵
 
 **Ubuntu CI** (`.github/workflows/ci.yml`)
 
-- **Compilers**: GCC and Clang
-- **Build Types**: Debug and RelWithDebInfo
-- **Platform**: ubuntu-22.04
-- **Key Features**: SQLite support, GTest integration
-- **Steps**: Install dependencies → CMake configure → Build → Unit tests → LPC testsuite
+- **编译器**：GCC 和 Clang
+- **构建类型**：Debug 和 RelWithDebInfo
+- **平台**：ubuntu-22.04
+- **关键功能**：SQLite 支持、GTest 集成
+- **步骤**：安装依赖 → CMake 配置 → 构建 → 单元测试 → LPC 测试套件
 
 **macOS CI** (`.github/workflows/ci-osx.yml`)
 
-- **Build Types**: Debug and RelWithDebInfo
-- **Platform**: macos-14 (Apple Silicon)
-- **Environment Variables**:
+- **构建类型**：Debug 和 RelWithDebInfo
+- **平台**：macos-14 (Apple Silicon)
+- **环境变量**：
   - `OPENSSL_ROOT_DIR=/usr/local/opt/openssl`
   - `ICU_ROOT=/opt/homebrew/opt/icu4c`
-- **Dependencies**: cmake, pkg-config, pcre, libgcrypt, openssl, jemalloc, icu4c, mysql, sqlite3, googletest
+- **依赖**：cmake, pkg-config, pcre, libgcrypt, openssl, jemalloc, icu4c, mysql, sqlite3, googletest
 
 **Windows CI** (`.github/workflows/ci-windows.yml`)
 
-- **Build Types**: Debug and RelWithDebInfo
-- **Platform**: windows-latest with MSYS2/MINGW64
-- **Build Options**:
-  - `-DMARCH_NATIVE=OFF` (for portability)
+- **构建类型**：Debug 和 RelWithDebInfo
+- **平台**：windows-latest with MSYS2/MINGW64
+- **构建选项**：
+  - `-DMARCH_NATIVE=OFF` (为可移植性)
   - `-DPACKAGE_CRYPTO=OFF`
-  - `-DPACKAGE_DB_MYSQL=""` (disabled)
+  - `-DPACKAGE_DB_MYSQL=""` (禁用)
   - `-DPACKAGE_DB_SQLITE=1`
-- **Dependencies**: mingw-w64 toolchain, cmake, zlib, pcre, icu, sqlite3, jemalloc, gtest
+- **依赖**：mingw-w64 工具链, cmake, zlib, pcre, icu, sqlite3, jemalloc, gtest
 
-**Sanitizer CI** (`.github/workflows/ci-sanitizer.yml`)
+**清理器 CI** (`.github/workflows/ci-sanitizer.yml`)
 
-- **Purpose**: Memory safety and bug detection
-- **Compiler**: Clang only
-- **Build Types**: Debug and RelWithDebInfo
-- **Special Flag**: `-DENABLE_SANITIZER=ON`
-- **Additional Dependencies**: libdw-dev, libbz2-dev
+- **目的**：内存安全和错误检测
+- **编译器**：仅 Clang
+- **构建类型**：Debug 和 RelWithDebInfo
+- **特殊标志**：`-DENABLE_SANITIZER=ON`
+- **额外依赖**：libdw-dev, libbz2-dev
 
 **Docker CI** (`.github/workflows/docker-publish.yml`)
 
-- **Base Image**: Alpine 3.18
-- **Build Configuration**: Static linking with `-DSTATIC=ON -DMARCH_NATIVE=OFF`
-- **Registry**: GitHub Container Registry (ghcr.io)
-- **Triggers**: Push to master, version tags (v*.*), pull requests
+- **基础镜像**：Alpine 3.18
+- **构建配置**：静态链接，使用 `-DSTATIC=ON -DMARCH_NATIVE=OFF`
+- **注册表**：GitHub 容器注册表 (ghcr.io)
+- **触发器**：推送到 master、版本标签 (v*.*)、拉取请求
 
-**Code Quality CI**
+**代码质量 CI**
 
-- **CodeQL Analysis** (`.github/workflows/codeql-analysis.yml`): Security vulnerability detection
-- **Coverity Scan** (`.github/workflows/coverity-scan.yml`): Static analysis (weekly schedule + push)
+- **CodeQL 分析** (`.github/workflows/codeql-analysis.yml`)：安全漏洞检测
+- **Coverity 扫描** (`.github/workflows/coverity-scan.yml`)：静态分析 (每周计划 + 推送)
 
-**Documentation CI** (`.github/workflows/gh-pages.yml`)
+**文档 CI** (`.github/workflows/gh-pages.yml`)
 
-- **Framework**: VitePress
-- **Build**: Node.js 20 with npm
-- **Deploy**: GitHub Pages
-- **Path**: `docs/` directory
+- **框架**：VitePress
+- **构建**：Node.js 20 with npm
+- **部署**：GitHub Pages
+- **路径**：`docs/` 目录
 
-### Running CI-Equivalent Builds Locally
+### 本地运行 CI 等效构建
 
-**Ubuntu Debug Build (GCC)**
+**Ubuntu 调试构建 (GCC)**
 
 ```bash
 export CC=gcc CXX=g++
@@ -217,7 +217,7 @@ make test
 cd ../testsuite && ../build/bin/driver etc/config.test -ftest
 ```
 
-**Ubuntu with Sanitizer (Clang)**
+**Ubuntu 带清理器 (Clang)**
 
 ```bash
 export CC=clang CXX=clang++
@@ -227,7 +227,7 @@ make -j$(nproc) install
 make test
 ```
 
-**macOS Build**
+**macOS 构建**
 
 ```bash
 mkdir build && cd build
@@ -237,7 +237,7 @@ make -j$(sysctl -n hw.ncpu) install
 make test
 ```
 
-**Windows Build (MSYS2/MINGW64)**
+**Windows 构建 (MSYS2/MINGW64)**
 
 ```bash
 mkdir build && cd build
@@ -247,17 +247,17 @@ cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug \
 make -j$(nproc) install
 ```
 
-**Docker Build (Static)**
+**Docker 构建 (静态)**
 
 ```bash
 docker build -t fluffos:local .
-# Or build manually in Alpine container
+# 或在 Alpine 容器中手动构建
 cmake .. -DMARCH_NATIVE=OFF -DSTATIC=ON
 make install
-ldd bin/driver  # Should show "not a dynamic executable"
+ldd bin/driver  # 应显示 "not a dynamic executable"
 ```
 
-### CI Dependencies by Platform
+### 按平台的 CI 依赖
 
 **Ubuntu/Debian**
 
@@ -266,7 +266,7 @@ sudo apt update
 sudo apt install -y build-essential autoconf automake bison expect \
   libmysqlclient-dev libpcre3-dev libpq-dev libsqlite3-dev \
   libssl-dev libtool libz-dev telnet libgtest-dev libjemalloc-dev \
-  libdw-dev libbz2-dev  # For sanitizer builds
+  libdw-dev libbz2-dev  # 用于清理器构建
 ```
 
 **macOS (Homebrew)**
@@ -287,7 +287,7 @@ pacman --noconfirm -S --needed \
   bison make
 ```
 
-**Alpine (Docker/Static)**
+**Alpine (Docker/静态)**
 
 ```bash
 apk add --no-cache linux-headers gcc g++ clang-dev make cmake bash \
@@ -297,65 +297,65 @@ apk add --no-cache linux-headers gcc g++ clang-dev make cmake bash \
   zstd-static bzip2-static xz-static
 ```
 
-## Development Workflow
+## 开发工作流
 
-### Code Generation
+### 代码生成
 
-Several source files are auto-generated during build:
+构建期间会自动生成几个源文件：
 
-- `grammar.autogen.cc/.h` - From `grammar.y` (Bison)
-- `efuns.autogen.cc/.h` - From package specifications
-- `applies_table.autogen.cc/.h` - From applies definitions
-- `options.autogen.h` - From configuration options
+- `grammar.autogen.cc/.h` - 来自 `grammar.y` (Bison)
+- `efuns.autogen.cc/.h` - 来自包规范
+- `applies_table.autogen.cc/.h` - 来自应用定义
+- `options.autogen.h` - 来自配置选项
 
-### Adding New Functions
+### 添加新函数
 
-1. Add function to appropriate package `.spec` file
-2. Implement function in corresponding `.cc` file
-3. Run build to regenerate autogenerated files
-4. Add tests in `testsuite/` directory
+1. 将函数添加到适当的包 `.spec` 文件
+2. 在相应的 `.cc` 文件中实现函数
+3. 运行构建以重新生成自动生成的文件
+4. 在 `testsuite/` 目录中添加测试
 
-### Debugging
+### 调试
 
 ```bash
-# Build with debug symbols and sanitizer
+# 使用调试符号和清理器构建
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON
 
-# Run with GDB
+# 使用 GDB 运行
 gdb --args ./build/bin/driver config.test
 
-# Memory debugging with Valgrind
+# 使用 Valgrind 进行内存调试
 valgrind --leak-check=full ./build/bin/driver config.test
 ```
 
-## Platform-Specific Notes
+## 平台特定说明
 
 ### Ubuntu/Debian
 
 ```bash
-# Install dependencies
+# 安装依赖
 sudo apt install build-essential bison libmysqlclient-dev libpcre3-dev \
   libpq-dev libsqlite3-dev libssl-dev libz-dev libjemalloc-dev libicu-dev \
-  libgtest-dev  # For testing
+  libgtest-dev  # 用于测试
 ```
 
 ### macOS
 
 ```bash
-# Install dependencies
+# 安装依赖
 brew install cmake pkg-config mysql pcre libgcrypt openssl jemalloc icu4c \
-  sqlite3 googletest  # Added sqlite3 and googletest for testing
+  sqlite3 googletest  # 添加 sqlite3 和 googletest 用于测试
 
-# Build with environment variables (for Apple Silicon)
+# 使用环境变量构建 (Apple Silicon)
 OPENSSL_ROOT_DIR="/usr/local/opt/openssl" ICU_ROOT="/opt/homebrew/opt/icu4c" cmake ..
-# For Intel Macs, use:
+# 对于 Intel Mac，使用：
 # OPENSSL_ROOT_DIR="/usr/local/opt/openssl" ICU_ROOT="/usr/local/opt/icu4c" cmake ..
 ```
 
 ### Windows (MSYS2)
 
 ```bash
-# Install MSYS2 packages (run in MSYS2 shell, then switch to MINGW64 shell for build)
+# 安装 MSYS2 包 (在 MSYS2 shell 中运行，然后切换到 MINGW64 shell 进行构建)
 pacman --noconfirm -S --needed \
   git mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake \
   mingw-w64-x86_64-zlib mingw-w64-x86_64-pcre \
@@ -363,47 +363,47 @@ pacman --noconfirm -S --needed \
   mingw-w64-x86_64-jemalloc mingw-w64-x86_64-gtest \
   bison make
 
-# Note: PACKAGE_CRYPTO is typically disabled on Windows
-# Build in MINGW64 terminal
+# 注意：在 Windows 上通常禁用 PACKAGE_CRYPTO
+# 在 MINGW64 终端中构建
 cmake -G "MSYS Makefiles" -DMARCH_NATIVE=OFF \
   -DPACKAGE_CRYPTO=OFF -DPACKAGE_DB_MYSQL="" -DPACKAGE_DB_SQLITE=1 ..
 ```
 
-## Key Directories
+## 关键目录
 
-- `src/` - Main driver source code
-- `src/packages/` - Modular package implementations
-- `src/vm/` - Virtual machine and interpreter
-- `src/compiler/` - LPC compiler
-- `src/net/` - Network protocol implementations
-- `testsuite/` - LPC test programs and configurations
-- `docs/` - Documentation (Markdown and Jekyll)
-- `build/` - Build output directory (auto-generated)
+- `src/` - 主驱动源代码
+- `src/packages/` - 模块化包实现
+- `src/vm/` - 虚拟机和解释器
+- `src/compiler/` - LPC 编译器
+- `src/net/` - 网络协议实现
+- `testsuite/` - LPC 测试程序和配置
+- `docs/` - 文档 (Markdown 和 Jekyll)
+- `build/` - 构建输出目录 (自动生成)
 
-## Configuration Files
+## 配置文件
 
-- `Config.example` - Example driver configuration
-- `src/local_options` - Local build options (copy from `local_options.README`)
-- `testsuite/etc/config.test` - Test configuration
-- Package-specific `.spec` files define available functions
+- `Config.example` - 示例驱动配置
+- `src/local_options` - 本地构建选项 (从 `local_options.README` 复制)
+- `testsuite/etc/config.test` - 测试配置
+- 包特定的 `.spec` 文件定义可用函数
 
-## Common Development Tasks
+## 常见开发任务
 
-### Adding a New Package
+### 添加新包
 
-1. Create directory in `src/packages/[package-name]/`
-2. Add `CMakeLists.txt`, `.spec` file, and source files
-3. Update `src/packages/CMakeLists.txt`
-4. Add tests in `testsuite/`
+1. 在 `src/packages/[package-name]/` 中创建目录
+2. 添加 `CMakeLists.txt`、`.spec` 文件和源文件
+3. 更新 `src/packages/CMakeLists.txt`
+4. 在 `testsuite/` 中添加测试
 
-### Modifying Compiler
+### 修改编译器
 
-1. Edit `src/compiler/grammar.y` for syntax changes
-2. Regenerate grammar with Bison if available
-3. Update corresponding compiler components
+1. 编辑 `src/compiler/grammar.y` 以进行语法更改
+2. 如果可用，使用 Bison 重新生成语法
+3. 更新相应的编译器组件
 
-### Debugging Memory Issues
+### 调试内存问题
 
-1. Build with `-DENABLE_SANITIZER=ON`
-2. Use `mud_status()` efun in LPC for runtime memory info
-3. Check `testsuite/log/debug.log` for detailed logs
+1. 使用 `-DENABLE_SANITIZER=ON` 构建
+2. 在 LPC 中使用 `mud_status()` efun 获取运行时内存信息
+3. 检查 `testsuite/log/debug.log` 以获取详细日志
