@@ -306,6 +306,7 @@ apk add --no-cache linux-headers gcc g++ clang-dev make cmake bash \
 - 严禁代理把任何分支推送到上游仓库 `fluffos/fluffos`。
 - 如果需要和上游仓库交互，必须先得到用户的明确、直接许可；没有明确许可时，一律视为禁止。
 - 当代理使用 `gh`、`git push`、`gh pr create`、`gh pr edit`、`gh pr reopen` 等命令时，必须显式检查目标仓库是否为 `lude2001/fluffos`；如果不是，必须停止并报错，而不是继续执行。
+- 默认工作流是不创建远程 Pull Request；除非用户明确要求，否则代理只应在本地分支完成开发、在本地合并回 `master`，然后仅把 `master` 推送到 `origin`。
 
 ### 代码生成
 
