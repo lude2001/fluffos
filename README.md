@@ -24,6 +24,35 @@ ubuntu 22.04 works fine too.
 
 Build system: cmake (3.20)
 
+Windows Runtime Installation
+----------------------------
+Windows releases now ship in two forms:
+
+- `fluffos-<version>-windows-x86_64.zip`
+  - portable dist layout for manual extraction
+- `fluffos-<version>-windows-x86_64-installer.exe`
+  - Inno Setup installer for a machine-wide FluffOS runtime
+
+The installer supports:
+
+- choosing a custom install directory
+- exposing `lpcprj` as the global project/runtime launcher
+- exposing `lpccp` as the global compiler tool
+- optionally adding the install `bin\` directory to the user `PATH` after installation completes
+
+After installing and opening a new terminal, use:
+
+```bash
+lpcprj C:/path/to/config.cfg
+lpccp --help
+```
+
+If you prefer a portable layout, extract the zip and run:
+
+```bash
+driver.exe C:/path/to/config.cfg
+```
+
 Features
 --------
 LPC Language since FluffOS v2017

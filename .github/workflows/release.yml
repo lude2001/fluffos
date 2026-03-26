@@ -140,17 +140,15 @@ jobs:
             mingw-w64-x86_64-jemalloc mingw-w64-x86_64-gtest \
             bison make zip
 
+      - name: Install Inno Setup (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
       - name: Build (Windows)
         if: matrix.platform == 'windows'
-        run: |
-          mkdir build && cd build
-          cmake -G "MSYS Makefiles" \
-            ${{ env.CMAKE_COMMON_FLAGS }} \
-            -DPACKAGE_CRYPTO=OFF \
-            -DPACKAGE_DB_MYSQL="" \
-            -DPACKAGE_DB_SQLITE=1 \
-            ..
-          VERBOSE=1 make -j 2 install
+        shell: cmd
+        run: build.cmd
 
       - name: Build (Linux)
         if: matrix.platform == 'linux'
@@ -189,13 +187,30 @@ jobs:
         if: matrix.platform == 'windows'
         env:
           CTEST_OUTPUT_ON_FAILURE: 1
-        run: cd build && make test
+        shell: pwsh
+        run: |
+          cmake --build build/work --target lpc_tests ofile_tests -j 2
+          ctest --test-dir build/work --output-on-failure
 
       - name: Package (Windows)
         if: matrix.platform == 'windows'
+        shell: pwsh
         run: |
-          ASSET_NAME="fluffos-${{ needs.create-release.outputs.version }}-${{ matrix.asset_suffix }}"
-          cd build/bin && zip -r "../../${ASSET_NAME}" .
+          $assetName = "fluffos-${{ needs.create-release.outputs.version }}-${{ matrix.asset_suffix }}"
+          $assetPath = Join-Path $PWD $assetName
+          if (Test-Path $assetPath) {
+            Remove-Item -Force $assetPath
+          }
+          Compress-Archive -Path build/dist/* -DestinationPath $assetPath
+
+      - name: Package Installer (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          & .\scripts\build-windows-installer.ps1 `
+            -InstallImageDir .\build\install-image `
+            -OutputDir .\build `
+            -Version "${{ needs.create-release.outputs.version }}"
 
       - name: Package (Linux)
         if: matrix.platform == 'linux'
@@ -212,6 +227,17 @@ jobs:
           asset_path: ./fluffos-${{ needs.create-release.outputs.version }}-${{ matrix.asset_suffix }}
           asset_name: fluffos-${{ needs.create-release.outputs.version }}-${{ matrix.asset_suffix }}
           asset_content_type: ${{ matrix.asset_type }}
+
+      - name: Upload Windows Installer
+        if: matrix.platform == 'windows'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./build/fluffos-${{ needs.create-release.outputs.version }}-windows-x86_64-installer.exe
+          asset_name: fluffos-${{ needs.create-release.outputs.version }}-windows-x86_64-installer.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
 
   build-docker:
     name: Build and Push Docker Image
@@ -275,9 +301,15 @@ jobs:
 
           ### Binary Distributions
           - **Windows x86_64**: \`fluffos-${VERSION}-windows-x86_64.zip\`
-            - Built with MSYS2/MinGW64
-            - Complete distribution with all tools and libraries
-            - SQLite support enabled
+            - Portable dist layout built with MSYS2/MinGW64
+            - Includes \`driver.exe\`, \`lpccp.exe\`, runtime DLLs and LPC resources
+            - Best for manual extraction and debugging
+
+          - **Windows x86_64 Installer**: \`fluffos-${VERSION}-windows-x86_64-installer.exe\`
+            - Built with Inno Setup
+            - Installs global commands \`lpcprj\` and \`lpccp\`
+            - Supports a custom install directory
+            - Can add \`bin\` to the user PATH after installation
 
           - **Linux x86_64 (Static)**: \`fluffos-${VERSION}-linux-x86_64-static.tar.gz\`
             - Statically linked binaries (no external dependencies)
@@ -287,10 +319,9 @@ jobs:
 
           ### What's Included
           Each distribution contains:
-          - **driver** - Main FluffOS driver executable
-          - **lpcc** - LPC compiler
-          - **symbol** - Symbol table utility
-          - **o2json/json2o** - Object file converters
+          - **lpcprj** - Installed project/runtime launcher on Windows
+          - **driver** - Internal driver executable for dist/manual layouts
+          - **lpccp** - LPC compiler frontend
           - **portbind** - Port binding helper (Linux only)
           - **std/** - LPC standard library
           - **include/** - LPC header files
@@ -311,12 +342,19 @@ jobs:
 
           ### Windows
           \`\`\`bash
-          # Extract distribution
+          # Option 1: install the global runtime
+          ./fluffos-${VERSION}-windows-x86_64-installer.exe
+
+          # Then open a new terminal and run
+          lpcprj C:/path/to/config.cfg
+          lpccp --help
+
+          # Option 2: extract the portable distribution
           unzip fluffos-${VERSION}-windows-x86_64.zip -d fluffos
           cd fluffos
 
           # Run driver with your config
-          ./driver.exe /path/to/mudlib/config.cfg
+          ./driver.exe C:/path/to/mudlib/config.cfg
           \`\`\`
 
           ### Linux
@@ -367,6 +405,7 @@ jobs:
           cat << EOF
           ✅ Release ${VERSION} created successfully!
           📦 Windows binary: fluffos-${VERSION}-windows-x86_64.zip
+          📦 Windows installer: fluffos-${VERSION}-windows-x86_64-installer.exe
           📦 Linux static binary: fluffos-${VERSION}-linux-x86_64-static.tar.gz
           🐳 Docker image: ghcr.io/${{ github.repository }}:${VERSION}
           🔗 View release: https://github.com/${{ github.repository }}/releases/tag/${VERSION}

@@ -20,6 +20,35 @@ FluffOS 的主要平台是 Ubuntu 22.04 LTS，但也支持最新的 OSX 和 Wind
 
 构建系统：cmake (3.20)
 
+Windows 运行时安装
+------------------
+Windows 发布现在提供两种形式：
+
+- `fluffos-<version>-windows-x86_64.zip`
+  - 适合手动解压使用的便携 dist 布局
+- `fluffos-<version>-windows-x86_64-installer.exe`
+  - 基于 Inno Setup 的安装器，适合安装为系统上的 FluffOS 运行时
+
+安装器支持：
+
+- 自定义安装目录
+- 将 `lpcprj` 暴露为全局项目/运行时启动命令
+- 将 `lpccp` 暴露为全局编译工具
+- 在安装完成后可选把安装目录下的 `bin\` 加入当前用户的 `PATH`
+
+安装完成并重新打开终端后，可以使用：
+
+```bash
+lpcprj C:/path/to/config.cfg
+lpccp --help
+```
+
+如果你更喜欢便携布局，也可以直接解压 zip 后运行：
+
+```bash
+driver.exe C:/path/to/config.cfg
+```
+
 特性
 --------
 ### FluffOS v2017 以来的 LPC 语言特性
