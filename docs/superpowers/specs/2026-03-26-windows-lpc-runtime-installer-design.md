@@ -132,6 +132,16 @@
 
 这样可以在最小风险下，把当前“可运行目录”升级为“可安装运行时”。
 
+## Settled Decisions
+
+以下决策已经由本轮设计确认，不再作为开放问题保留：
+
+- Windows 第一阶段安装器技术栈使用 `Inno Setup`
+- `lpcprj` 采用真正的 `lpcprj.exe` 包装器，而不是 `.cmd` 代理
+- 安装完成后如用户选择加入 `PATH`，默认写入用户级 `PATH`
+- Windows 发布继续同时保留 `zip` 与 `installer` 两种工件
+- `lpcprj <config-file>` 启动时，以 `config-file` 所在目录作为工作目录
+
 ## Installation Layout
 
 安装目标目录必须允许用户自定义，因此布局设计不能依赖固定盘符或固定根目录。
@@ -181,10 +191,13 @@
 - 定位自身安装根目录
 - 设置运行时所需的 DLL 搜索路径
 - 定位内部 `libexec/fluffos/driver.exe`
+- 将当前工作目录切换到 `config-file` 所在目录
 - 将用户参数原样转发给 `driver.exe`
 - 保持现有驱动返回码
 
 这样可以把内部实现细节封装在包装层之后，避免未来安装布局变化时影响用户脚本。
+
+将工作目录切换到 `config-file` 所在目录，是为了延续当前 [`build/dist/run-driver.cmd`](/D:/code/fluffos/build/dist/run-driver.cmd) 一类入口所提供的可移植体验，使配置文件中的相对路径在安装后仍保持稳定。
 
 ### `lpccp`
 
@@ -222,13 +235,24 @@
 
 用户明确要求“安装完成后再询问是否加入 PATH”，因此此行为属于设计约束，而不是可选优化。
 
-建议第一阶段默认更新“用户级 PATH”，理由如下：
+建议第一阶段默认更新“用户级 PATH”，并以此作为第一阶段正式行为，理由如下：
 
 - 不必强依赖管理员权限
 - 失败率更低
 - 更适合开发者本机安装
 
 如果安装器运行在管理员权限下，后续也可以扩展为允许用户选择“加入系统 PATH”，但这不是第一阶段必需项。
+
+### Installer technology
+
+第一阶段安装器技术栈选用 `Inno Setup`。
+
+理由如下：
+
+- 它天然适合“自定义安装目录 + 安装后附加询问”的传统 Windows 安装体验
+- 实现成本低于 WiX/MSI
+- 对文件复制、快捷方式、注册表和卸载逻辑支持成熟
+- 便于后续增加静默安装参数
 
 ### Silent install compatibility
 
@@ -257,6 +281,11 @@
 3. 生成 `build/dist`
 4. 从 `build/dist` 生成安装镜像目录，例如 `build/install-image`
 5. 从安装镜像生成最终安装包，例如 `build/fluffos-<version>-windows-x86_64-installer.exe`
+
+Windows 发布仍然保留 zip 工件，因此完整发布物集合应为：
+
+- `fluffos-<version>-windows-x86_64.zip`
+- `fluffos-<version>-windows-x86_64-installer.exe`
 
 ### Why not package directly from `build/work`
 
@@ -327,8 +356,7 @@
 
 ## Open Questions
 
-以下问题不阻塞第一阶段设计落地，但在实现前需要定稿：
+以下问题不阻塞第一阶段设计落地，但在实现前仍可根据工程反馈微调：
 
 - `lpccp` 第一阶段是否直接暴露原始二进制，还是也包一层稳定包装器
-- Windows 安装器技术栈选型使用哪一种方案最合适
-- 是否在第一阶段继续同时发布 zip 与 installer 两种 Windows 工件
+- Windows DLL 最终放在 `runtime/` 还是按可执行文件邻近策略重新收纳
