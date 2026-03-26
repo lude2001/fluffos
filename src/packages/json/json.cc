@@ -67,7 +67,7 @@ json svalue_to_json_compat(const svalue_t *sv, std::unordered_set<visit_key_t, v
       }
       seen.insert(key);
       json out = json::object();
-      for (int i = 0; i < sv->u.map->table_size; i++) {
+      for (unsigned int i = 0; i <= sv->u.map->table_size; i++) {
         for (auto *node = sv->u.map->table[i]; node; node = node->next) {
           auto *map_key = &node->values[0];
           if (map_key->type != T_STRING) {

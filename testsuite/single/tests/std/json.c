@@ -25,6 +25,8 @@ void do_tests() {
   ASSERT_EQ("null", json_encode(([])[0]));
   ASSERT_EQ(([ "ok" : 1 ]), json_decode(json_encode(([ 1 : "ignored", "ok" : 1 ]))));
   ASSERT_EQ(([ "obj" : 0 ]), json_decode(json_encode(([ "obj" : this_object() ]))));
+  ASSERT_EQ(([ "busy" : "空闲", "code" : "杂乱信息" ]),
+            json_decode(json_encode(([ "code" : "杂乱信息", "busy" : "空闲" ]))));
 
   content = read_file("/single/tests/std/test.json");
   ASSERT(content);
