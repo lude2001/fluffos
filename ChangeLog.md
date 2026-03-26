@@ -1,3 +1,78 @@
+================================================================================
+  当前 fork 相对官方 master 的差异
+================================================================================
+
+本节用于标注当前 fork 与官方 `fluffos/fluffos` `master` 的差异。
+
+- 对比基线：
+  - 官方 `master`：`ee8137603946d12248e9ed429f09eb2388e007e3`
+  - 当前 fork `origin/master`：`98907f321b916884b9a3a8943e3f991d0d2538cb`
+- 对比结果：
+  - 当前 fork 相对官方 `master` 额外领先 25 个提交
+  - 当前 fork 没有落后于官方 `master`
+- 说明：
+  - 以下内容基于 `git log upstream/master...origin/master`
+  - 这里只统计已经进入 fork `master` 的内容
+  - 不包含当前本地开发分支上尚未合并回 fork `master` 的实验性改动
+
+主要差异功能如下：
+
+1. 原生 JSON 能力增强
+
+- 新增原生 `json_encode()` / `json_decode()` efun，由驱动内置实现，不再依赖 mudlib `std/json` 作为唯一实现。
+- 新增 `json_format()`，补充 JSON 输出格式化能力。
+- 为 JSON 增加了 testsuite 覆盖和速度测试补充。
+- 关键提交：
+  - `5be9bbd9 feat: add native json efuns`
+  - `fe425771 feat: add json_format and clean build warnings`
+  - `98907f32 fix: include all mapping buckets in json_encode`
+
+2. HTTP helper / parser 能力扩展
+
+- 在 sockets 包中新增一组 HTTP 工具 efun，包括 URL 编解码、query/form 解码、HTTP 响应构建等辅助能力。
+- 新增 HTTP 请求解析器与 HTTP 响应解析器能力，并补齐对应测试与文档。
+- 示例层还引入了基于 LPC 的 HTTP 发送侧样例，方便 mudlib 直接消费新能力。
+- 关键提交：
+  - `d2ef93c0 feat: implement HTTP helper and parser efuns`
+  - `bf7a58b7 feat: implement HTTP response parser and related efuns`
+
+3. 运行时 LPC 编译服务与 `lpccp`
+
+- 为驱动增加了运行时 LPC 编译服务的协议和基础服务端骨架。
+- 新增 `lpccp` 前端工具与对应 CLI 文档，用于对接这套运行时编译服务。
+- 增加了 compile service 的测试与文档设计稿。
+- 关键提交：
+  - `3135178a feat: add lpccp protocol scaffolding`
+  - `8fb59c83 feat: add runtime LPC compile service scaffolding`
+  - `96494966 docs: add lpccp usage guide`
+
+4. Windows 本地 dist 工作流增强
+
+- 为 Windows 增加了以 `build.cmd` 为入口的本地构建/分发工作流。
+- 新增 `build/dist` staging 逻辑，把 `driver.exe`、`lpccp.exe`、依赖 DLL、`include/`、`std/`、`www/` 收敛成可运行目录。
+- 增加了 dist 相对路径启动测试与 VS Code `compile_commands.json` 导出脚本。
+- 关键提交：
+  - `563efa9f build: stage lpccp with driver dist`
+  - `5c8c7551 docs: document preferred dist build workflow`
+
+5. 编译器与兼容性修复
+
+- 修复 inherited prototype 相关的误报告警。
+- 调整编译器/语法相关实现，为新增功能和告警清理提供支撑。
+- 若干构建告警与第三方依赖兼容性问题被顺带修复。
+- 关键提交：
+  - `32e6d6bb fix: avoid false inherited prototype warnings`
+  - `fe425771 feat: add json_format and clean build warnings`
+
+6. 文档与 fork 工作流约束
+
+- fork 中新增了一组较完整的设计/计划文档，覆盖 HTTP helper、运行时编译服务、原生 JSON、Windows dist 工作流等主题。
+- 增加了仅针对 fork 工作流的协作与 GitHub 操作约束文档，例如默认仅允许向 `lude2001/fluffos` 操作、不向上游仓库发 PR/推送等。
+- 这些提交主要影响协作流程和文档，不直接改变驱动运行时行为。
+- 关键提交：
+  - `992fd823 docs: forbid upstream PR and push operations`
+  - `2c98af06 docs: default to local-only branch merges`
+
 Wodan 宣布 3.x 版本将由 "Yucong Sun" (sunyucong@gmail.com) 维护。
 
 请提交问题到 https://github.com/fluffos/fluffos

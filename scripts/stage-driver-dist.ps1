@@ -42,6 +42,7 @@ function Sync-Directory {
 }
 
 $driverPath = Join-Path $BuildDir "src\driver.exe"
+$lpcprjPath = Join-Path $BuildDir "src\lpcprj.exe"
 $lpccpPath = Join-Path $BuildDir "src\lpccp.exe"
 $msysBinDir = Join-Path $Msys2Root "mingw64\bin"
 $objdumpPath = Join-Path $msysBinDir "objdump.exe"
@@ -58,6 +59,9 @@ if (-not (Test-Path $objdumpPath)) {
 
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 Copy-Item -Force $driverPath (Join-Path $DistDir "driver.exe")
+if (Test-Path -LiteralPath $lpcprjPath) {
+    Copy-Item -Force $lpcprjPath (Join-Path $DistDir "lpcprj.exe")
+}
 Copy-Item -Force $lpccpPath (Join-Path $DistDir "lpccp.exe")
 
 $systemDlls = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
