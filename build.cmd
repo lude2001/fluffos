@@ -26,7 +26,7 @@ if not defined JOBS set "JOBS=8"
 echo Using MSYS2 from "%MSYS2_ROOT%"
 echo Configuring and building driver artifacts into "%BUILD_DIR%"
 
-"%BASH_EXE%" -lc "set -euo pipefail; export MSYSTEM=MINGW64; export PATH=/mingw64/bin:/usr/bin:$PATH; root=$(cygpath -m \"$1\"); build=$(cygpath -m \"$2\"); msys=$(cygpath -m \"$3\"); jobs=\"$4\"; cmake -S \"$root\" -B \"$build\" -G 'MSYS Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMARCH_NATIVE=OFF -DPACKAGE_CRYPTO=OFF -DPACKAGE_DB=ON -DPACKAGE_DB_MYSQL=1 -DPACKAGE_DB_DEFAULT_DB=1 -DMYSQL_INCLUDE_DIR=\"$msys/mingw64/include/mysql\" -DMYSQL_LIB_DIR=\"$msys/mingw64/lib\" \"-DMYSQL_EXTRA_LIBRARIES=$msys/mingw64/lib/libcurl.dll.a;$msys/mingw64/lib/libzstd.dll.a\"; cmake --build \"$build\" --target driver lpccp -j \"$jobs\"" -- "%ROOT_DIR%" "%BUILD_DIR%" "%MSYS2_ROOT%" "%JOBS%"
+"%BASH_EXE%" -lc "set -euo pipefail; export MSYSTEM=MINGW64; export PATH=/mingw64/bin:/usr/bin:$PATH; root=$(cygpath -m \"$1\"); build=$(cygpath -m \"$2\"); msys=$(cygpath -m \"$3\"); jobs=\"$4\"; cmake -S \"$root\" -B \"$build\" -G 'MSYS Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMARCH_NATIVE=OFF -DPACKAGE_CRYPTO=OFF -DPACKAGE_DB=ON -DPACKAGE_DB_MYSQL=1 -DPACKAGE_DB_DEFAULT_DB=1 -DMYSQL_INCLUDE_DIR=\"$msys/mingw64/include/mysql\" -DMYSQL_LIB_DIR=\"$msys/mingw64/lib\" \"-DMYSQL_EXTRA_LIBRARIES=$msys/mingw64/lib/libcurl.dll.a;$msys/mingw64/lib/libzstd.dll.a\"; cmake --build \"$build\" --target driver lpcprj lpccp -j \"$jobs\"" -- "%ROOT_DIR%" "%BUILD_DIR%" "%MSYS2_ROOT%" "%JOBS%"
 if errorlevel 1 exit /b %errorlevel%
 
 "%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%ROOT_DIR%\scripts\export-vscode-compile-commands.ps1" -SourcePath "%BUILD_DIR%\compile_commands.json" -OutputPath "%BUILD_ROOT%\compile_commands.json"

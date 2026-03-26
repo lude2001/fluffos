@@ -43,6 +43,7 @@ New-Item -ItemType Directory -Force -Path $shareDir | Out-Null
 New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
 
 $driverPath = Join-Path $resolvedDistDir "driver.exe"
+$lpcprjPath = Join-Path $resolvedDistDir "lpcprj.exe"
 $lpccpPath = Join-Path $resolvedDistDir "lpccp.exe"
 
 if (-not (Test-Path -LiteralPath $driverPath)) {
@@ -53,12 +54,18 @@ if (-not (Test-Path -LiteralPath $lpccpPath)) {
 }
 
 Copy-Item -Force $driverPath (Join-Path $libexecDir "driver.exe")
-Copy-Item -Force $driverPath (Join-Path $binDir "lpcprj.exe")
+if (Test-Path -LiteralPath $lpcprjPath) {
+    Copy-Item -Force $lpcprjPath (Join-Path $binDir "lpcprj.exe")
+} else {
+    Copy-Item -Force $driverPath (Join-Path $binDir "lpcprj.exe")
+}
 Copy-Item -Force $lpccpPath (Join-Path $binDir "lpccp.exe")
 
 $runtimeDlls = Get-ChildItem -LiteralPath $resolvedDistDir -Filter *.dll -File
 foreach ($dll in $runtimeDlls) {
     Copy-Item -Force $dll.FullName (Join-Path $runtimeDir $dll.Name)
+    Copy-Item -Force $dll.FullName (Join-Path $binDir $dll.Name)
+    Copy-Item -Force $dll.FullName (Join-Path $libexecDir $dll.Name)
 }
 
 Sync-Directory -SourceDir (Join-Path $resolvedDistDir "include") -TargetDir (Join-Path $shareDir "include")

@@ -26,9 +26,20 @@ try {
         Pop-Location
     }
 
+    $outputText = ($output -join [Environment]::NewLine)
+    if ($outputText -notmatch [regex]::Escape("Full Command Line:")) {
+        throw "lpcprj did not emit driver startup output."
+    }
+    if ($outputText -notmatch [regex]::Escape("libexec\fluffos\driver.exe")) {
+        throw "lpcprj did not launch the staged driver executable."
+    }
+    if ($outputText -notmatch [regex]::Escape("Processing config file: $configPath")) {
+        throw "lpcprj did not forward the requested config file path."
+    }
+
     [pscustomobject]@{
         ExitCode = $exitCode
-        Output = ($output -join [Environment]::NewLine)
+        Output = $outputText
         ConfigPath = $configPath
         LaunchDir = $launchDir
     }

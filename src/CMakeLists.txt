@@ -517,6 +517,8 @@ endif()
 add_executable(driver "main.cc")
 target_link_libraries(driver PUBLIC ${FLUFFOS_LINK})
 
+add_executable(lpcprj "main_lpcprj.cc")
+
 add_executable(lpcc "main_lpcc.cc")
 target_link_libraries(lpcc PUBLIC ${FLUFFOS_LINK})
 
