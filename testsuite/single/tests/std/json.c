@@ -52,6 +52,13 @@ void do_tests() {
   m["self"] = m;
   ASSERT_EQ(([ "ok" : 1, "self" : 0 ]), json_decode(json_encode(m)));
 
+  // Formatting
+  ASSERT_EQ("{\n  \"a\": 1,\n  \"b\": [\n    2,\n    3\n  ]\n}",
+            json_format("{\"a\":1,\"b\":[2,3]}"));
+  ASSERT_EQ("{\n    \"nested\": {\n        \"ok\": true\n    },\n    \"text\": \"a,\\\"b\\\"{}\"\n}",
+            json_format("{\n\t\"text\":\"a,\\\"b\\\"{}\", \"nested\": {\"ok\":true}}", 4));
+  ASSERT(catch(json_format("{")));
+
   ASSERT(catch(json_decode("{")));
   ASSERT(catch(json_decode("\"\\ud83d\"")));
   ASSERT(catch(json_decode("18446744073709551615")));

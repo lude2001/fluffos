@@ -97,15 +97,15 @@ int yyparse (void);
  *  define these precedences to shut yacc up.
  */
 
-%nonassoc LOWER_THAN_ELSE
-%nonassoc L_ELSE
+%precedence LOWER_THAN_ELSE
+%precedence L_ELSE
 
 /*
  * Operator precedence and associativity...
  * greatly simplify the grammar.
  */
 
-%right L_ASSIGN
+%precedence L_ASSIGN
 %right '?'
 %left L_QUESTION_QUESTION
 %left L_LOR
@@ -118,8 +118,7 @@ int yyparse (void);
 %left L_LSH L_RSH
 %left '+' '-'
 %left '*' '%' '/'
-%right L_NOT '~'
-%nonassoc L_INC L_DEC
+%precedence L_NOT '~'
 
 /*
  * YYTYPE
@@ -200,7 +199,7 @@ int yyparse (void);
 %type <node> expr_list4 assoc_pair expr4 lvalue function_call lvalue_list
 %type <node> new_local_def statement while cond do switch case
 %type <node> return optional_else_part block_or_semi
-%type <node> case_label statements switch_block
+%type <node> case_label switch_block
 %type <node> expr_list_node expr_or_block
 %type <node> single_new_local_def_with_init
 %type <node> class_init opt_class_init all def function
@@ -2285,6 +2284,7 @@ lvalue:
           break;
         case NODE_TERNARY_OP:
           $$->v.number = $$->r.expr->v.number;
+          [[fallthrough]];
         case NODE_OPCODE_1:
         case NODE_UNARY_OP_1:
         case NODE_BINARY_OP:
@@ -2302,6 +2302,7 @@ lvalue:
                   break;
                 case NODE_TERNARY_OP:
                   node->v.number = node->r.expr->v.number;
+                  [[fallthrough]];
                 case NODE_OPCODE_1:
                 case NODE_UNARY_OP_1:
                 case NODE_BINARY_OP:
@@ -2367,6 +2368,7 @@ lvalue:
                     node = node->r.expr->r.expr;
                     continue;
                   }
+                  [[fallthrough]];
                 default:
                   yyerror("Illegal lvalue");
                   flag = LV_ILLEGAL;
@@ -2623,6 +2625,7 @@ expr4:
         switch($1->type) {
           case TYPE_MAPPING:
             yyerror("Illegal index for mapping.");
+            [[fallthrough]];
           case TYPE_ANY:
             $$->type = TYPE_ANY;
             break;
@@ -3338,13 +3341,13 @@ function_call:
       if (*name == ':') {
         int f;
 
-        if ((f = arrange_call_inherited(name + 1, $$)) != -1)
+        if ((f = arrange_call_inherited(name + 1, $$)) != -1) {
           /* Can't do this; f may not be the correct function
              entry.  It might be overloaded.
 
              validate_function_call(f, $$->r.expr)
              */
-          ;
+        }
       } else {
         /* The only way this can happen is if function_name
          * below made the function name. (directly or inherited.)

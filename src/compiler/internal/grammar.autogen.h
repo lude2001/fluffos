@@ -117,7 +117,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 133 "D:/code/fluffos/src/compiler/internal/grammar.y"
+#line 132 "D:/code/fluffos/src/compiler/internal/grammar.y"
 
   LPC_INT number; /* 8 */
   LPC_FLOAT real; /* 8 */

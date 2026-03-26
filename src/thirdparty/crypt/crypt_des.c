@@ -887,7 +887,7 @@ static char *_crypt_extended_r_uut(const char *_key, const char *_setting, char 
 	 * with zeroes.
 	 */
 	q = keybuf;
-	while (q <= &keybuf[sizeof(keybuf) - 1]) {
+	for (i = 0; i < sizeof(keybuf); i++) {
 		*q++ = *key << 1;
 		if (*key)
 			key++;

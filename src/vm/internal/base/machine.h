@@ -8,6 +8,8 @@
 #ifndef SRC_VM_INTERNAL_BASE_MACHINE_H_
 #define SRC_VM_INTERNAL_BASE_MACHINE_H_
 
+#include "base/std.h"
+
 #include <chrono>
 #include <sys/types.h>
 

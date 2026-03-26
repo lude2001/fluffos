@@ -229,3 +229,26 @@ void f_json_encode() {
   }
 }
 #endif
+
+#ifdef F_JSON_FORMAT
+void f_json_format() {
+  int const num_arg = st_num_arg;
+  int indent = 2;
+  std::string input((sp - num_arg + 1)->u.string, SVALUE_STRLEN(sp - num_arg + 1));
+
+  if (num_arg == 2) {
+    indent = (sp - num_arg + 2)->u.number;
+    if (indent <= 0) {
+      indent = 2;
+    }
+  }
+
+  try {
+    auto formatted = json::parse(input).dump(indent);
+    pop_n_elems(num_arg);
+    push_malloced_string(string_copy(formatted.c_str(), "f_json_format"));
+  } catch (const std::exception &e) {
+    error("json_format error: %s\n", e.what());
+  }
+}
+#endif

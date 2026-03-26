@@ -2,6 +2,7 @@
 
 #include "scratchpad.h"
 
+#include <cstddef>
 #include <cstdlib>
 
 // FIXME: figure out where this is
@@ -57,7 +58,7 @@ extern void yywarn(const char *, ...);
 #define Strncpy(x, y, z) (strncpy((char *)x, (char *)y, z))
 
 /* not strictly ANSI, but should always work ... */
-#define HDR_SIZE ((char *)&scratch_head.block[2] - (char *)&scratch_head)
+#define HDR_SIZE offsetof(sp_block_t, block)
 #define FIND_HDR(x) ((sp_block_t *)(x - HDR_SIZE))
 #define SIZE_WITH_HDR(x) (x + HDR_SIZE)
 
@@ -177,9 +178,10 @@ char *scratch_large_alloc(int size) {
     spt->next->prev = spt;
   }
   spt->prev = &scratch_head;
-  spt->block[0] = SCRATCH_MAGIC;
+  spt->header[0] = SCRATCH_MAGIC;
+  spt->header[1] = 0;
   scratch_head.next = spt;
-  return &spt->block[2];
+  return spt->block;
 }
 
 /* warning: unlike REALLOC(), this one only allows increases */
@@ -212,7 +214,7 @@ char *scratch_realloc(char *ptr, int size) {
     if (newsbt->next) {
       newsbt->next->prev = newsbt;
     }
-    return &newsbt->block[2];
+    return newsbt->block;
   } else {
     char *res;
 

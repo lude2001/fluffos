@@ -118,7 +118,8 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
     "-Werror=format-security"
     $<$<COMPILE_LANGUAGE:C>:-Werror=implicit-function-declaration>
     # Turn off some warnings from GCC.
-    "-Wno-unknown-warning-option"
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-unknown-warning-option>
+    $<$<C_COMPILER_ID:Clang>:-Wno-unknown-warning-option>
     "-Wno-char-subscripts"
     "-Wno-sign-compare"
     "-Wno-unused-function"
