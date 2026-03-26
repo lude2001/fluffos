@@ -24,6 +24,8 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequiredOverridesAllowed=dialog
+UsePreviousAppDir=no
+UsePreviousPrivileges=no
 UninstallDisplayIcon={app}\bin\lpcprj.exe
 
 [Files]
@@ -36,6 +38,20 @@ Name: "{autoprograms}\FluffOS\LPC Compiler"; Filename: "{app}\bin\lpccp.exe"
 [Code]
 var
   AddToPathCheckBox: TNewCheckBox;
+
+function ShouldAddToPathFromCommandLine(): Boolean;
+var
+  ParamValue: string;
+begin
+  ParamValue := Uppercase(ExpandConstant('{param:ADDTOPATH|}'));
+  Result := (ParamValue = '1') or (ParamValue = 'TRUE') or (ParamValue = 'YES');
+end;
+
+function ShouldAddToPath(): Boolean;
+begin
+  Result := ShouldAddToPathFromCommandLine() or
+    (Assigned(AddToPathCheckBox) and AddToPathCheckBox.Visible and AddToPathCheckBox.Checked);
+end;
 
 function PathContainsEntry(const ExistingPath: string; const Entry: string): Boolean;
 var
@@ -90,13 +106,13 @@ end;
 procedure CurPageChanged(CurPageID: Integer);
 begin
   if CurPageID = wpFinished then begin
-    AddToPathCheckBox.Visible := NeedsAddBinToPath();
+    AddToPathCheckBox.Visible := NeedsAddBinToPath() and not ShouldAddToPathFromCommandLine();
   end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if (CurStep = ssPostInstall) and AddToPathCheckBox.Checked then begin
+  if (CurStep = ssDone) and ShouldAddToPath() then begin
     AddBinToUserPath();
   end;
 end;
