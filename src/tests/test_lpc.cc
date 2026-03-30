@@ -4,9 +4,22 @@
 #include "mainlib.h"
 
 #include "compile_service_protocol.h"
+#include "runtime_compile_request.h"
 #include "compiler/internal/compiler.h"
 #include "vm/internal/apply.h"
 #include "vm/internal/simulate.h"
+
+namespace {
+size_t count_loaded_objects_named(const char *name) {
+  size_t count = 0;
+  for (auto *ob = obj_list; ob != nullptr; ob = ob->next_all) {
+    if (ob->obname && strcmp(ob->obname, name) == 0) {
+      count++;
+    }
+  }
+  return count;
+}
+}
 
 // Test fixture class
 class DriverTest : public ::testing::Test {
@@ -43,8 +56,6 @@ TEST_F(DriverTest, TestCompileDumpProgWorks) {
   ASSERT_NE(obj->prog, nullptr);
 
   dump_prog(obj->prog, stdout, 1 | 2);
-
-  free_object(&obj, "DriverTest::TestCompileDumpProgWorks");
 }
 
 TEST_F(DriverTest, TestInMemoryCompileFile) {
@@ -85,6 +96,20 @@ TEST_F(DriverTest, TestInMemoryCompileUnusedLocalWarningUsesDeclarationLocation)
   EXPECT_EQ(diagnostics[0].message, "Unused local variable 'cc'");
 
   deallocate_program(prog);
+}
+
+TEST_F(DriverTest, TestCompileServiceMasterRecompileDoesNotDuplicateMasterObject) {
+  auto before = count_loaded_objects_named("single/master");
+  ASSERT_EQ(before, 1u);
+  ASSERT_EQ(master_ob, find_object2("/single/master.c"));
+
+  compile_service::CompileServiceRequest request;
+  request.target = "/single/master.c";
+  auto response = compile_service::execute_compile_service_request(request);
+
+  ASSERT_TRUE(response.ok);
+  EXPECT_EQ(count_loaded_objects_named("single/master"), 1u);
+  EXPECT_EQ(master_ob, find_object2("/single/master.c"));
 }
 
 TEST_F(DriverTest, TestExplicitInheritedCallSkipsPrototypePlaceholder) {

@@ -7,6 +7,8 @@ set "BUILD_ROOT=%ROOT_DIR%\build"
 set "BUILD_DIR=%BUILD_ROOT%\work"
 set "DIST_DIR=%BUILD_ROOT%\dist"
 set "INSTALL_IMAGE_DIR=%BUILD_ROOT%\install-image"
+set "CONFIG_HEADER=%BUILD_DIR%\src\config.h"
+set "INSTALLER_VERSION_FILE=%BUILD_ROOT%\installer-version.txt"
 
 set "MSYS2_ROOT="
 if defined MSYS2_ROOT if exist "%MSYS2_ROOT%\usr\bin\bash.exe" set "MSYS2_ROOT=%MSYS2_ROOT%"
@@ -38,6 +40,22 @@ if errorlevel 1 exit /b %errorlevel%
 "%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%ROOT_DIR%\scripts\stage-windows-install-image.ps1" -RootDir "%ROOT_DIR%" -DistDir "%DIST_DIR%" -InstallImageDir "%INSTALL_IMAGE_DIR%"
 if errorlevel 1 exit /b %errorlevel%
 
+del /q "%INSTALLER_VERSION_FILE%" 2>nul
+"%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%ROOT_DIR%\scripts\get-project-version-from-config.ps1" -ConfigHeaderPath "%CONFIG_HEADER%" > "%INSTALLER_VERSION_FILE%"
+if errorlevel 1 exit /b %errorlevel%
+
+set /p INSTALLER_VERSION=<"%INSTALLER_VERSION_FILE%"
+if not defined INSTALLER_VERSION (
+  echo Unable to determine installer version from "%CONFIG_HEADER%".
+  exit /b 1
+)
+
+del /q "%BUILD_ROOT%\fluffos-*-windows-x86_64-installer.exe" 2>nul
+"%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%ROOT_DIR%\scripts\build-windows-installer.ps1" -InstallImageDir "%INSTALL_IMAGE_DIR%" -OutputDir "%BUILD_ROOT%" -Version "%INSTALLER_VERSION%"
+if errorlevel 1 exit /b %errorlevel%
+
+del /q "%INSTALLER_VERSION_FILE%" 2>nul
 echo Dist staged at "%DIST_DIR%"
 echo Install image staged at "%INSTALL_IMAGE_DIR%"
+echo Installer built for version "%INSTALLER_VERSION%" in "%BUILD_ROOT%"
 exit /b 0

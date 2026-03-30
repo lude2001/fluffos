@@ -8,6 +8,7 @@
 #include "compiler/internal/compiler.h"
 #include "vm/internal/master.h"
 #include "vm/internal/simulate.h"
+#include "vm/internal/simul_efun.h"
 #include "vm/internal/base/machine.h"
 #include "vm/vm.h"
 
@@ -50,10 +51,18 @@ CompileServiceResponse compile_single_file(const std::string &target) {
   try {
     current_object = master_ob;
     if (auto *existing = find_object2(response.target.c_str())) {
+      const bool handled_by_vital_reload = (existing == master_ob || existing == simul_efun_ob);
       destruct_object(existing);
       remove_destructed_objects();
+      if (handled_by_vital_reload) {
+        current_object = master_ob;
+        result = find_object2(response.target.c_str());
+      } else {
+        result = load_object(response.target.c_str(), 1);
+      }
+    } else {
+      result = load_object(response.target.c_str(), 1);
     }
-    result = load_object(response.target.c_str(), 1);
   } catch (...) {
     restore_context(&econ);
   }
