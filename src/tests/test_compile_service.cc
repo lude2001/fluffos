@@ -16,6 +16,8 @@ using compile_service::CompileServiceRequest;
 using compile_service::CompileServiceResponse;
 using compile_service::ParsedCompileServiceClientArgs;
 using compile_service::build_compile_service_stub_response;
+using compile_service::build_compile_queue_timeout_response;
+using compile_service::build_dev_test_queue_timeout_response;
 using compile_service::format_compile_service_connect_error;
 using compile_service::format_compile_service_usage;
 using compile_service::make_compile_service_id;
@@ -148,6 +150,42 @@ TEST(CompileServiceProtocol, DevTestResponseJsonRoundTrips) {
   EXPECT_EQ(parsed.output[0], "setup complete");
   EXPECT_EQ(parsed.result["ok"], true);
   EXPECT_EQ(parsed.result["checks"][0]["name"], "sanity");
+}
+
+TEST(CompileServiceProtocol, CompileQueueTimeoutUsesDiagnosticsWithoutNewTopLevelFields) {
+  auto response = build_compile_queue_timeout_response("file", "/adm/single/master.c", 5000);
+  nlohmann::json j = response;
+
+  EXPECT_EQ(response.ok, false);
+  EXPECT_EQ(response.kind, "file");
+  EXPECT_EQ(response.target, "/adm/single/master.c");
+  ASSERT_EQ(response.diagnostics.size(), 1u);
+  EXPECT_EQ(response.diagnostics[0].severity, "error");
+  EXPECT_EQ(response.diagnostics[0].line, 0);
+  EXPECT_NE(response.diagnostics[0].message.find("5000ms"), std::string::npos);
+
+  EXPECT_FALSE(j.contains("queue_state"));
+  EXPECT_FALSE(j.contains("queue_timeout_ms"));
+  EXPECT_FALSE(j.contains("request_id"));
+  EXPECT_FALSE(j.contains("error"));
+}
+
+TEST(CompileServiceProtocol, DevTestQueueTimeoutUsesExistingErrorField) {
+  auto response = build_dev_test_queue_timeout_response("/single/tests/dev/dev_test_success.c", 5000);
+  nlohmann::json j = response;
+
+  EXPECT_EQ(response.ok, false);
+  EXPECT_EQ(response.kind, "dev_test");
+  EXPECT_EQ(response.target, "/single/tests/dev/dev_test_success.c");
+  EXPECT_TRUE(response.diagnostics.empty());
+  ASSERT_TRUE(response.error.is_object());
+  EXPECT_EQ(response.error["type"], "queue_timeout");
+  std::string message = response.error["message"];
+  EXPECT_NE(message.find("5000ms"), std::string::npos);
+
+  EXPECT_FALSE(j.contains("queue_state"));
+  EXPECT_FALSE(j.contains("queue_timeout_ms"));
+  EXPECT_FALSE(j.contains("request_id"));
 }
 
 TEST(CompileServiceClient, ParsesConfigPathArguments) {

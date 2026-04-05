@@ -44,6 +44,36 @@ struct CompileServiceResponse {
   nlohmann::json error;
 };
 
+inline CompileServiceResponse build_compile_queue_timeout_response(std::string_view kind,
+                                                                  std::string_view target,
+                                                                  int timeout_ms) {
+  CompileServiceResponse response;
+  response.version = 1;
+  response.ok = false;
+  response.kind = std::string(kind);
+  response.target = std::string(target);
+  response.diagnostics.push_back(CompileServiceDiagnostic{
+      "error",
+      response.kind == "file" ? response.target : std::string{},
+      0,
+      0,
+      "compile request timed out in queue after " + std::to_string(timeout_ms) + "ms"});
+  return response;
+}
+
+inline CompileServiceResponse build_dev_test_queue_timeout_response(std::string_view target,
+                                                                   int timeout_ms) {
+  CompileServiceResponse response;
+  response.version = 1;
+  response.ok = false;
+  response.kind = "dev_test";
+  response.target = std::string(target);
+  response.error = nlohmann::json{{"type", "queue_timeout"},
+                                  {"message", "dev_test request timed out in queue after " +
+                                                  std::to_string(timeout_ms) + "ms"}};
+  return response;
+}
+
 inline std::string normalize_compile_service_path(std::string_view path) {
   std::filesystem::path p(path);
   std::error_code ec;
