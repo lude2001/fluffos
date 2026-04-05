@@ -20,6 +20,7 @@ title: cli / lpccp
 1. 必须先启动一个运行中的 `driver`
 2. `lpccp` 传入的 config 路径必须和这个 `driver` 启动时使用的是同一个配置文件
 3. 当前实现是本地 IPC，用于本机开发环境
+4. 同一个 `driver` 允许多个 `lpccp` 并发发起请求，但请求在 `driver` 内部仍按串行顺序执行
 
 ## 用法
 
@@ -311,7 +312,7 @@ Error: cannot connect to compile service pipe \\.\pipe\fluffos-lpccp-xxxxxxxxxxx
 ## 退出码
 
 - `0`：请求成功，且返回 `ok: true`
-- `1`：请求已送达，但编译失败或 `dev_test` 失败，返回 `ok: false`
+- `1`：请求已送达，但编译失败、`dev_test` 失败，或请求在排队阶段等待超过 5 秒后失败，返回 `ok: false`
 - `2`：本地连接或请求级错误，例如无法连接到编译服务
 
 ## 适用场景
@@ -325,6 +326,9 @@ Error: cannot connect to compile service pipe \\.\pipe\fluffos-lpccp-xxxxxxxxxxx
 
 - `lpccp` 走的是运行中的 FluffOS VM 语义，不是独立离线编译器语义
 - 普通模式请求的是“真实重编译并装载”，不是单纯静态语法检查
+- 多个 `lpccp` 可以同时发起请求，但同一个 `driver` 内部只会串行执行一个 compile-service 请求
+- 若请求在 `driver` 内部排队等待超过 5 秒仍未开始执行，会按普通失败响应返回，而不是无限阻塞
+- 一旦请求开始执行，就不会再受这 5 秒排队超时限制
 - `--dev-test` 不支持任意函数调用，只会调用固定的 `dev_test()`
 - `--dev-test` 的 `output` 用于辅助看过程，最终结论应以 `result` 或 `error` 为准
 - 因此它更适合本地开发环境，而不是生产环境
