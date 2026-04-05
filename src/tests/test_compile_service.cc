@@ -1,9 +1,18 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <chrono>
+#include <condition_variable>
 #include <filesystem>
+#include <mutex>
+#include <optional>
 #include <thread>
+#include <vector>
 #include <nlohmann/json.hpp>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "comm.h"
 #include "compile_service.h"
@@ -18,12 +27,124 @@ using compile_service::ParsedCompileServiceClientArgs;
 using compile_service::build_compile_service_stub_response;
 using compile_service::build_compile_queue_timeout_response;
 using compile_service::build_dev_test_queue_timeout_response;
+using compile_service::clear_compile_service_request_executor_for_testing;
+using compile_service::dispatch_compile_service_request_for_testing;
 using compile_service::format_compile_service_connect_error;
 using compile_service::format_compile_service_usage;
 using compile_service::make_compile_service_id;
 using compile_service::make_compile_service_pipe_name;
 using compile_service::normalize_compile_service_path;
 using compile_service::parse_compile_service_client_args;
+using compile_service::set_compile_service_request_executor_for_testing;
+
+struct FakeExecutorState {
+  std::mutex mutex;
+  std::condition_variable cv_started;
+  std::condition_variable cv_release;
+  std::vector<std::string> started_targets;
+  bool first_request_started = false;
+  bool release_first_request = false;
+  int sleep_after_start_ms = 0;
+  int in_flight = 0;
+  int max_in_flight = 0;
+};
+
+FakeExecutorState *g_fake_executor_state = nullptr;
+
+struct CompileServiceTestGuard {
+  CompileServiceTestGuard() {
+    if (compile_service_running()) {
+      stop_compile_service();
+    }
+    clear_compile_service_request_executor_for_testing();
+    g_fake_executor_state = nullptr;
+  }
+
+  ~CompileServiceTestGuard() {
+    if (compile_service_running()) {
+      stop_compile_service();
+    }
+    clear_compile_service_request_executor_for_testing();
+    g_fake_executor_state = nullptr;
+  }
+};
+
+#ifdef _WIN32
+struct PipeRoundTripResult {
+  unsigned long win32_error = 0;
+  std::optional<CompileServiceResponse> response;
+};
+
+PipeRoundTripResult send_pipe_request(std::string_view pipe_name, const CompileServiceRequest &request) {
+  PipeRoundTripResult result;
+  HANDLE pipe =
+      CreateFileA(std::string(pipe_name).c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+  if (pipe == INVALID_HANDLE_VALUE) {
+    result.win32_error = GetLastError();
+    return result;
+  }
+
+  auto payload = nlohmann::json(request).dump() + "\n";
+  DWORD bytes_written = 0;
+  if (!WriteFile(pipe, payload.data(), static_cast<DWORD>(payload.size()), &bytes_written, nullptr)) {
+    result.win32_error = GetLastError();
+    CloseHandle(pipe);
+    return result;
+  }
+
+  std::string response_text;
+  char buffer[4096];
+  DWORD bytes_read = 0;
+  while (ReadFile(pipe, buffer, sizeof buffer, &bytes_read, nullptr) && bytes_read > 0) {
+    response_text.append(buffer, buffer + bytes_read);
+    auto pos = response_text.find('\n');
+    if (pos != std::string::npos) {
+      response_text.resize(pos);
+      break;
+    }
+  }
+  CloseHandle(pipe);
+
+  if (!response_text.empty()) {
+    result.response = nlohmann::json::parse(response_text).get<CompileServiceResponse>();
+  }
+  return result;
+}
+#endif
+
+CompileServiceResponse fake_serializing_executor(const CompileServiceRequest &request) {
+  auto *state = g_fake_executor_state;
+  EXPECT_NE(state, nullptr);
+
+  {
+    std::unique_lock<std::mutex> lock(state->mutex);
+    state->in_flight++;
+    state->max_in_flight = std::max(state->max_in_flight, state->in_flight);
+    state->started_targets.push_back(request.target);
+    if (request.target == "/queue/first.c") {
+      state->first_request_started = true;
+      state->cv_started.notify_all();
+      state->cv_release.wait(lock, [&] { return state->release_first_request; });
+    }
+  }
+
+  if (request.target == "/queue/slow-started.c" && state->sleep_after_start_ms > 0) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(state->sleep_after_start_ms));
+  }
+
+  CompileServiceResponse response;
+  response.version = 1;
+  response.ok = true;
+  response.kind = "file";
+  response.target = request.target;
+
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->in_flight--;
+  }
+
+  return response;
+}
 
 TEST(CompileServiceProtocol, NormalizesConfigPathBeforeHashing) {
   auto lhs = make_compile_service_id("lpc_example_http/./config.hell");
@@ -287,4 +408,262 @@ TEST(CompileServiceLifecycle, RuntimeOutputSinkIsThreadLocal) {
   EXPECT_FALSE(other_thread_has_sink);
   EXPECT_FALSE(has_runtime_output_sink());
 }
+
+TEST(CompileServiceLifecycle, QueuedRequestsRunOneAtATimeInFifoOrder) {
+  CompileServiceTestGuard guard;
+  FakeExecutorState state;
+  g_fake_executor_state = &state;
+  set_compile_service_request_executor_for_testing(&fake_serializing_executor);
+
+  ASSERT_FALSE(compile_service_running());
+  ASSERT_TRUE(start_compile_service("testsuite/etc/config.test"));
+
+  CompileServiceRequest first_request;
+  first_request.op = "compile";
+  first_request.target = "/queue/first.c";
+
+  CompileServiceRequest second_request;
+  second_request.op = "compile";
+  second_request.target = "/queue/second.c";
+
+  std::optional<CompileServiceResponse> first_response;
+  std::optional<CompileServiceResponse> second_response;
+
+  std::thread first_thread(
+      [&] { first_response = dispatch_compile_service_request_for_testing(first_request); });
+
+  {
+    std::unique_lock<std::mutex> lock(state.mutex);
+    ASSERT_TRUE(state.cv_started.wait_for(lock, std::chrono::seconds(1),
+                                          [&] { return state.first_request_started; }));
+  }
+
+  std::thread second_thread(
+      [&] { second_response = dispatch_compile_service_request_for_testing(second_request); });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    ASSERT_EQ(state.started_targets.size(), 1u);
+    EXPECT_EQ(state.started_targets[0], "/queue/first.c");
+    EXPECT_EQ(state.max_in_flight, 1);
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    state.release_first_request = true;
+  }
+  state.cv_release.notify_all();
+
+  first_thread.join();
+  second_thread.join();
+
+  ASSERT_TRUE(first_response.has_value());
+  ASSERT_TRUE(second_response.has_value());
+  EXPECT_TRUE(first_response->ok);
+  EXPECT_TRUE(second_response->ok);
+
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    ASSERT_EQ(state.started_targets.size(), 2u);
+    EXPECT_EQ(state.started_targets[0], "/queue/first.c");
+    EXPECT_EQ(state.started_targets[1], "/queue/second.c");
+    EXPECT_EQ(state.max_in_flight, 1);
+  }
+}
+
+TEST(CompileServiceLifecycle, CompileRequestsTimeOutAfterWaitingFiveSecondsInQueue) {
+  CompileServiceTestGuard guard;
+  FakeExecutorState state;
+  g_fake_executor_state = &state;
+  set_compile_service_request_executor_for_testing(&fake_serializing_executor);
+
+  ASSERT_FALSE(compile_service_running());
+  ASSERT_TRUE(start_compile_service("testsuite/etc/config.test"));
+
+  CompileServiceRequest first_request;
+  first_request.op = "compile";
+  first_request.target = "/queue/first.c";
+
+  CompileServiceRequest second_request;
+  second_request.op = "compile";
+  second_request.target = "/queue/second.c";
+
+  std::optional<CompileServiceResponse> first_response;
+  std::optional<CompileServiceResponse> second_response;
+
+  std::thread first_thread(
+      [&] { first_response = dispatch_compile_service_request_for_testing(first_request); });
+
+  {
+    std::unique_lock<std::mutex> lock(state.mutex);
+    ASSERT_TRUE(state.cv_started.wait_for(lock, std::chrono::seconds(1),
+                                          [&] { return state.first_request_started; }));
+  }
+
+  std::thread second_thread(
+      [&] { second_response = dispatch_compile_service_request_for_testing(second_request); });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(5200));
+
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    state.release_first_request = true;
+  }
+  state.cv_release.notify_all();
+
+  first_thread.join();
+  second_thread.join();
+
+  ASSERT_TRUE(first_response.has_value());
+  ASSERT_TRUE(second_response.has_value());
+  EXPECT_TRUE(first_response->ok);
+  EXPECT_FALSE(second_response->ok);
+  EXPECT_EQ(second_response->kind, "file");
+  ASSERT_EQ(second_response->diagnostics.size(), 1u);
+  EXPECT_EQ(second_response->diagnostics[0].severity, "error");
+  EXPECT_NE(second_response->diagnostics[0].message.find("5000ms"), std::string::npos);
+}
+
+TEST(CompileServiceLifecycle, DevTestRequestsTimeOutAfterWaitingFiveSecondsInQueue) {
+  CompileServiceTestGuard guard;
+  FakeExecutorState state;
+  g_fake_executor_state = &state;
+  set_compile_service_request_executor_for_testing(&fake_serializing_executor);
+
+  ASSERT_FALSE(compile_service_running());
+  ASSERT_TRUE(start_compile_service("testsuite/etc/config.test"));
+
+  CompileServiceRequest first_request;
+  first_request.op = "compile";
+  first_request.target = "/queue/first.c";
+
+  CompileServiceRequest second_request;
+  second_request.op = "dev_test";
+  second_request.target = "/queue/dev-test.c";
+
+  std::optional<CompileServiceResponse> first_response;
+  std::optional<CompileServiceResponse> second_response;
+
+  std::thread first_thread(
+      [&] { first_response = dispatch_compile_service_request_for_testing(first_request); });
+
+  {
+    std::unique_lock<std::mutex> lock(state.mutex);
+    ASSERT_TRUE(state.cv_started.wait_for(lock, std::chrono::seconds(1),
+                                          [&] { return state.first_request_started; }));
+  }
+
+  std::thread second_thread(
+      [&] { second_response = dispatch_compile_service_request_for_testing(second_request); });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(5200));
+
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    state.release_first_request = true;
+  }
+  state.cv_release.notify_all();
+
+  first_thread.join();
+  second_thread.join();
+
+  ASSERT_TRUE(first_response.has_value());
+  ASSERT_TRUE(second_response.has_value());
+  EXPECT_TRUE(first_response->ok);
+  EXPECT_FALSE(second_response->ok);
+  EXPECT_EQ(second_response->kind, "dev_test");
+  ASSERT_TRUE(second_response->error.is_object());
+  EXPECT_EQ(second_response->error["type"], "queue_timeout");
+}
+
+TEST(CompileServiceLifecycle, RequestsThatStartWithinFiveSecondsCanRunLongerThanFiveSeconds) {
+  CompileServiceTestGuard guard;
+  FakeExecutorState state;
+  state.sleep_after_start_ms = 5200;
+  g_fake_executor_state = &state;
+  set_compile_service_request_executor_for_testing(&fake_serializing_executor);
+
+  ASSERT_FALSE(compile_service_running());
+  ASSERT_TRUE(start_compile_service("testsuite/etc/config.test"));
+
+  CompileServiceRequest request;
+  request.op = "compile";
+  request.target = "/queue/slow-started.c";
+
+  auto response = dispatch_compile_service_request_for_testing(request);
+
+  EXPECT_TRUE(response.ok);
+  EXPECT_EQ(response.kind, "file");
+  EXPECT_EQ(response.target, "/queue/slow-started.c");
+}
+
+#ifdef _WIN32
+TEST(CompileServiceTransport, ConcurrentPipeClientsCanBothReceiveResponses) {
+  CompileServiceTestGuard guard;
+  FakeExecutorState state;
+  g_fake_executor_state = &state;
+  set_compile_service_request_executor_for_testing(&fake_serializing_executor);
+
+  ASSERT_TRUE(start_compile_service("testsuite/etc/config.test"));
+  auto pipe_name = make_compile_service_pipe_name(compile_service_id());
+
+  CompileServiceRequest first_request;
+  first_request.op = "compile";
+  first_request.target = "/queue/first.c";
+
+  CompileServiceRequest second_request;
+  second_request.op = "compile";
+  second_request.target = "/queue/second.c";
+
+  std::optional<PipeRoundTripResult> first_result;
+  std::optional<PipeRoundTripResult> second_result;
+
+  std::thread first_thread([&] { first_result = send_pipe_request(pipe_name, first_request); });
+
+  bool first_started = false;
+  {
+    std::unique_lock<std::mutex> lock(state.mutex);
+    first_started = state.cv_started.wait_for(lock, std::chrono::seconds(1),
+                                             [&] { return state.first_request_started; });
+  }
+
+  if (!first_started) {
+    {
+      std::lock_guard<std::mutex> lock(state.mutex);
+      state.release_first_request = true;
+    }
+    state.cv_release.notify_all();
+    first_thread.join();
+    FAIL() << "pipe transport did not route requests through the queued executor";
+  }
+
+  std::thread second_thread([&] { second_result = send_pipe_request(pipe_name, second_request); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    ASSERT_EQ(state.started_targets.size(), 1u);
+    EXPECT_EQ(state.started_targets[0], "/queue/first.c");
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(state.mutex);
+    state.release_first_request = true;
+  }
+  state.cv_release.notify_all();
+
+  first_thread.join();
+  second_thread.join();
+
+  ASSERT_TRUE(first_result.has_value());
+  ASSERT_TRUE(second_result.has_value());
+  EXPECT_EQ(first_result->win32_error, 0u);
+  EXPECT_EQ(second_result->win32_error, 0u);
+  ASSERT_TRUE(first_result->response.has_value());
+  ASSERT_TRUE(second_result->response.has_value());
+  EXPECT_TRUE(first_result->response->ok);
+  EXPECT_TRUE(second_result->response->ok);
+}
+#endif
 }  // namespace
