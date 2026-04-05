@@ -359,6 +359,7 @@ set(SRC
   "mainlib.cc"
   "user.cc"
   "runtime_compile_request.cc"
+  "runtime_dev_test_request.cc"
   "symbol.cc"
   "ofile.cc"
   "net/msp.cc"

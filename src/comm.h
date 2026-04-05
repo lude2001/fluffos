@@ -6,7 +6,12 @@
 #ifndef COMM_H
 #define COMM_H
 
+#include <functional>
+#include <string_view>
+
 #include <event2/util.h>
+
+#include "base/internal/external_port.h"
 
 /*
  * This macro is for testing whether ip is still valid, since many
@@ -43,6 +48,10 @@
 
 void add_vmessage(struct object_t *, const char *, ...);
 void add_message(struct object_t *, const char *, int);
+using runtime_output_sink_t = std::function<void(std::string_view)>;
+void push_runtime_output_sink(runtime_output_sink_t);
+void pop_runtime_output_sink();
+bool has_runtime_output_sink();
 bool init_user_conn();
 void shutdown_external_ports();
 void set_prompt(const char *);

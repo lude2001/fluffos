@@ -1,6 +1,9 @@
 #ifndef SIMULATE_H
 #define SIMULATE_H
 
+#include <functional>
+#include <string_view>
+
 #include "vm/internal/base/machine.h"
 
 #define V_SHORT 1
@@ -64,5 +67,9 @@ void mark_free_sentences(void);
 
 void tell_npc(object_t *, const char *);
 void tell_object(object_t *, const char *, int);
+
+using runtime_error_sink_t = std::function<void(std::string_view)>;
+void push_runtime_error_sink(runtime_error_sink_t);
+void pop_runtime_error_sink();
 
 #endif

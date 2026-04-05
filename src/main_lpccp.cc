@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
       args.use_explicit_id ? args.config_or_id : compile_service::make_compile_service_id(args.config_or_id);
   const auto pipe_name = compile_service::make_compile_service_pipe_name(id);
   auto request = compile_service::CompileServiceRequest{};
+  request.op = args.op;
   request.target = args.target;
 
 #ifdef _WIN32

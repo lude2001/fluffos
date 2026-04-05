@@ -39,6 +39,9 @@ struct CompileServiceResponse {
   int files_failed = 0;
   std::vector<CompileServiceDiagnostic> diagnostics;
   std::vector<nlohmann::json> results;
+  std::vector<std::string> output;
+  nlohmann::json result;
+  nlohmann::json error;
 };
 
 inline std::string normalize_compile_service_path(std::string_view path) {
@@ -131,7 +134,14 @@ inline void to_json(nlohmann::json &j, const CompileServiceResponse &value) {
                      {"files_ok", value.files_ok},
                      {"files_failed", value.files_failed},
                      {"diagnostics", value.diagnostics},
-                     {"results", value.results}};
+                     {"results", value.results},
+                     {"output", value.output}};
+  if (!value.result.is_null()) {
+    j["result"] = value.result;
+  }
+  if (!value.error.is_null()) {
+    j["error"] = value.error;
+  }
 }
 
 inline void from_json(const nlohmann::json &j, CompileServiceResponse &value) {
@@ -153,6 +163,15 @@ inline void from_json(const nlohmann::json &j, CompileServiceResponse &value) {
   }
   if (j.contains("results")) {
     j.at("results").get_to(value.results);
+  }
+  if (j.contains("output")) {
+    j.at("output").get_to(value.output);
+  }
+  if (j.contains("result")) {
+    value.result = j.at("result");
+  }
+  if (j.contains("error")) {
+    value.error = j.at("error");
   }
 }
 

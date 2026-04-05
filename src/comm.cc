@@ -217,6 +217,22 @@ void new_conn_handler(evconnlistener *listener, evutil_socket_t fd, struct socka
 
 }  // namespace
 
+namespace {
+thread_local std::vector<runtime_output_sink_t> g_runtime_output_sinks;
+}  // namespace
+
+void push_runtime_output_sink(runtime_output_sink_t sink) {
+  g_runtime_output_sinks.push_back(std::move(sink));
+}
+
+void pop_runtime_output_sink() {
+  if (!g_runtime_output_sinks.empty()) {
+    g_runtime_output_sinks.pop_back();
+  }
+}
+
+bool has_runtime_output_sink() { return !g_runtime_output_sinks.empty(); }
+
 // Initialize an new user
 interactive_t *new_user(port_def_t *port, evutil_socket_t fd, sockaddr *addr,
                         ev_socklen_t addrlen) {
@@ -545,6 +561,20 @@ static int shadow_catch_message(object_t *ob, const char *str) {
  * special handling is done.
  */
 void add_message(object_t *who, const char *data, int len) {
+  runtime_output_sink_t runtime_sink;
+  const bool should_capture =
+      len > 0 && (!who || (who->flags & O_DESTRUCTED) || !who->interactive ||
+                  (who->interactive->iflags & (NET_DEAD | CLOSING)));
+  if (should_capture) {
+    if (!g_runtime_output_sinks.empty()) {
+      runtime_sink = g_runtime_output_sinks.back();
+    }
+  }
+  if (runtime_sink) {
+    runtime_sink(std::string_view(data, len));
+    return;
+  }
+
   /*
    * if who->interactive is not valid, write message on stderr.
    * (maybe)

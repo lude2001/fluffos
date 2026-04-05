@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <thread>
 #include <nlohmann/json.hpp>
 
+#include "comm.h"
 #include "compile_service.h"
 #include "compile_service_client.h"
 #include "compile_service_protocol.h"
@@ -73,6 +75,23 @@ TEST(CompileServiceProtocol, RequestJsonRoundTrips) {
   EXPECT_EQ(parsed.target, request.target);
 }
 
+TEST(CompileServiceProtocol, DevTestRequestJsonRoundTrips) {
+  CompileServiceRequest request;
+  request.version = 1;
+  request.op = "dev_test";
+  request.target = "/single/tests/dev/dev_test_success.c";
+
+  nlohmann::json j = request;
+  EXPECT_EQ(j["version"], 1);
+  EXPECT_EQ(j["op"], "dev_test");
+  EXPECT_EQ(j["target"], "/single/tests/dev/dev_test_success.c");
+
+  auto parsed = j.get<CompileServiceRequest>();
+  EXPECT_EQ(parsed.version, request.version);
+  EXPECT_EQ(parsed.op, request.op);
+  EXPECT_EQ(parsed.target, request.target);
+}
+
 TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   CompileServiceResponse response;
   response.version = 1;
@@ -104,11 +123,39 @@ TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   EXPECT_EQ(parsed.diagnostics[0].message, "Unused local variable");
 }
 
+TEST(CompileServiceProtocol, DevTestResponseJsonRoundTrips) {
+  CompileServiceResponse response;
+  response.version = 1;
+  response.ok = true;
+  response.kind = "dev_test";
+  response.target = "/single/tests/dev/dev_test_success.c";
+  response.output = {"setup complete", "running assertions"};
+  response.result = nlohmann::json{
+      {"ok", true},
+      {"summary", "basic dev test passed"},
+      {"checks", nlohmann::json::array({nlohmann::json{{"name", "sanity"}, {"ok", true}}})},
+      {"artifacts", nlohmann::json::object()}};
+
+  nlohmann::json j = response;
+  EXPECT_EQ(j["kind"], "dev_test");
+  EXPECT_EQ(j["output"].size(), 2);
+  EXPECT_EQ(j["result"]["summary"], "basic dev test passed");
+
+  auto parsed = j.get<CompileServiceResponse>();
+  EXPECT_EQ(parsed.kind, response.kind);
+  EXPECT_EQ(parsed.target, response.target);
+  ASSERT_EQ(parsed.output.size(), 2u);
+  EXPECT_EQ(parsed.output[0], "setup complete");
+  EXPECT_EQ(parsed.result["ok"], true);
+  EXPECT_EQ(parsed.result["checks"][0]["name"], "sanity");
+}
+
 TEST(CompileServiceClient, ParsesConfigPathArguments) {
   ParsedCompileServiceClientArgs args;
   std::vector<std::string_view> argv = {"lpc_example_http/config.hell", "/adm/single/master.c"};
 
   ASSERT_TRUE(parse_compile_service_client_args(argv, &args));
+  EXPECT_EQ(args.op, "compile");
   EXPECT_FALSE(args.use_explicit_id);
   EXPECT_EQ(args.config_or_id, "lpc_example_http/config.hell");
   EXPECT_EQ(args.target, "/adm/single/master.c");
@@ -119,9 +166,34 @@ TEST(CompileServiceClient, ParsesExplicitIdArguments) {
   std::vector<std::string_view> argv = {"--id", "abc123", "/adm/single/"};
 
   ASSERT_TRUE(parse_compile_service_client_args(argv, &args));
+  EXPECT_EQ(args.op, "compile");
   EXPECT_TRUE(args.use_explicit_id);
   EXPECT_EQ(args.config_or_id, "abc123");
   EXPECT_EQ(args.target, "/adm/single/");
+}
+
+TEST(CompileServiceClient, ParsesDevTestArguments) {
+  ParsedCompileServiceClientArgs args;
+  std::vector<std::string_view> argv = {"--dev-test", "lpc_example_http/config.hell",
+                                        "/single/tests/dev/dev_test_success.c"};
+
+  ASSERT_TRUE(parse_compile_service_client_args(argv, &args));
+  EXPECT_EQ(args.op, "dev_test");
+  EXPECT_FALSE(args.use_explicit_id);
+  EXPECT_EQ(args.config_or_id, "lpc_example_http/config.hell");
+  EXPECT_EQ(args.target, "/single/tests/dev/dev_test_success.c");
+}
+
+TEST(CompileServiceClient, ParsesDevTestExplicitIdArguments) {
+  ParsedCompileServiceClientArgs args;
+  std::vector<std::string_view> argv = {"--dev-test", "--id", "abc123",
+                                        "/single/tests/dev/dev_test_success.c"};
+
+  ASSERT_TRUE(parse_compile_service_client_args(argv, &args));
+  EXPECT_EQ(args.op, "dev_test");
+  EXPECT_TRUE(args.use_explicit_id);
+  EXPECT_EQ(args.config_or_id, "abc123");
+  EXPECT_EQ(args.target, "/single/tests/dev/dev_test_success.c");
 }
 
 TEST(CompileServiceClient, RejectsInvalidArgumentShapes) {
@@ -129,10 +201,14 @@ TEST(CompileServiceClient, RejectsInvalidArgumentShapes) {
   EXPECT_FALSE(parse_compile_service_client_args({}, &args));
   EXPECT_FALSE(parse_compile_service_client_args({"only-one"}, &args));
   EXPECT_FALSE(parse_compile_service_client_args({"--id", "missing-target"}, &args));
+  EXPECT_FALSE(parse_compile_service_client_args({"--dev-test", "missing-target"}, &args));
+  EXPECT_FALSE(parse_compile_service_client_args({"--dev-test", "--id", "missing-target"}, &args));
 }
 
 TEST(CompileServiceClient, FormatsUsageAndConnectErrors) {
   EXPECT_NE(format_compile_service_usage().find("lpccp <config-path> <path>"), std::string::npos);
+  EXPECT_NE(format_compile_service_usage().find("lpccp --dev-test <config-path> <path>"),
+            std::string::npos);
   auto message = format_compile_service_connect_error("\\\\.\\pipe\\fluffos-lpccp-test", 2);
   EXPECT_NE(message.find("fluffos-lpccp-test"), std::string::npos);
   EXPECT_NE(message.find("win32=2"), std::string::npos);
@@ -159,5 +235,18 @@ TEST(CompileServiceLifecycle, StopResetsRunningState) {
   ASSERT_TRUE(compile_service_running());
   stop_compile_service();
   EXPECT_FALSE(compile_service_running());
+}
+
+TEST(CompileServiceLifecycle, RuntimeOutputSinkIsThreadLocal) {
+  push_runtime_output_sink([](std::string_view) {});
+  ASSERT_TRUE(has_runtime_output_sink());
+
+  bool other_thread_has_sink = true;
+  std::thread worker([&other_thread_has_sink] { other_thread_has_sink = has_runtime_output_sink(); });
+  worker.join();
+
+  pop_runtime_output_sink();
+  EXPECT_FALSE(other_thread_has_sink);
+  EXPECT_FALSE(has_runtime_output_sink());
 }
 }  // namespace

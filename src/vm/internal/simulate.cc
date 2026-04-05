@@ -1801,6 +1801,14 @@ static void mudlib_error_handler(char *err, int katch) {
 }
 
 namespace {
+thread_local std::vector<runtime_error_sink_t> g_runtime_error_sinks;
+
+void emit_runtime_error(std::string_view message) {
+  if (!g_runtime_error_sinks.empty()) {
+    g_runtime_error_sinks.back()(message);
+  }
+}
+
 void _error_handler(char *err) {
   const char *object_name = nullptr;
 
@@ -1846,7 +1854,18 @@ void _error_handler(char *err) {
 
 }  // namespace
 
+void push_runtime_error_sink(runtime_error_sink_t sink) {
+  g_runtime_error_sinks.push_back(std::move(sink));
+}
+
+void pop_runtime_error_sink() {
+  if (!g_runtime_error_sinks.empty()) {
+    g_runtime_error_sinks.pop_back();
+  }
+}
+
 [[noreturn]] void error_handler(char *err) {
+  emit_runtime_error(err[0] == '*' ? std::string_view(err + 1) : std::string_view(err));
 /* in case we're going to jump out of load_object */
 #ifndef NO_ENVIRONMENT
   restrict_destruct = nullptr;

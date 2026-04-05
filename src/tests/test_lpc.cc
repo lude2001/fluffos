@@ -112,6 +112,54 @@ TEST_F(DriverTest, TestCompileServiceMasterRecompileDoesNotDuplicateMasterObject
   EXPECT_EQ(master_ob, find_object2("/single/master.c"));
 }
 
+TEST_F(DriverTest, TestDevTestRequestReturnsStructuredJsonResult) {
+  compile_service::CompileServiceRequest request;
+  request.op = "dev_test";
+  request.target = "/single/tests/dev/dev_test_success.c";
+
+  auto response = compile_service::execute_compile_service_request(request);
+
+  ASSERT_TRUE(response.ok);
+  EXPECT_EQ(response.kind, "dev_test");
+  ASSERT_GE(response.output.size(), 2u);
+  EXPECT_EQ(response.output[0], "setup complete");
+  EXPECT_EQ(response.result["ok"], 1);
+  EXPECT_EQ(response.result["summary"], "basic dev test passed");
+  ASSERT_EQ(response.result["checks"].size(), 1);
+  EXPECT_EQ(response.result["checks"][0]["name"], "sanity");
+}
+
+TEST_F(DriverTest, TestDevTestRequestCapturesRuntimeError) {
+  compile_service::CompileServiceRequest request;
+  request.op = "dev_test";
+  request.target = "/single/tests/dev/dev_test_runtime_error.c";
+
+  auto response = compile_service::execute_compile_service_request(request);
+
+  ASSERT_FALSE(response.ok);
+  EXPECT_EQ(response.kind, "dev_test");
+  ASSERT_FALSE(response.error.is_null());
+  EXPECT_EQ(response.error["type"], "runtime_error");
+  EXPECT_EQ(response.error["message"], "dev_test exploded\n");
+  ASSERT_GE(response.output.size(), 1u);
+  EXPECT_EQ(response.output[0], "before failure");
+}
+
+TEST_F(DriverTest, TestDevTestRequestRejectsBadReturnType) {
+  compile_service::CompileServiceRequest request;
+  request.op = "dev_test";
+  request.target = "/single/tests/dev/dev_test_bad_return.c";
+
+  auto response = compile_service::execute_compile_service_request(request);
+
+  ASSERT_FALSE(response.ok);
+  EXPECT_EQ(response.kind, "dev_test");
+  ASSERT_FALSE(response.error.is_null());
+  EXPECT_EQ(response.error["type"], "bad_return_type");
+  ASSERT_GE(response.output.size(), 1u);
+  EXPECT_EQ(response.output[0], "returning bad payload");
+}
+
 TEST_F(DriverTest, TestExplicitInheritedCallSkipsPrototypePlaceholder) {
   std::vector<compile_service::CompileServiceDiagnostic> diagnostics;
   set_compile_service_diagnostics_collector(&diagnostics);

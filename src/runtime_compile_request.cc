@@ -1,4 +1,5 @@
 #include "runtime_compile_request.h"
+#include "runtime_dev_test_request.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -78,6 +79,10 @@ CompileServiceResponse compile_single_file(const std::string &target) {
 }  // namespace
 
 CompileServiceResponse execute_compile_service_request(const CompileServiceRequest &request) {
+  if (request.op == "dev_test") {
+    return execute_dev_test_request(request);
+  }
+
   auto normalized_target = normalize_lpc_target(request.target);
   auto fs_target = target_to_filesystem_path(normalized_target);
 

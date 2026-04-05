@@ -1464,12 +1464,14 @@ void f_printf() {
   int const num_arg = st_num_arg;
   char *ret;
 
-  if (command_giver) {
-    ret = string_print_formatted((sp - num_arg + 1)->u.string, num_arg - 1, sp - num_arg + 2);
-    if (ret) {
+  ret = string_print_formatted((sp - num_arg + 1)->u.string, num_arg - 1, sp - num_arg + 2);
+  if (ret) {
+    if (command_giver) {
       tell_object(command_giver, ret, COUNTED_STRLEN(ret));
-      FREE_MSTR(ret);
+    } else if (has_runtime_output_sink()) {
+      add_message(nullptr, ret, COUNTED_STRLEN(ret));
     }
+    FREE_MSTR(ret);
   }
 
   pop_n_elems(num_arg);

@@ -15,17 +15,20 @@ struct ParsedCompileServiceClientArgs {
   bool use_explicit_id = false;
   std::string config_or_id;
   std::string target;
+  std::string op = "compile";
 };
 
 inline std::string format_compile_service_usage() {
   return "Usage: lpccp <config-path> <path>\n"
+         "   or: lpccp --dev-test <config-path> <path>\n"
+         "   or: lpccp --dev-test --id <id> <path>\n"
          "   or: lpccp --id <id> <path>\n";
 }
 
 inline bool parse_compile_service_client_args(const std::vector<std::string_view> &argv,
                                               ParsedCompileServiceClientArgs *out) {
   if (argv.size() == 2) {
-    if (argv[0] == "--id") {
+    if (argv[0] == "--id" || argv[0] == "--dev-test") {
       return false;
     }
     out->config_or_id = argv[0];
@@ -37,6 +40,24 @@ inline bool parse_compile_service_client_args(const std::vector<std::string_view
     out->use_explicit_id = true;
     out->config_or_id = argv[1];
     out->target = argv[2];
+    return true;
+  }
+
+  if (argv.size() == 3 && argv[0] == "--dev-test") {
+    if (argv[1] == "--id") {
+      return false;
+    }
+    out->op = "dev_test";
+    out->config_or_id = argv[1];
+    out->target = argv[2];
+    return true;
+  }
+
+  if (argv.size() == 4 && argv[0] == "--dev-test" && argv[1] == "--id") {
+    out->op = "dev_test";
+    out->use_explicit_id = true;
+    out->config_or_id = argv[2];
+    out->target = argv[3];
     return true;
   }
 
