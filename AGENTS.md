@@ -301,11 +301,10 @@ apk add --no-cache linux-headers gcc g++ clang-dev make cmake bash \
 
 ### GitHub / PR 安全规则
 
-- 本仓库的 GitHub 日常操作默认只允许针对 fork 仓库 `lude2001/fluffos` 执行。
-- 严禁代理向上游仓库 `fluffos/fluffos` 发起 Pull Request。
-- 严禁代理把任何分支推送到上游仓库 `fluffos/fluffos`。
-- 如果需要和上游仓库交互，必须先得到用户的明确、直接许可；没有明确许可时，一律视为禁止。
-- 当代理使用 `gh`、`git push`、`gh pr create`、`gh pr edit`、`gh pr reopen` 等命令时，必须显式检查目标仓库是否为 `lude2001/fluffos`；如果不是，必须停止并报错，而不是继续执行。
+- 本仓库已经作为独立项目维护，所有日常 GitHub 操作默认只允许针对 `origin` 对应的 `lude2001/fluffos` 执行。
+- 严禁代理向任何非 `origin` 仓库发起 Pull Request、推送分支、编辑 PR、重开 PR 或发布 release。
+- 严禁新增、恢复或依赖名为 `upstream` 的 Git 远程或远程跟踪分支；需要对外部仓库做调研时，只允许只读查询，并且不得把查询结果写入 Git 远程配置。
+- 当代理使用 `gh`、`git push`、`gh pr create`、`gh pr edit`、`gh pr reopen`、`gh release` 等命令时，必须显式检查目标仓库是否为 `lude2001/fluffos`；如果不是，必须停止并报错，而不是继续执行。
 - 默认工作流是不创建远程 Pull Request；除非用户明确要求，否则代理只应在本地分支完成开发、在本地合并回 `master`，然后仅把 `master` 推送到 `origin`。
 
 ### 代码生成

@@ -1,8 +1,3 @@
-[![CI Status](https://github.com/fluffos/fluffos/actions/workflows/ci.yml/badge.svg)](https://github.com/fluffos/fluffos/actions)
-[![CI Status](https://github.com/fluffos/fluffos/actions/workflows/ci-osx.yml/badge.svg)](https://github.com/fluffos/fluffos/actions)
-[![CI Status](https://github.com/fluffos/fluffos/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/fluffos/fluffos/actions)
-
-
 [![Backers on Open Collective](https://opencollective.com/fluffos-579/backers/badge.svg)](#backers)
 [![Sponsors on Open Collective](https://opencollective.com/fluffos-579/sponsors/badge.svg)](#sponsors)
 
@@ -16,6 +11,11 @@ FluffOS supports all LPC based mud with very little code changes. if you are cur
 
 It is recommended to use the latest release on Github or the master branch, previous versions (v2017 in particular) are
 not supported.
+
+Project Boundary
+----------------
+This checkout is maintained as an independent project. Development automation, issues, pull requests, and releases for
+this repository should target only this repository's `origin` remote (`lude2001/fluffos`).
 
 Build
 -----
@@ -117,7 +117,7 @@ Non-bundled platform dependencies includes: libevent, ICU4C, OpenSSL, Zlib etc.
 
 Projects Using FluffOS
 ----------------------
-[Add Your Own](https://github.com/fluffos/fluffos/edit/master/README.md)
+Add project entries through this repository's normal review process.
 
 - Practically all Chinese
 - [ThresholdRPG](https://wiki.thresholdrpg.com/)
@@ -154,7 +154,7 @@ The list is in descending order by time donation received.
 ## Contributors
 
 This project exists thanks to all the people who contribute.
-<a href="https://github.com/fluffos/fluffos/graphs/contributors"><img src="https://opencollective.com/fluffos-579/contributors.svg?width=890&button=false" /></a>
+The contributor list is maintained by the current repository history.
 
 ## Backers
 

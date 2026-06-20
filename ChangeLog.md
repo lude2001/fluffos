@@ -1,18 +1,11 @@
 ================================================================================
-  当前 fork 相对官方 master 的差异
+  当前独立 fork 的本地改动摘要
 ================================================================================
 
-本节用于标注当前 fork 与官方 `fluffos/fluffos` `master` 的差异。
+本节用于记录当前独立 fork 已保留的主要本地增强。这里不依赖任何外部仓库远程、远程跟踪分支或 GitHub 对比入口。
 
-- 对比基线：
-  - 官方 `master`：`ee8137603946d12248e9ed429f09eb2388e007e3`
-  - 当前 fork `origin/master`：`98907f321b916884b9a3a8943e3f991d0d2538cb`
-- 对比结果：
-  - 当前 fork 相对官方 `master` 额外领先 25 个提交
-  - 当前 fork 没有落后于官方 `master`
 - 说明：
-  - 以下内容基于 `git log upstream/master...origin/master`
-  - 这里只统计已经进入 fork `master` 的内容
+  - 这里只统计已经进入本项目 `master` 的内容
   - 不包含当前本地开发分支上尚未合并回 fork `master` 的实验性改动
 
 主要差异功能如下：
@@ -67,7 +60,7 @@
 6. 文档与 fork 工作流约束
 
 - fork 中新增了一组较完整的设计/计划文档，覆盖 HTTP helper、运行时编译服务、原生 JSON、Windows dist 工作流等主题。
-- 增加了仅针对 fork 工作流的协作与 GitHub 操作约束文档，例如默认仅允许向 `lude2001/fluffos` 操作、不向上游仓库发 PR/推送等。
+- 增加了仅针对本项目工作流的协作与 GitHub 操作约束文档，例如默认仅允许向 `lude2001/fluffos` 操作、禁止向任何非 `origin` 仓库发 PR/推送等。
 - 这些提交主要影响协作流程和文档，不直接改变驱动运行时行为。
 - 关键提交：
   - `992fd823 docs: forbid upstream PR and push operations`
@@ -75,7 +68,7 @@
 
 Wodan 宣布 3.x 版本将由 "Yucong Sun" (sunyucong@gmail.com) 维护。
 
-请提交问题到 https://github.com/fluffos/fluffos
+请在本项目维护渠道提交问题。
 
 与 2.x 相比的主要更改：
 

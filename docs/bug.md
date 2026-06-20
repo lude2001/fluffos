@@ -6,7 +6,7 @@ title: Troubleshooting
 
 ### Where To File
 
-Please creates a [New Issue on GitHub](https://github.com/fluffos/fluffos/issues?direction=desc&milestone=none&sort=popularity&state=open).
+Please file issues in this repository's project tracker.
 
 ### Bug Report content
 

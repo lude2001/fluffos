@@ -22,7 +22,7 @@ To Build fluffOS v2017 (Autoconf & in tree build)
     $ sudo apt install autoconf automake
    
     # 1. checkout git repo
-    $ git clone https://github.com/fluffos/fluffos.git
+    $ git clone https://github.com/lude2001/fluffos.git
     $ cd fluffos
     $ git checkout v2017 (or any specfic release tag)
 

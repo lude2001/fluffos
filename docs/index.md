@@ -19,7 +19,7 @@ FluffOS codebase contains three parts:
 
 ## Current Release
 
-[ALL RELEASES](https://github.com/fluffos/fluffos/releases)
+[ALL RELEASES](https://github.com/lude2001/fluffos/releases)
 
 * Current Release: (branch master), cmake build system, supports ubuntu, OSX, and Windows(MSYS2/mingw64).
 
@@ -67,8 +67,8 @@ FluffOS codebase contains three parts:
 
 ### License & Copyright
 
-please see <https://github.com/fluffos/fluffos/blob/master/Copyright>
+please see the `Copyright` file in this repository.
 
 ### ChangeLog
 
-[ChangeLog.fluffos-3.x](https://github.com/fluffos/fluffos/blob/next-3.0/ChangeLog.fluffos-3.x) for details.
+See the archived changelog files in this repository for details.

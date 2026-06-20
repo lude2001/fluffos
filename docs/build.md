@@ -62,7 +62,7 @@ $ sudo apt install -y libdw-dev libbz2-dev
 ### Checkout Git Repo
 
 ```shell
-$ git clone https://github.com/fluffos/fluffos.git
+$ git clone https://github.com/lude2001/fluffos.git
 $ cd fluffos
 $ git checkout master  # or a release tag like v2019
 ```
@@ -172,8 +172,7 @@ $ cd testsuite
 $ ../build/bin/driver etc/config.test -ftest
 ```
 
-**Note**: If you encounter issues, check the latest CI configuration at:
-<https://github.com/fluffos/fluffos/blob/master/.github/workflows/ci-osx.yml>
+**Note**: This independent fork keeps authoritative build commands in this document and in the local repository.
 
 ## Windows
 
@@ -181,7 +180,7 @@ $ ../build/bin/driver etc/config.test -ftest
 
 **Note**: FluffOS LPC VM is always 64-bit! You can't use more than 4GB memory in 32-bit builds.
 
-For the most up-to-date commands, check: <https://github.com/fluffos/fluffos/blob/master/.github/workflows/ci-windows.yml>
+For the most up-to-date Windows distribution workflow in this fork, use the repository root `build.cmd`.
 
 ### Install MSYS2
 
@@ -223,7 +222,7 @@ $ pacman -S mingw-w64-x86_64-libmariadbclient
 In the **MINGW64** shell:
 
 ```shell
-$ git clone https://github.com/fluffos/fluffos.git
+$ git clone https://github.com/lude2001/fluffos.git
 $ cd fluffos
 $ mkdir build && cd build
 $ cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug \
@@ -336,18 +335,8 @@ $ ../build/bin/driver etc/config.test -ftest
 
 ### Continuous Integration
 
-FluffOS uses GitHub Actions for automated testing on every push and pull request:
-
-- **Ubuntu CI**: Tests with GCC and Clang on ubuntu-22.04
-- **macOS CI**: Tests on macOS 14 (Apple Silicon)
-- **Windows CI**: Tests with MSYS2/MINGW64
-- **Sanitizer CI**: Memory safety checks with Clang + AddressSanitizer
-- **CodeQL**: Security vulnerability scanning
-- **Coverity Scan**: Static analysis (weekly)
-
-All CI workflows run both unit tests and the LPC testsuite.
-
-See `.github/workflows/` for the exact CI configuration.
+This independent fork does not publish repository workflows from this checkout. Treat the local build and test commands
+in this document as the supported verification path unless a project maintainer adds fork-owned workflows later.
 
 ## Alpine Linux & Docker
 
@@ -378,7 +367,7 @@ $ make && make install
 ### Build Steps
 
 ```shell
-$ git clone https://github.com/fluffos/fluffos.git
+$ git clone https://github.com/lude2001/fluffos.git
 $ cd fluffos
 $ mkdir build && cd build
 $ cmake .. -DMARCH_NATIVE=OFF -DSTATIC=ON
@@ -396,15 +385,7 @@ $ ldd bin/driver
 
 ### Using Docker
 
-FluffOS provides an official Docker image built automatically on every push to master:
-
-**Pull and run the official image:**
-```shell
-$ docker pull ghcr.io/fluffos/fluffos:master
-$ docker run -it ghcr.io/fluffos/fluffos:master /path/to/config.cfg
-```
-
-**Build your own Docker image:**
+Build a local Docker image from this checkout:
 ```shell
 $ docker build -t fluffos:local .
 $ docker run -it fluffos:local /path/to/config.cfg

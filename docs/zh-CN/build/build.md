@@ -17,14 +17,10 @@ v2019 版目前支持在以下系统中编译：ubuntu 18.04+ (包括 WSL), rasp
 
 推荐使用 `git` 下载最新版的 fluffos，具体指令如下(如果不会使用 git 请先补充相关技能)
 
-    git clone https://github.com/fluffos/fluffos.git
+    git clone https://github.com/lude2001/fluffos.git
     cd fluffos
     # 如果要使用 v2017 版还需以下指令切换版本
     git checkout v2017
-
-如果你访问github.com速度太慢，可以使用国内镜像地址下载项目：
-
-    git clone https://gitee.com/mudren/fluffos.git
 
 ## Ubuntu & Raspberry 系统编译
 
@@ -212,9 +208,9 @@ cmake .. && make -j4 install
 
 然后使用 `chmod +x build.sh` 让脚本可执行，以后只需在源码目录中输入 `./build.sh` 即可自动下载更新并编译驱动。
 
-如果你使用的是windows系统，不想自己每次编译新版，可在此下载最新版驱动：https://bbs.mud.ren/threads/4
+如果你使用的是 Windows 系统，优先使用本仓库根目录的 `build.cmd` 产出 `build/dist` 运行目录。
 
-如果你习惯使用docker，也可以使用fluffos驱动的docker镜像：https://hub.docker.com/r/fluffos/fluffos
+如果你习惯使用 Docker，请从当前检出目录自行构建本地镜像。
 
 ## 编译演示
 

@@ -13,7 +13,7 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Github', link: 'https://github.com/fluffos/fluffos' }
+      { text: 'Github', link: 'https://github.com/lude2001/fluffos' }
     ],
     sidebar: SIDEBAR,
     search: {
@@ -44,10 +44,10 @@ export default defineConfig({
       }
     },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/fluffos/fluffos' }
+      { icon: 'github', link: 'https://github.com/lude2001/fluffos' }
     ],
     editLink: {
-      pattern: 'https://github.com/fluffos/fluffos/edit/master/docs/:path'
+      pattern: 'https://github.com/lude2001/fluffos/edit/master/docs/:path'
     },
   }
 })

@@ -1,7 +1,3 @@
-[![CI 状态](https://github.com/fluffos/fluffos/actions/workflows/ci.yml/badge.svg)](https://github.com/fluffos/fluffos/actions)
-[![CI 状态](https://github.com/fluffos/fluffos/actions/workflows/ci-osx.yml/badge.svg)](https://github.com/fluffos/fluffos/actions)
-[![CI 状态](https://github.com/fluffos/fluffos/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/fluffos/fluffos/actions)
-
 [![Open Collective 支持者](https://opencollective.com/fluffos-579/backers/badge.svg)](#支持者)
 [![Open Collective 赞助商](https://opencollective.com/fluffos-579/sponsors/badge.svg)](#赞助商)
 
@@ -13,6 +9,10 @@ FluffOS 是一个 LPMUD 驱动程序，基于 MudOS 的最后一个版本 (v22.2
 FluffOS 支持所有基于 LPC 的 MUD，代码改动非常小。如果您目前仍在使用 MudOS，现在绝对是升级的好时机！
 
 建议使用 GitHub 上的最新版本或主分支，之前的版本（特别是 v2017）不再受支持。
+
+项目边界
+--------
+此检出目录作为独立项目维护。本仓库的开发自动化、问题、Pull Request 和发布操作只应针对本仓库 `origin` 远程（`lude2001/fluffos`）。
 
 构建
 -----
@@ -112,7 +112,7 @@ v2017 是旧版，使用 autoconf 构建系统，支持在 CentOS/Ubuntu 和 Win
 
 使用 FluffOS 的项目
 ----------------------
-[添加您自己的项目](https://github.com/fluffos/fluffos/edit/master/README.md)
+请通过本仓库的正常评审流程添加项目条目。
 
 - 几乎所有中文 MUD
 - [ThresholdRPG](https://wiki.thresholdrpg.com/)
@@ -147,7 +147,7 @@ v2017 是旧版，使用 autoconf 构建系统，支持在 CentOS/Ubuntu 和 Win
 ## 贡献者
 
 这个项目得以存在要感谢所有贡献者。
-<a href="https://github.com/fluffos/fluffos/graphs/contributors"><img src="https://opencollective.com/fluffos-579/contributors.svg?width=890&button=false" /></a>
+贡献者列表以当前仓库历史为准。
 
 ## 支持者
 
