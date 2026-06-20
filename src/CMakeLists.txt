@@ -488,7 +488,7 @@ target_link_libraries(libdriver PUBLIC ${ICU_LIBRARIES})
 
 # Winsocks
 IF (WIN32)
-  target_link_libraries(libdriver PUBLIC ws2_32)
+  target_link_libraries(libdriver PUBLIC ws2_32 advapi32)
 ENDIF ()
 
 if(NOT WIN32)

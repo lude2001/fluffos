@@ -12,6 +12,8 @@
 #include "vm/internal/apply.h"
 #include "vm/internal/base/interpret.h"
 #include "vm/internal/base/machine.h"
+#include "vm/internal/base/object.h"
+#include "vm/internal/base/program.h"
 #include "vm/internal/master.h"
 #include "vm/internal/simulate.h"
 
@@ -60,9 +62,37 @@ std::string current_error_message() {
   return "runtime error";
 }
 
-void set_error(CompileServiceResponse *response, std::string_view type, std::string message) {
-  response->ok = false;
-  response->error = nlohmann::json{{"type", type}, {"message", std::move(message)}};
+nlohmann::json make_runtime_error(std::string_view message) {
+  nlohmann::json error;
+  error["message"] = std::string(message);
+  error["error_type"] = "runtime_error";
+  if (current_object) {
+    error["object"] = std::string("/") + current_object->obname;
+  }
+  if (current_prog) {
+    error["program"] = std::string("/") + current_prog->filename;
+    const char *file = nullptr;
+    int line = 0;
+    get_line_number_info(&file, &line);
+    if (file) {
+      error["file"] = add_slash(file);
+    }
+    if (line > 0) {
+      error["line"] = line;
+    }
+  }
+  error["trace"] = nlohmann::json::array();
+  return error;
+}
+
+void set_error(CompileServiceResponse *response,
+               std::string_view phase,
+               std::string_view reason,
+               std::string message,
+               std::string_view legacy_error_type = {}) {
+  set_compile_service_failure(response, phase, reason, message);
+  response->error = nlohmann::json{{"type", legacy_error_type.empty() ? reason : legacy_error_type},
+                                   {"message", response->message}};
 }
 
 }  // namespace
@@ -76,6 +106,7 @@ CompileServiceResponse execute_dev_test_request(const CompileServiceRequest &req
   object_t *previous_object = current_object;
   std::string captured_output;
   std::string captured_error;
+  std::vector<nlohmann::json> runtime_errors;
 
   push_runtime_output_sink(
       [&captured_output](std::string_view chunk) { captured_output.append(chunk); });
@@ -85,8 +116,10 @@ CompileServiceResponse execute_dev_test_request(const CompileServiceRequest &req
       pop_runtime_error_sink();
     }
   } sink_guard;
-  push_runtime_error_sink(
-      [&captured_error](std::string_view chunk) { captured_error.assign(chunk); });
+  push_runtime_error_sink([&](std::string_view chunk) {
+    captured_error.assign(chunk);
+    runtime_errors.push_back(make_runtime_error(chunk));
+  });
 
   object_t *target_ob = nullptr;
   error_context_t econ{};
@@ -103,14 +136,20 @@ CompileServiceResponse execute_dev_test_request(const CompileServiceRequest &req
   pop_context(&econ);
   current_object = previous_object;
   response.output = split_output_lines(captured_output);
+  response.runtime_errors = runtime_errors;
 
   if (!target_ob) {
-    set_error(&response, "object_unavailable", current_error_message());
+    response.compile_status = "failed";
+    response.test_status = "not_run";
+    set_error(&response, "compile", "compile_failed", current_error_message(), "object_unavailable");
     return response;
   }
 
+  response.compile_status = "ok";
   if (!function_exists("dev_test", target_ob, 0)) {
-    set_error(&response, "missing_entrypoint", "Object does not define dev_test()");
+    response.test_status = "missing";
+    response.test_message = "Object does not define dev_test()";
+    set_error(&response, "dev_test", "test_missing", response.test_message, "missing_entrypoint");
     return response;
   }
 
@@ -126,26 +165,33 @@ CompileServiceResponse execute_dev_test_request(const CompileServiceRequest &req
   pop_context(&econ);
   current_object = previous_object;
   response.output = split_output_lines(captured_output);
+  response.runtime_errors = runtime_errors;
 
   if (!ret) {
-    set_error(&response, "runtime_error",
-              captured_error.empty() ? current_error_message() : captured_error);
+    response.test_status = "failed";
+    response.test_message = captured_error.empty() ? current_error_message() : captured_error;
+    set_error(&response, "runtime", "runtime_error", response.test_message);
     return response;
   }
 
   if (ret->type != T_STRING) {
-    set_error(&response, "bad_return_type", "dev_test() must return a JSON string");
+    response.test_status = "failed";
+    response.test_message = "dev_test() must return a JSON string";
+    set_error(&response, "dev_test", "test_failed", response.test_message, "bad_return_type");
     return response;
   }
 
   try {
     response.result = nlohmann::json::parse(ret->u.string);
   } catch (const nlohmann::json::exception &e) {
-    set_error(&response, "invalid_json", e.what());
+    response.test_status = "failed";
+    response.test_message = e.what();
+    set_error(&response, "dev_test", "test_failed", response.test_message, "invalid_json");
     return response;
   }
 
   response.ok = true;
+  response.test_status = "ok";
   return response;
 }
 

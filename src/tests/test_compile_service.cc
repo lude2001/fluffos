@@ -18,6 +18,7 @@
 #include "compile_service.h"
 #include "compile_service_client.h"
 #include "compile_service_protocol.h"
+#include "runtime_compile_request.h"
 
 namespace {
 using compile_service::CompileServiceDiagnostic;
@@ -25,6 +26,7 @@ using compile_service::CompileServiceRequest;
 using compile_service::CompileServiceResponse;
 using compile_service::ParsedCompileServiceClientArgs;
 using compile_service::build_compile_service_stub_response;
+using compile_service::build_client_failure_response;
 using compile_service::build_compile_queue_timeout_response;
 using compile_service::build_dev_test_queue_timeout_response;
 using compile_service::clear_compile_service_request_executor_for_testing;
@@ -35,6 +37,7 @@ using compile_service::make_compile_service_id;
 using compile_service::make_compile_service_pipe_name;
 using compile_service::normalize_compile_service_path;
 using compile_service::parse_compile_service_client_args;
+using compile_service::process_compile_service_requests_for_testing;
 using compile_service::set_compile_service_request_executor_for_testing;
 
 struct FakeExecutorState {
@@ -77,8 +80,20 @@ struct PipeRoundTripResult {
 
 PipeRoundTripResult send_pipe_request(std::string_view pipe_name, const CompileServiceRequest &request) {
   PipeRoundTripResult result;
-  HANDLE pipe =
-      CreateFileA(std::string(pipe_name).c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+  HANDLE pipe = INVALID_HANDLE_VALUE;
+  for (int attempt = 0; attempt < 50; attempt++) {
+    pipe = CreateFileA(std::string(pipe_name).c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
+                       OPEN_EXISTING, 0, nullptr);
+    if (pipe != INVALID_HANDLE_VALUE) {
+      break;
+    }
+    result.win32_error = GetLastError();
+    if (result.win32_error != ERROR_PIPE_BUSY && result.win32_error != ERROR_FILE_NOT_FOUND) {
+      return result;
+    }
+    WaitNamedPipeA(std::string(pipe_name).c_str(), 50);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
   if (pipe == INVALID_HANDLE_VALUE) {
     result.win32_error = GetLastError();
     return result;
@@ -146,6 +161,31 @@ CompileServiceResponse fake_serializing_executor(const CompileServiceRequest &re
   return response;
 }
 
+bool process_one_request_within(std::chrono::milliseconds timeout) {
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (process_compile_service_requests_for_testing(1) == 1) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  return false;
+}
+
+std::thread pump_one_request_thread() {
+  return std::thread([] {
+    EXPECT_TRUE(process_one_request_within(std::chrono::seconds(2)));
+  });
+}
+
+void release_first_request(FakeExecutorState *state) {
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->release_first_request = true;
+  }
+  state->cv_release.notify_all();
+}
+
 TEST(CompileServiceProtocol, NormalizesConfigPathBeforeHashing) {
   auto lhs = make_compile_service_id("lpc_example_http/./config.hell");
   auto rhs = make_compile_service_id("lpc_example_http/config.hell");
@@ -191,6 +231,7 @@ TEST(CompileServiceProtocol, RequestJsonRoundTrips) {
   EXPECT_EQ(j["version"], 1);
   EXPECT_EQ(j["op"], "compile");
   EXPECT_EQ(j["target"], "/adm/single/master.c");
+  EXPECT_EQ(j["mode"], "reload_loaded");
 
   auto parsed = j.get<CompileServiceRequest>();
   EXPECT_EQ(parsed.version, request.version);
@@ -208,6 +249,7 @@ TEST(CompileServiceProtocol, DevTestRequestJsonRoundTrips) {
   EXPECT_EQ(j["version"], 1);
   EXPECT_EQ(j["op"], "dev_test");
   EXPECT_EQ(j["target"], "/single/tests/dev/dev_test_success.c");
+  EXPECT_EQ(j["mode"], "reload_loaded");
 
   auto parsed = j.get<CompileServiceRequest>();
   EXPECT_EQ(parsed.version, request.version);
@@ -221,6 +263,10 @@ TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   response.ok = false;
   response.kind = "file";
   response.target = "/adm/single/master.c";
+  response.phase = "compile";
+  response.reason = "syntax_error";
+  response.message = "Unused local variable";
+  response.runtime_errors.push_back(nlohmann::json{{"message", "runtime side note"}});
   response.diagnostics.push_back(
       CompileServiceDiagnostic{"warning", "/adm/single/master.c", 12, 7, "Unused local variable"});
 
@@ -229,6 +275,10 @@ TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   EXPECT_EQ(j["ok"], false);
   EXPECT_EQ(j["kind"], "file");
   EXPECT_EQ(j["target"], "/adm/single/master.c");
+  EXPECT_EQ(j["phase"], "compile");
+  EXPECT_EQ(j["reason"], "syntax_error");
+  EXPECT_EQ(j["message"], "Unused local variable");
+  EXPECT_EQ(j["runtime_errors"].size(), 1);
   EXPECT_EQ(j["diagnostics"].size(), 1);
   EXPECT_EQ(j["diagnostics"][0]["severity"], "warning");
   EXPECT_EQ(j["diagnostics"][0]["column"], 7);
@@ -238,6 +288,10 @@ TEST(CompileServiceProtocol, ResponseJsonRoundTrips) {
   EXPECT_EQ(parsed.ok, response.ok);
   EXPECT_EQ(parsed.kind, response.kind);
   EXPECT_EQ(parsed.target, response.target);
+  EXPECT_EQ(parsed.phase, response.phase);
+  EXPECT_EQ(parsed.reason, response.reason);
+  EXPECT_EQ(parsed.message, response.message);
+  ASSERT_EQ(parsed.runtime_errors.size(), 1u);
   ASSERT_EQ(parsed.diagnostics.size(), 1u);
   EXPECT_EQ(parsed.diagnostics[0].severity, "warning");
   EXPECT_EQ(parsed.diagnostics[0].file, "/adm/single/master.c");
@@ -280,6 +334,9 @@ TEST(CompileServiceProtocol, CompileQueueTimeoutUsesDiagnosticsWithoutNewTopLeve
   EXPECT_EQ(response.ok, false);
   EXPECT_EQ(response.kind, "file");
   EXPECT_EQ(response.target, "/adm/single/master.c");
+  EXPECT_EQ(response.phase, "connect");
+  EXPECT_EQ(response.reason, "compile_timeout");
+  EXPECT_NE(response.message.find("5000ms"), std::string::npos);
   ASSERT_EQ(response.diagnostics.size(), 1u);
   EXPECT_EQ(response.diagnostics[0].severity, "error");
   EXPECT_EQ(response.diagnostics[0].line, 0);
@@ -288,7 +345,6 @@ TEST(CompileServiceProtocol, CompileQueueTimeoutUsesDiagnosticsWithoutNewTopLeve
   EXPECT_FALSE(j.contains("queue_state"));
   EXPECT_FALSE(j.contains("queue_timeout_ms"));
   EXPECT_FALSE(j.contains("request_id"));
-  EXPECT_FALSE(j.contains("error"));
 }
 
 TEST(CompileServiceProtocol, DevTestQueueTimeoutUsesExistingErrorField) {
@@ -298,6 +354,10 @@ TEST(CompileServiceProtocol, DevTestQueueTimeoutUsesExistingErrorField) {
   EXPECT_EQ(response.ok, false);
   EXPECT_EQ(response.kind, "dev_test");
   EXPECT_EQ(response.target, "/single/tests/dev/dev_test_success.c");
+  EXPECT_EQ(response.phase, "connect");
+  EXPECT_EQ(response.reason, "compile_timeout");
+  EXPECT_EQ(response.compile_status, "unknown");
+  EXPECT_EQ(response.test_status, "not_run");
   EXPECT_TRUE(response.diagnostics.empty());
   ASSERT_TRUE(response.error.is_object());
   EXPECT_EQ(response.error["type"], "queue_timeout");
@@ -307,6 +367,22 @@ TEST(CompileServiceProtocol, DevTestQueueTimeoutUsesExistingErrorField) {
   EXPECT_FALSE(j.contains("queue_state"));
   EXPECT_FALSE(j.contains("queue_timeout_ms"));
   EXPECT_FALSE(j.contains("request_id"));
+}
+
+TEST(CompileServiceProtocol, ClientFailureResponseHasStructuredReason) {
+  auto response = build_client_failure_response("file", "/adm/single/master.c",
+                                                "\\\\.\\pipe\\fluffos-lpccp-test", "connect",
+                                                "service_busy",
+                                                "pipe is busy", 231);
+  nlohmann::json j = response;
+
+  EXPECT_FALSE(response.ok);
+  EXPECT_EQ(response.phase, "connect");
+  EXPECT_EQ(response.reason, "service_busy");
+  EXPECT_EQ(response.error["type"], "service_busy");
+  EXPECT_EQ(response.error["win32"], 231);
+  ASSERT_EQ(response.diagnostics.size(), 1u);
+  EXPECT_EQ(j["reason"], "service_busy");
 }
 
 TEST(CompileServiceClient, ParsesConfigPathArguments) {
@@ -366,6 +442,7 @@ TEST(CompileServiceClient, RejectsInvalidArgumentShapes) {
 
 TEST(CompileServiceClient, FormatsUsageAndConnectErrors) {
   EXPECT_NE(format_compile_service_usage().find("lpccp <config-path> <path>"), std::string::npos);
+  EXPECT_NE(format_compile_service_usage().find("--compile-only"), std::string::npos);
   EXPECT_NE(format_compile_service_usage().find("lpccp --dev-test <config-path> <path>"),
             std::string::npos);
   auto message = format_compile_service_connect_error("\\\\.\\pipe\\fluffos-lpccp-test", 2);
@@ -385,7 +462,34 @@ TEST(CompileServiceClient, StubResponseIncludesDerivedFields) {
   EXPECT_EQ(response["pipe_name"], make_compile_service_pipe_name(id));
   EXPECT_EQ(response["target"], "/adm/single/master.c");
   EXPECT_EQ(response["kind"], "client_stub");
+  EXPECT_EQ(response["phase"], "connect");
+  EXPECT_EQ(response["reason"], "client_stub");
   EXPECT_EQ(response["diagnostics"].size(), 1);
+}
+
+TEST(CompileServiceClient, ParsesCompileModeArguments) {
+  ParsedCompileServiceClientArgs args;
+  std::vector<std::string_view> argv = {"--compile-only", "lpc_example_http/config.hell",
+                                        "/adm/single/master.c"};
+
+  ASSERT_TRUE(parse_compile_service_client_args(argv, &args));
+  EXPECT_EQ(args.mode, "compile_only");
+  EXPECT_EQ(args.target, "/adm/single/master.c");
+}
+
+TEST(CompileServiceRuntime, HeaderTargetsAreStructuredUnsupportedFailures) {
+  CompileServiceRequest request;
+  request.op = "compile";
+  request.target = "/single/master.h";
+
+  auto response = compile_service::execute_compile_service_request(request);
+
+  EXPECT_FALSE(response.ok);
+  EXPECT_EQ(response.kind, "header");
+  EXPECT_EQ(response.phase, "target");
+  EXPECT_EQ(response.reason, "unsupported_target_kind");
+  EXPECT_NE(response.message.find("header files are not standalone"), std::string::npos);
+  ASSERT_EQ(response.diagnostics.size(), 1u);
 }
 
 TEST(CompileServiceLifecycle, StopResetsRunningState) {
@@ -431,6 +535,7 @@ TEST(CompileServiceLifecycle, QueuedRequestsRunOneAtATimeInFifoOrder) {
 
   std::thread first_thread(
       [&] { first_response = dispatch_compile_service_request_for_testing(first_request); });
+  auto first_pump_thread = pump_one_request_thread();
 
   {
     std::unique_lock<std::mutex> lock(state.mutex);
@@ -455,6 +560,8 @@ TEST(CompileServiceLifecycle, QueuedRequestsRunOneAtATimeInFifoOrder) {
   }
   state.cv_release.notify_all();
 
+  first_pump_thread.join();
+  ASSERT_TRUE(process_one_request_within(std::chrono::seconds(1)));
   first_thread.join();
   second_thread.join();
 
@@ -494,6 +601,7 @@ TEST(CompileServiceLifecycle, CompileRequestsTimeOutAfterWaitingFiveSecondsInQue
 
   std::thread first_thread(
       [&] { first_response = dispatch_compile_service_request_for_testing(first_request); });
+  auto first_pump_thread = pump_one_request_thread();
 
   {
     std::unique_lock<std::mutex> lock(state.mutex);
@@ -512,6 +620,8 @@ TEST(CompileServiceLifecycle, CompileRequestsTimeOutAfterWaitingFiveSecondsInQue
   }
   state.cv_release.notify_all();
 
+  first_pump_thread.join();
+  ASSERT_TRUE(process_one_request_within(std::chrono::seconds(1)));
   first_thread.join();
   second_thread.join();
 
@@ -547,6 +657,7 @@ TEST(CompileServiceLifecycle, DevTestRequestsTimeOutAfterWaitingFiveSecondsInQue
 
   std::thread first_thread(
       [&] { first_response = dispatch_compile_service_request_for_testing(first_request); });
+  auto first_pump_thread = pump_one_request_thread();
 
   {
     std::unique_lock<std::mutex> lock(state.mutex);
@@ -565,6 +676,8 @@ TEST(CompileServiceLifecycle, DevTestRequestsTimeOutAfterWaitingFiveSecondsInQue
   }
   state.cv_release.notify_all();
 
+  first_pump_thread.join();
+  ASSERT_TRUE(process_one_request_within(std::chrono::seconds(1)));
   first_thread.join();
   second_thread.join();
 
@@ -591,11 +704,17 @@ TEST(CompileServiceLifecycle, RequestsThatStartWithinFiveSecondsCanRunLongerThan
   request.op = "compile";
   request.target = "/queue/slow-started.c";
 
-  auto response = dispatch_compile_service_request_for_testing(request);
+  std::optional<CompileServiceResponse> response;
+  std::thread request_thread(
+      [&] { response = dispatch_compile_service_request_for_testing(request); });
 
-  EXPECT_TRUE(response.ok);
-  EXPECT_EQ(response.kind, "file");
-  EXPECT_EQ(response.target, "/queue/slow-started.c");
+  ASSERT_TRUE(process_one_request_within(std::chrono::seconds(1)));
+  request_thread.join();
+
+  ASSERT_TRUE(response.has_value());
+  EXPECT_TRUE(response->ok);
+  EXPECT_EQ(response->kind, "file");
+  EXPECT_EQ(response->target, "/queue/slow-started.c");
 }
 
 #ifdef _WIN32
@@ -620,6 +739,7 @@ TEST(CompileServiceTransport, ConcurrentPipeClientsCanBothReceiveResponses) {
   std::optional<PipeRoundTripResult> second_result;
 
   std::thread first_thread([&] { first_result = send_pipe_request(pipe_name, first_request); });
+  auto first_pump_thread = pump_one_request_thread();
 
   bool first_started = false;
   {
@@ -629,11 +749,8 @@ TEST(CompileServiceTransport, ConcurrentPipeClientsCanBothReceiveResponses) {
   }
 
   if (!first_started) {
-    {
-      std::lock_guard<std::mutex> lock(state.mutex);
-      state.release_first_request = true;
-    }
-    state.cv_release.notify_all();
+    release_first_request(&state);
+    first_pump_thread.join();
     first_thread.join();
     FAIL() << "pipe transport did not route requests through the queued executor";
   }
@@ -647,12 +764,10 @@ TEST(CompileServiceTransport, ConcurrentPipeClientsCanBothReceiveResponses) {
     EXPECT_EQ(state.started_targets[0], "/queue/first.c");
   }
 
-  {
-    std::lock_guard<std::mutex> lock(state.mutex);
-    state.release_first_request = true;
-  }
-  state.cv_release.notify_all();
+  release_first_request(&state);
 
+  first_pump_thread.join();
+  ASSERT_TRUE(process_one_request_within(std::chrono::seconds(2)));
   first_thread.join();
   second_thread.join();
 

@@ -17,6 +17,8 @@ namespace compile_service {
 using RequestExecutor = std::function<CompileServiceResponse(const CompileServiceRequest &)>;
 
 CompileServiceResponse dispatch_compile_service_request_for_testing(const CompileServiceRequest &request);
+int process_compile_service_requests_on_main_thread(int max_requests = 1);
+int process_compile_service_requests_for_testing(int max_requests = 1);
 void set_compile_service_request_executor_for_testing(RequestExecutor executor);
 void clear_compile_service_request_executor_for_testing();
 

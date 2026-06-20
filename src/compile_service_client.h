@@ -3,6 +3,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -16,10 +17,12 @@ struct ParsedCompileServiceClientArgs {
   std::string config_or_id;
   std::string target;
   std::string op = "compile";
+  std::string mode = "reload_loaded";
 };
 
 inline std::string format_compile_service_usage() {
   return "Usage: lpccp <config-path> <path>\n"
+         "   or: lpccp [--compile-only|--reload-loaded|--fresh-required] <config-path> <path>\n"
          "   or: lpccp --dev-test <config-path> <path>\n"
          "   or: lpccp --dev-test --id <id> <path>\n"
          "   or: lpccp --id <id> <path>\n";
@@ -27,37 +30,54 @@ inline std::string format_compile_service_usage() {
 
 inline bool parse_compile_service_client_args(const std::vector<std::string_view> &argv,
                                               ParsedCompileServiceClientArgs *out) {
-  if (argv.size() == 2) {
-    if (argv[0] == "--id" || argv[0] == "--dev-test") {
+  ParsedCompileServiceClientArgs parsed;
+  std::vector<std::string_view> positional;
+
+  for (size_t i = 0; i < argv.size(); i++) {
+    auto arg = argv[i];
+    if (arg == "--dev-test") {
+      parsed.op = "dev_test";
+      continue;
+    }
+    if (arg == "--compile-only") {
+      parsed.mode = "compile_only";
+      continue;
+    }
+    if (arg == "--reload-loaded") {
+      parsed.mode = "reload_loaded";
+      continue;
+    }
+    if (arg == "--fresh-required") {
+      parsed.mode = "fresh_required";
+      continue;
+    }
+    if (arg == "--id") {
+      if (parsed.use_explicit_id || i + 1 >= argv.size()) {
+        return false;
+      }
+      parsed.use_explicit_id = true;
+      parsed.config_or_id = argv[++i];
+      continue;
+    }
+    if (!arg.empty() && arg[0] == '-') {
       return false;
     }
-    out->config_or_id = argv[0];
-    out->target = argv[1];
-    return true;
+    positional.push_back(arg);
   }
 
-  if (argv.size() == 3 && argv[0] == "--id") {
-    out->use_explicit_id = true;
-    out->config_or_id = argv[1];
-    out->target = argv[2];
-    return true;
-  }
-
-  if (argv.size() == 3 && argv[0] == "--dev-test") {
-    if (argv[1] == "--id") {
+  if (parsed.use_explicit_id) {
+    if (positional.size() != 1) {
       return false;
     }
-    out->op = "dev_test";
-    out->config_or_id = argv[1];
-    out->target = argv[2];
+    parsed.target = positional[0];
+    *out = std::move(parsed);
     return true;
   }
 
-  if (argv.size() == 4 && argv[0] == "--dev-test" && argv[1] == "--id") {
-    out->op = "dev_test";
-    out->use_explicit_id = true;
-    out->config_or_id = argv[2];
-    out->target = argv[3];
+  if (positional.size() == 2) {
+    parsed.config_or_id = positional[0];
+    parsed.target = positional[1];
+    *out = std::move(parsed);
     return true;
   }
 
@@ -77,6 +97,9 @@ inline nlohmann::json build_compile_service_stub_response(
   j["ok"] = false;
   j["kind"] = "client_stub";
   j["target"] = args.target;
+  j["phase"] = "connect";
+  j["reason"] = "client_stub";
+  j["message"] = "lpccp transport stub";
   j["id"] = id;
   j["pipe_name"] = make_compile_service_pipe_name(id);
   if (!args.use_explicit_id) {

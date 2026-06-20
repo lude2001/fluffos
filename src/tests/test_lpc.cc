@@ -141,8 +141,29 @@ TEST_F(DriverTest, TestDevTestRequestCapturesRuntimeError) {
   ASSERT_FALSE(response.error.is_null());
   EXPECT_EQ(response.error["type"], "runtime_error");
   EXPECT_EQ(response.error["message"], "dev_test exploded\n");
+  EXPECT_EQ(response.reason, "runtime_error");
+  EXPECT_EQ(response.test_status, "failed");
+  ASSERT_EQ(response.runtime_errors.size(), 1u);
   ASSERT_GE(response.output.size(), 1u);
   EXPECT_EQ(response.output[0], "before failure");
+}
+
+TEST_F(DriverTest, TestDevTestRequestReportsMissingEntrypointSeparately) {
+  compile_service::CompileServiceRequest request;
+  request.op = "dev_test";
+  request.target = "/single/master.c";
+
+  auto response = compile_service::execute_compile_service_request(request);
+
+  ASSERT_FALSE(response.ok);
+  EXPECT_EQ(response.kind, "dev_test");
+  EXPECT_EQ(response.compile_status, "ok");
+  EXPECT_EQ(response.test_status, "missing");
+  EXPECT_EQ(response.phase, "dev_test");
+  EXPECT_EQ(response.reason, "test_missing");
+  EXPECT_EQ(response.message, "Object does not define dev_test()");
+  ASSERT_FALSE(response.error.is_null());
+  EXPECT_EQ(response.error["type"], "missing_entrypoint");
 }
 
 TEST_F(DriverTest, TestDevTestRequestRejectsBadReturnType) {
@@ -156,6 +177,8 @@ TEST_F(DriverTest, TestDevTestRequestRejectsBadReturnType) {
   EXPECT_EQ(response.kind, "dev_test");
   ASSERT_FALSE(response.error.is_null());
   EXPECT_EQ(response.error["type"], "bad_return_type");
+  EXPECT_EQ(response.reason, "test_failed");
+  EXPECT_EQ(response.test_status, "failed");
   ASSERT_GE(response.output.size(), 1u);
   EXPECT_EQ(response.output[0], "returning bad payload");
 }

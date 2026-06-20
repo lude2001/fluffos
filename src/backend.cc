@@ -26,6 +26,7 @@
 #include <utility>      // for pair, make_pair
 #include <algorithm>
 
+#include "compile_service.h"
 #include "vm/vm.h"
 
 #include "packages/core/heartbeat.h"
@@ -142,6 +143,7 @@ inline void call_tick_events() {
 }
 
 void on_game_tick(evutil_socket_t /*fd*/, short /*what*/, void *arg) {
+  compile_service::process_compile_service_requests_on_main_thread(1);
   call_tick_events();
   g_current_gametick++;
 
