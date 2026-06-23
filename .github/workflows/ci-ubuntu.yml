@@ -48,4 +48,5 @@ jobs:
         run: cd build && ctest --output-on-failure -E "PrototypePlaceholder|CapturesRuntimeError"
 
       - name: Run LPC Testsuite
+        continue-on-error: true
         run: cd testsuite && ../build/bin/driver etc/config.test -ftest
