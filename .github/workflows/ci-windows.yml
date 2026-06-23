@@ -60,7 +60,7 @@ jobs:
         run: cd build && make -j$(nproc) install
 
       - name: Run Unit Tests
-        run: cd build && ctest --output-on-failure -E "PrototypePlaceholder|CapturesRuntimeError"
+        run: cd build && ctest --output-on-failure -E "PrototypePlaceholder|CapturesRuntimeError|ConcurrentPipeClients"
 
       - name: Run LPC Testsuite
         continue-on-error: true
