@@ -81,21 +81,26 @@ struct PipeRoundTripResult {
 PipeRoundTripResult send_pipe_request(std::string_view pipe_name, const CompileServiceRequest &request) {
   PipeRoundTripResult result;
   HANDLE pipe = INVALID_HANDLE_VALUE;
-  for (int attempt = 0; attempt < 50; attempt++) {
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  DWORD wait_ms = 25;
+  while (std::chrono::steady_clock::now() < deadline) {
     pipe = CreateFileA(std::string(pipe_name).c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
                        OPEN_EXISTING, 0, nullptr);
     if (pipe != INVALID_HANDLE_VALUE) {
       break;
     }
     result.win32_error = GetLastError();
-    if (result.win32_error != ERROR_PIPE_BUSY && result.win32_error != ERROR_FILE_NOT_FOUND) {
+    if (result.win32_error != ERROR_PIPE_BUSY && result.win32_error != ERROR_FILE_NOT_FOUND &&
+        result.win32_error != ERROR_PATH_NOT_FOUND) {
       return result;
     }
-    WaitNamedPipeA(std::string(pipe_name).c_str(), 50);
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    if (result.win32_error == ERROR_PIPE_BUSY) {
+      WaitNamedPipeA(std::string(pipe_name).c_str(), wait_ms);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
+    wait_ms = std::min<DWORD>(wait_ms * 2, 250);
   }
   if (pipe == INVALID_HANDLE_VALUE) {
-    result.win32_error = GetLastError();
     return result;
   }
 

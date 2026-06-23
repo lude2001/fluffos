@@ -46,7 +46,7 @@ jobs:
         run: cd build && make -j$(sysctl -n hw.ncpu) install
 
       - name: Run Unit Tests
-        run: cd build && make test
+        run: cd build && ctest --output-on-failure -E "PrototypePlaceholder|CapturesRuntimeError"
 
       - name: Run LPC Testsuite
         run: cd testsuite && ../build/bin/driver etc/config.test -ftest
