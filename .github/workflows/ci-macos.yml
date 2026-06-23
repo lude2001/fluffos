@@ -1,0 +1,52 @@
+name: CI (macOS)
+
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['docs/**']
+  pull_request:
+    branches: [master]
+    paths-ignore: ['docs/**']
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.build }}
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [Debug, RelWithDebInfo]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        env:
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+        run: |
+          brew install cmake pkg-config pcre libgcrypt openssl jemalloc icu4c \
+            mysql sqlite3 googletest
+
+      - name: Configure
+        env:
+          OPENSSL_ROOT_DIR: /opt/homebrew/opt/openssl@3
+          ICU_ROOT: /opt/homebrew/opt/icu4c
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build }} -DPACKAGE_DB_SQLITE=2 ..
+
+      - name: Build
+        env:
+          OPENSSL_ROOT_DIR: /opt/homebrew/opt/openssl@3
+          ICU_ROOT: /opt/homebrew/opt/icu4c
+        run: cd build && make -j$(sysctl -n hw.ncpu) install
+
+      - name: Run Unit Tests
+        run: cd build && make test
+
+      - name: Run LPC Testsuite
+        run: cd testsuite && ../build/bin/driver etc/config.test -ftest

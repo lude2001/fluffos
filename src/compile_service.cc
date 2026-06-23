@@ -10,8 +10,10 @@
 #include <string>
 #include <thread>
 
+#ifdef _WIN32
 #include <windows.h>
 #include <sddl.h>
+#endif
 #include <nlohmann/json.hpp>
 
 #include "backend.h"
@@ -43,6 +45,7 @@ compile_service::RequestExecutor g_request_executor = compile_service::execute_c
 
 constexpr auto kQueueTimeout = std::chrono::seconds(5);
 constexpr int kQueueTimeoutMs = 5000;
+#ifdef _WIN32
 constexpr const char *kPipeSecurityDescriptor =
     "D:(A;;GA;;;WD)(A;;GA;;;AU)(A;;GA;;;SY)(A;;GA;;;BA)";
 
@@ -74,6 +77,7 @@ class PipeSecurityAttributes {
   SECURITY_ATTRIBUTES attributes_{};
   PSECURITY_DESCRIPTOR descriptor_ = nullptr;
 };
+#endif  // _WIN32
 
 std::string compile_request_kind_from_target(std::string_view target) {
   if (!target.empty() && (target.back() == '/' || target.back() == '\\')) {
@@ -184,6 +188,7 @@ void fail_queued_requests() {
   }
 }
 
+#ifdef _WIN32
 void handle_client(HANDLE pipe) {
   std::string request_text;
   char buffer[4096];
@@ -238,6 +243,7 @@ void service_loop() {
     g_client_threads.emplace_back([pipe] { handle_client(pipe); });
   }
 }
+#endif  // _WIN32
 
 }  // namespace
 
@@ -251,7 +257,9 @@ bool start_compile_service(std::string_view config_path) {
   debug_message("compile_service: starting id=%s pipe=%s\n", g_service_id.c_str(), g_pipe_name.c_str());
   g_stopping = false;
   g_running = true;
+#ifdef _WIN32
   g_server_thread = std::thread(service_loop);
+#endif
   return true;
 }
 
@@ -262,11 +270,13 @@ void stop_compile_service() {
 
   g_stopping = true;
   fail_queued_requests();
+#ifdef _WIN32
   HANDLE pipe =
       CreateFileA(g_pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
   if (pipe != INVALID_HANDLE_VALUE) {
     CloseHandle(pipe);
   }
+#endif
 
   if (g_server_thread.joinable()) {
     g_server_thread.join();
