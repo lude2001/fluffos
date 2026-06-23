@@ -7,15 +7,15 @@ if(${PACKAGE_DB})
             NOT "${PACKAGE_DB_DEFAULT_DB}" STREQUAL "${PACKAGE_DB_SQLITE}" AND
             NOT "${PACKAGE_DB_DEFAULT_DB}" STREQUAL "${PACKAGE_DB_POSTGRESQL}"
             )
-      message(FATAL "PACKAGE_DB_DEFAULT_DB is not valid!")
+      message(FATAL_ERROR "PACKAGE_DB_DEFAULT_DB is not valid!")
     endif()
 
     target_compile_definitions(package_db PUBLIC "DEFAULT_DB=${PACKAGE_DB_DEFAULT_DB}")
 
     if(NOT "${PACKAGE_DB_MYSQL}" STREQUAL "")
-        if ("${PACKAGE_DB_MYSQL}" STREQUAL "{PACKAGE_DB_SQLITE}" OR
-            "${PACKAGE_DB_MYSQL}" STREQUAL "{PACKAGE_DB_POSTGRESQL}")
-          message(FATAL "Conflicting DB type!")
+        if ("${PACKAGE_DB_MYSQL}" STREQUAL "${PACKAGE_DB_SQLITE}" OR
+            "${PACKAGE_DB_MYSQL}" STREQUAL "${PACKAGE_DB_POSTGRESQL}")
+          message(FATAL_ERROR "Conflicting DB type!")
         endif()
 
         message(STATUS "PACKAGE_DB USE_MYSQL: ${PACKAGE_DB_MYSQL}")
@@ -34,9 +34,9 @@ if(${PACKAGE_DB})
     endif()
 
     if(NOT "${PACKAGE_DB_SQLITE}" STREQUAL "")
-      if ("${PACKAGE_DB_SQLITE}" STREQUAL "{PACKAGE_DB_MYSQL}" OR
-              "${PACKAGE_DB_SQLITE}" STREQUAL "{PACKAGE_DB_POSTGRESQL}")
-        message(FATAL "Conflicting DB type!")
+      if ("${PACKAGE_DB_SQLITE}" STREQUAL "${PACKAGE_DB_MYSQL}" OR
+              "${PACKAGE_DB_SQLITE}" STREQUAL "${PACKAGE_DB_POSTGRESQL}")
+        message(FATAL_ERROR "Conflicting DB type!")
       endif()
 
       find_package(SQLite3 REQUIRED)
@@ -48,9 +48,9 @@ if(${PACKAGE_DB})
     endif()
 
     if(NOT "${PACKAGE_DB_POSTGRESQL}" STREQUAL "")
-      if ("${PACKAGE_DB_POSTGRESQL}" STREQUAL "{PACKAGE_DB_MYSQL}" OR
-              "${PACKAGE_DB_POSTGRESQL}" STREQUAL "{PACKAGE_DB_SQLITE}")
-        message(FATAL "Conflicting DB type!")
+      if ("${PACKAGE_DB_POSTGRESQL}" STREQUAL "${PACKAGE_DB_MYSQL}" OR
+              "${PACKAGE_DB_POSTGRESQL}" STREQUAL "${PACKAGE_DB_SQLITE}")
+        message(FATAL_ERROR "Conflicting DB type!")
       endif()
 
       find_package(PostgreSQL REQUIRED)
