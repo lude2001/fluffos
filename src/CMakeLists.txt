@@ -347,9 +347,18 @@ if (${BISON_FOUND})
           )
 else()
   message(STATUS "BISON: version too low, using pre-generated source.")
+  add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/grammar.autogen.cc"
+           "${CMAKE_CURRENT_BINARY_DIR}/grammar.autogen.h"
+    COMMAND "${CMAKE_COMMAND}" -D ACTION=DENORMALIZE -D FILE_IN="${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.cc" -D FILE_OUT="${CMAKE_CURRENT_BINARY_DIR}/grammar.autogen.cc" -D REPO_ROOT="${CMAKE_SOURCE_DIR}" -P "${CMAKE_SOURCE_DIR}/cmake/util.cmake"
+    COMMAND "${CMAKE_COMMAND}" -D ACTION=DENORMALIZE -D FILE_IN="${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.h" -D FILE_OUT="${CMAKE_CURRENT_BINARY_DIR}/grammar.autogen.h" -D REPO_ROOT="${CMAKE_SOURCE_DIR}" -P "${CMAKE_SOURCE_DIR}/cmake/util.cmake"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.cc"
+            "${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.h"
+    COMMENT "Restoring Bison-generated grammar files with local paths"
+  )
   set(GENERATRED_GRAMMAR_FILES
-          "${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.cc"
-          "${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.h")
+          "${CMAKE_CURRENT_BINARY_DIR}/grammar.autogen.cc"
+          "${CMAKE_CURRENT_BINARY_DIR}/grammar.autogen.h")
 endif()
 
 set(SRC
@@ -573,9 +582,9 @@ endif ()
 # Update generated grammar files
 if (${BISON_FOUND})
   add_custom_command(TARGET "driver" POST_BUILD
-          COMMAND "${CMAKE_COMMAND}" -E copy "${BISON_Grammar_OUTPUT_SOURCE}" ${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/
-          COMMAND "${CMAKE_COMMAND}" -E copy "${BISON_Grammar_OUTPUT_HEADER}" ${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/
-          COMMENT "Copying to output directory")
+          COMMAND "${CMAKE_COMMAND}" -D ACTION=NORMALIZE -D FILE_IN="${BISON_Grammar_OUTPUT_SOURCE}" -D FILE_OUT="${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.cc" -D REPO_ROOT="${CMAKE_SOURCE_DIR}" -P "${CMAKE_SOURCE_DIR}/cmake/util.cmake"
+          COMMAND "${CMAKE_COMMAND}" -D ACTION=NORMALIZE -D FILE_IN="${BISON_Grammar_OUTPUT_HEADER}" -D FILE_OUT="${CMAKE_CURRENT_SOURCE_DIR}/compiler/internal/grammar.autogen.h" -D REPO_ROOT="${CMAKE_SOURCE_DIR}" -P "${CMAKE_SOURCE_DIR}/cmake/util.cmake"
+          COMMENT "Copying and sanitizing generated grammar files")
 endif()
 
 find_package(GTest)
