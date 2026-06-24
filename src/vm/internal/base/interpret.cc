@@ -162,7 +162,7 @@ void kill_ref(ref_t *ref) {
     /* if some other ref references this mapping, it needs to remain
        locked */
     while (r) {
-      if (r->sv.u.map == ref->sv.u.map) {
+      if (r != ref && r->sv.u.map == ref->sv.u.map) {
         break;
       }
       r = r->next;
@@ -598,8 +598,9 @@ void push_indexed_lvalue(int reverse) {
   if (sp->type == T_LVALUE) {
     lv = sp->u.lvalue;
     if (!reverse && lv->type == T_MAPPING) {
+      mapping_t *owner = lv->u.map;
       sp--;
-      if (!(lv = find_for_insert(lv->u.map, sp, 0))) {
+      if (!(lv = find_for_insert(owner, sp, 0))) {
         mapping_too_large();
       }
       free_svalue(sp, "push_indexed_lvalue: 1");
@@ -607,7 +608,7 @@ void push_indexed_lvalue(int reverse) {
       sp->u.lvalue = lv;
 #ifdef REF_RESERVED_WORD
       lv_owner_type = T_MAPPING;
-      lv_owner = reinterpret_cast<refed_t *>(lv->u.map);
+      lv_owner = reinterpret_cast<refed_t *>(owner);
 #endif
       return;
     }
