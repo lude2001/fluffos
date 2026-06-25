@@ -170,6 +170,7 @@ int main(int argc, char ** /*argv*/) {
 
     const std::wstring updated_path = build_path_environment(runtime_path, driver_path.parent_path());
     SetEnvironmentVariableW(L"PATH", updated_path.c_str());
+    SetEnvironmentVariableW(L"MARIADB_TLS_DISABLE_PEER_VERIFICATION", L"1");
 
     std::wstring command_line = quote_windows_argument(driver_path.native());
     command_line.push_back(L' ');
