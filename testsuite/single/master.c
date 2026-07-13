@@ -91,6 +91,10 @@ mixed compile_object(string file)
     if (file=="/test/virtual") {
         return load_object("/single/void");
     }
+    if (strsrch(file, "/data/recompile_object/virt") == 0 &&
+        file_size("/data/recompile_object/vbase.c") > 0) {
+        return load_object("/data/recompile_object/vbase");
+    }
     return 0;
 }
 

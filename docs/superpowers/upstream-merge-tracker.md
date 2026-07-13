@@ -682,14 +682,19 @@ selectively merged:
   program is currently executing on the VM stack, nested `recompile_object()`
   calls, and objects that already have pending `replace_program()` state before
   the recompile begins.
-- Added focused local regression coverage for master-and-clone updates,
-  variable migration by name, new variable initializers, stale local function
-  pointers, and clone-target rejection.
+- Expanded local regression coverage for master-and-clone updates, variable
+  migration by name, new variable initializers, stale local function pointers,
+  clone-target rejection, vanished source files, virtual object backing-source
+  recompilation, `replace_program()` state during a swap, self-destructing and
+  erroring `__INIT`, live simul_efun table rebuild, master executing-frame
+  rejection, catch_tell routing, shadow chains, name-based and stale-funptr
+  call_outs, add_action sentences, and heart_beat registration.
 
 Validation for this merge:
 
 - `.\build.cmd`
 - `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
 - `..\build\dist\driver.exe etc\config.test -ftest`
 - `git diff --check`
 
@@ -698,6 +703,11 @@ Notes:
 - This is a local-layout merge of the core efun and swap machinery from PR
   #1237. It is not a wholesale import of every official hot-reload demo,
   documentation page, or broad official regression fixture.
+- The official post-run idle-master recompile fixture is not represented in the
+  local testsuite because this branch's single-test harness shuts down
+  immediately after the focused test. The local coverage still verifies the
+  master executing-frame guard, and the code path rebuilds master applies when
+  the master object itself is swapped.
 - Existing production mudlibs do not need changes unless they deliberately call
   `recompile_object()` or depend on the new hot-reload behavior.
 
@@ -741,11 +751,12 @@ These official changes remain intentionally unmerged as of `9e2aed14`:
 - PR #1244: remaining issue fixes not covered by this merge, including any
   official-only cases tied to file layout or test harness differences.
 - PR #1237, remaining scope: official hot-reload daemon/demo documentation,
-  broader official regression fixtures not represented by the current local
-  focused test, and any official-only test harness shape. The core efun, live
-  master/clone program swap, variable migration, master/simul_efun rebuild,
-  executing-frame guard, clone-target rejection, `replace_program()` guard, and
-  stale function-pointer protection are merged in local form.
+  the official post-run idle-master recompile fixture, and any official-only
+  test harness shape. The core efun, live master/clone program swap, variable
+  migration, master/simul_efun rebuild, executing-frame guard, clone-target
+  rejection, virtual object coverage, call_out/add_action/heart_beat/shadow
+  coverage, `replace_program()` guard, self-destruct/erroring `__INIT` coverage,
+  and stale function-pointer protection are merged in local form.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
 - PR #1230, remaining scope: official hot-reload daemon/demo documentation and
   any official-only test/doc shape not represented in this branch's local
