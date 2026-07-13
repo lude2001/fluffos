@@ -1416,11 +1416,16 @@ static int call_function_interactive(interactive_t *i, char *str) {
     was_noecho = 1;
     i->iflags &= ~NOECHO;
   }
-  if (ob->flags & O_DESTRUCTED) {
-    /* Sorry, the object has selfdestructed ! */
+  bool bad_init_call = false;
+  if (!(sent->flags & V_FUNCTION)) {
+    const char *fname = sent->function.s;
+    bad_init_call = (fname && fname[0] == APPLY___INIT_SPECIAL_CHAR);
+  }
+
+  if ((ob->flags & O_DESTRUCTED) || bad_init_call) {
+    /* Sorry, the object has selfdestructed or the call is disallowed. */
     free_object(&sent->ob, "call_function_interactive");
     free_sentence(sent);
-    i->input_to = nullptr;
     if (i->num_carry) {
       free_some_svalues(i->carryover, i->num_carry);
     }
@@ -1443,9 +1448,6 @@ static int call_function_interactive(interactive_t *i, char *str) {
       funp->hdr.ref++;
     } else {
       function = sent->function.s;
-      if (function && function[0] == APPLY___INIT_SPECIAL_CHAR) {
-        return 0;
-      }
       sp->type = T_STRING;
       sp->subtype = STRING_SHARED;
       sp->u.string = function;
