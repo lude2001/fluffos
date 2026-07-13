@@ -40,6 +40,7 @@ int num_refs;
 int func_present;
 int pending_new_local_name_line;
 int pending_new_local_name_column;
+static int class_def_cooldown;
 /*
  * bison & yacc don't prototype this in y.tab.h
  */
@@ -221,8 +222,14 @@ all:
 ;
 
 program:
-  program def possible_semi_colon { CREATE_TWO_VALUES($$, 0, $1, $2); }
-  | /* empty */  %empty { $$ = 0; }
+  program def possible_semi_colon
+                                  {
+                                    if (class_def_cooldown) {
+                                      class_def_cooldown--;
+                                    }
+                                    CREATE_TWO_VALUES($$, 0, $1, $2);
+                                  }
+  | /* empty */  %empty { class_def_cooldown = 0; $$ = 0; }
 ;
 
 possible_semi_colon: %empty 
@@ -274,8 +281,15 @@ def:
   function
   |   type name_list ';'
                                   {
-                                    if (!($1 & ~(DECL_MODS)) && (pragmas & PRAGMA_STRICT_TYPES))
-                                      yyerror("Missing type for global variable declaration");
+                                    if (!($1 & ~(DECL_MODS))) {
+                                      if (class_def_cooldown == 1) {
+                                        yyerror(
+                                            "Variable declaration cannot follow a class body directly; "
+                                            "declare it separately with the class type: 'class Name varname;'");
+                                      } else if (pragmas & PRAGMA_STRICT_TYPES) {
+                                        yyerror("Missing type for global variable declaration");
+                                      }
+                                    }
                                     $$ = 0;
                                   }
   |   inheritance
@@ -326,7 +340,7 @@ member_list: %empty
 
 type_decl:
   type_modifier_list L_CLASS identifier '{'  { $<ihe>2 = rule_define_class(&$<number>$, $3); }
-    member_list '}'                          { rule_define_class_members($<ihe>2, $<number>5); $$ = 0; }
+    member_list '}'                          { rule_define_class_members($<ihe>2, $<number>5); class_def_cooldown = 2; $$ = 0; }
 ;
 
 new_local_name:

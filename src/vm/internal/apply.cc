@@ -381,13 +381,13 @@ svalue_t *safe_apply(const char *fun, object_t *ob, int num_arg, int where) {
 
   error_context_t econ;
   save_context(&econ);
+  econ.save_sp -= num_arg;
 
   svalue_t *ret = nullptr;
   try {
     ret = apply(fun, ob, num_arg, where);
   } catch (const char *) {
     restore_context(&econ);
-    pop_n_elems(num_arg);
     ret = nullptr;
   }
   pop_context(&econ);

@@ -100,13 +100,14 @@ int num_refs;
 int func_present;
 int pending_new_local_name_line;
 int pending_new_local_name_column;
+static int class_def_cooldown;
 /*
  * bison & yacc don't prototype this in y.tab.h
  */
 int yyparse (void);
 
 
-#line 110 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 111 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -695,34 +696,34 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   220,   220,   224,   225,   228,   230,   234,   238,   242,
-     246,   247,   251,   258,   259,   263,   264,   268,   269,   268,
-     274,   275,   281,   282,   283,   287,   304,   317,   318,   321,
-     323,   323,   328,   328,   333,   339,   351,   352,   361,   369,
-     370,   374,   375,   379,   380,   384,   385,   406,   412,   420,
-     433,   437,   438,   456,   467,   481,   484,   501,   509,   516,
-     518,   524,   525,   529,   554,   610,   609,   618,   618,   618,
-     622,   627,   626,   645,   657,   692,   704,   736,   741,   752,
-     751,   766,   770,   777,   784,   792,   804,   805,   806,   807,
-     808,   809,   814,   818,   840,   853,   852,   866,   865,   879,
-     878,   903,   924,   934,   951,   956,   967,   966,   986,   989,
-     993,   998,  1007,  1006,  1045,  1051,  1058,  1064,  1071,  1085,
-    1099,  1112,  1128,  1142,  1157,  1161,  1165,  1169,  1173,  1177,
-    1185,  1189,  1193,  1197,  1201,  1205,  1209,  1213,  1217,  1221,
-    1225,  1229,  1233,  1240,  1244,  1251,  1255,  1282,  1333,  1338,
-    1362,  1368,  1374,  1380,  1405,  1409,  1432,  1454,  1468,  1512,
-    1549,  1553,  1557,  1727,  1821,  1901,  1905,  2000,  2021,  2042,
-    2064,  2073,  2084,  2108,  2130,  2151,  2152,  2153,  2154,  2155,
-    2156,  2160,  2166,  2187,  2190,  2194,  2201,  2205,  2212,  2217,
-    2230,  2234,  2238,  2245,  2255,  2273,  2280,  2399,  2400,  2407,
-    2408,  2481,  2499,  2504,  2503,  2533,  2557,  2581,  2592,  2596,
-    2603,  2610,  2614,  2618,  2664,  2720,  2721,  2725,  2726,  2728,
-    2727,  2784,  2822,  2917,  2940,  2949,  2961,  2965,  2973,  2972,
-    2985,  2992,  3002,  3011,  3022,  3021,  3035,  3040,  3054,  3062,
-    3063,  3067,  3074,  3075,  3082,  3093,  3096,  3105,  3104,  3118,
-    3117,  3148,  3183,  3202,  3201,  3333,  3332,  3401,  3400,  3452,
-    3451,  3503,  3502,  3533,  3553,  3569,  3570,  3584,  3599,  3614,
-    3648,  3652
+       0,   221,   221,   225,   232,   235,   237,   241,   245,   249,
+     253,   254,   258,   265,   266,   270,   271,   275,   276,   275,
+     281,   282,   295,   296,   297,   301,   318,   331,   332,   335,
+     337,   337,   342,   342,   347,   353,   365,   366,   375,   383,
+     384,   388,   389,   393,   394,   398,   399,   420,   426,   434,
+     447,   451,   452,   470,   481,   495,   498,   515,   523,   530,
+     532,   538,   539,   543,   568,   624,   623,   632,   632,   632,
+     636,   641,   640,   659,   671,   706,   718,   750,   755,   766,
+     765,   780,   784,   791,   798,   806,   818,   819,   820,   821,
+     822,   823,   828,   832,   854,   867,   866,   880,   879,   893,
+     892,   917,   938,   948,   965,   970,   981,   980,  1000,  1003,
+    1007,  1012,  1021,  1020,  1059,  1065,  1072,  1078,  1085,  1099,
+    1113,  1126,  1142,  1156,  1171,  1175,  1179,  1183,  1187,  1191,
+    1199,  1203,  1207,  1211,  1215,  1219,  1223,  1227,  1231,  1235,
+    1239,  1243,  1247,  1254,  1258,  1265,  1269,  1296,  1347,  1352,
+    1376,  1382,  1388,  1394,  1419,  1423,  1446,  1468,  1482,  1526,
+    1563,  1567,  1571,  1741,  1835,  1915,  1919,  2014,  2035,  2056,
+    2078,  2087,  2098,  2122,  2144,  2165,  2166,  2167,  2168,  2169,
+    2170,  2174,  2180,  2201,  2204,  2208,  2215,  2219,  2226,  2231,
+    2244,  2248,  2252,  2259,  2269,  2287,  2294,  2413,  2414,  2421,
+    2422,  2495,  2513,  2518,  2517,  2547,  2571,  2595,  2606,  2610,
+    2617,  2624,  2628,  2632,  2678,  2734,  2735,  2739,  2740,  2742,
+    2741,  2798,  2836,  2931,  2954,  2963,  2975,  2979,  2987,  2986,
+    2999,  3006,  3016,  3025,  3036,  3035,  3049,  3054,  3068,  3076,
+    3077,  3081,  3088,  3089,  3096,  3107,  3110,  3119,  3118,  3132,
+    3131,  3162,  3197,  3216,  3215,  3347,  3346,  3415,  3414,  3466,
+    3465,  3517,  3516,  3547,  3567,  3583,  3584,  3598,  3613,  3628,
+    3662,  3666
 };
 #endif
 
@@ -2367,118 +2368,130 @@ yyreduce:
     switch (yyn)
       {
   case 2: /* all: program  */
-#line 220 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 221 "$REPO_ROOT$/src/compiler/internal/grammar.y"
           { rule_program((yyval.node)); }
-#line 2373 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2374 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 3: /* program: program def possible_semi_colon  */
-#line 224 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                                  { CREATE_TWO_VALUES((yyval.node), 0, (yyvsp[-2].node), (yyvsp[-1].node)); }
-#line 2379 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
-    break;
-
-  case 4: /* program: %empty  */
-#line 225 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                        { (yyval.node) = 0; }
+#line 226 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                                  {
+                                    if (class_def_cooldown) {
+                                      class_def_cooldown--;
+                                    }
+                                    CREATE_TWO_VALUES((yyval.node), 0, (yyvsp[-2].node), (yyvsp[-1].node));
+                                  }
 #line 2385 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 6: /* possible_semi_colon: ';'  */
-#line 230 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-        { yywarn("Extra ';'. Ignored."); }
+  case 4: /* program: %empty  */
+#line 232 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                        { class_def_cooldown = 0; (yyval.node) = 0; }
 #line 2391 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 7: /* inheritance: type_modifier_list L_INHERIT string_con1 ';'  */
-#line 234 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                                               { if (rule_inheritence(&(yyval.node), (yyvsp[-3].number), (yyvsp[-1].string))) { YYACCEPT; } }
+  case 6: /* possible_semi_colon: ';'  */
+#line 237 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+        { yywarn("Extra ';'. Ignored."); }
 #line 2397 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 8: /* real: L_REAL  */
-#line 238 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-         { CREATE_REAL((yyval.node), (yyvsp[0].real)); }
+  case 7: /* inheritance: type_modifier_list L_INHERIT string_con1 ';'  */
+#line 241 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                                               { if (rule_inheritence(&(yyval.node), (yyvsp[-3].number), (yyvsp[-1].string))) { YYACCEPT; } }
 #line 2403 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 9: /* number: L_NUMBER  */
-#line 242 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-           { CREATE_NUMBER((yyval.node), (yyvsp[0].number)); }
+  case 8: /* real: L_REAL  */
+#line 245 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+         { CREATE_REAL((yyval.node), (yyvsp[0].real)); }
 #line 2409 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 10: /* optional_star: %empty  */
-#line 246 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                        { (yyval.number) = 0; }
+  case 9: /* number: L_NUMBER  */
+#line 249 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+           { CREATE_NUMBER((yyval.node), (yyvsp[0].number)); }
 #line 2415 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 11: /* optional_star: '*'  */
-#line 247 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                { (yyval.number) = TYPE_MOD_ARRAY; }
+  case 10: /* optional_star: %empty  */
+#line 253 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                        { (yyval.number) = 0; }
 #line 2421 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
+  case 11: /* optional_star: '*'  */
+#line 254 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                { (yyval.number) = TYPE_MOD_ARRAY; }
+#line 2427 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+    break;
+
   case 12: /* block_or_semi: block  */
-#line 252 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 259 "$REPO_ROOT$/src/compiler/internal/grammar.y"
           {
             (yyval.node) = (yyvsp[0].decl).node;
             if (!(yyval.node)) {
               CREATE_RETURN((yyval.node), 0);
             }
           }
-#line 2432 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
-    break;
-
-  case 13: /* block_or_semi: ';'  */
-#line 258 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-          { (yyval.node) = 0; }
 #line 2438 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 14: /* block_or_semi: error  */
-#line 259 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+  case 13: /* block_or_semi: ';'  */
+#line 265 "$REPO_ROOT$/src/compiler/internal/grammar.y"
           { (yyval.node) = 0; }
 #line 2444 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 15: /* identifier: L_DEFINED_NAME  */
-#line 263 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                                  { (yyval.string) = scratch_copy((yyvsp[0].ihe)->name); }
+  case 14: /* block_or_semi: error  */
+#line 266 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+          { (yyval.node) = 0; }
 #line 2450 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 17: /* $@1: %empty  */
-#line 268 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                                  { (yyvsp[-2].number) = rule_func_type((yyvsp[-2].number), (yyvsp[-1].number), (yyvsp[0].string)); }
+  case 15: /* identifier: L_DEFINED_NAME  */
+#line 270 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                                  { (yyval.string) = scratch_copy((yyvsp[0].ihe)->name); }
 #line 2456 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 18: /* @2: %empty  */
-#line 269 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                                  { (yyval.number) = rule_func_proto((yyvsp[-6].number), (yyvsp[-5].number), &(yyvsp[-4].string), (yyvsp[-1].argument)); }
+  case 17: /* $@1: %empty  */
+#line 275 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                                  { (yyvsp[-2].number) = rule_func_type((yyvsp[-2].number), (yyvsp[-1].number), (yyvsp[0].string)); }
 #line 2462 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
-  case 19: /* function: type optional_star identifier $@1 '(' argument ')' @2 block_or_semi  */
-#line 270 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                                  { rule_func(&(yyval.node), (yyvsp[-8].number), (yyvsp[-7].number), (yyvsp[-6].string), (yyvsp[-3].argument), &(yyvsp[-1].number), &(yyvsp[0].node)); }
+  case 18: /* @2: %empty  */
+#line 276 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                                  { (yyval.number) = rule_func_proto((yyvsp[-6].number), (yyvsp[-5].number), &(yyvsp[-4].string), (yyvsp[-1].argument)); }
 #line 2468 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
+  case 19: /* function: type optional_star identifier $@1 '(' argument ')' @2 block_or_semi  */
+#line 277 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                                  { rule_func(&(yyval.node), (yyvsp[-8].number), (yyvsp[-7].number), (yyvsp[-6].string), (yyvsp[-3].argument), &(yyvsp[-1].number), &(yyvsp[0].node)); }
+#line 2474 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+    break;
+
   case 21: /* def: type name_list ';'  */
-#line 276 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 283 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                   {
-                                    if (!((yyvsp[-2].number) & ~(DECL_MODS)) && (pragmas & PRAGMA_STRICT_TYPES))
-                                      yyerror("Missing type for global variable declaration");
+                                    if (!((yyvsp[-2].number) & ~(DECL_MODS))) {
+                                      if (class_def_cooldown == 1) {
+                                        yyerror(
+                                            "Variable declaration cannot follow a class body directly; "
+                                            "declare it separately with the class type: 'class Name varname;'");
+                                      } else if (pragmas & PRAGMA_STRICT_TYPES) {
+                                        yyerror("Missing type for global variable declaration");
+                                      }
+                                    }
                                     (yyval.node) = 0;
                                   }
-#line 2478 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2491 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 25: /* modifier_change: type_modifier_list ':'  */
-#line 288 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 302 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                   {
                                     if (!(yyvsp[-1].number))
                                       yyerror("modifier list may not be empty.");
@@ -2492,11 +2505,11 @@ yyreduce:
                                     global_modifiers = (yyvsp[-1].number);
                                     (yyval.node) = 0;
                                   }
-#line 2496 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2509 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 26: /* member_name: optional_star identifier  */
-#line 305 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 319 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                   {
                                     /* At this point, the current_type here is only a basic_type */
                                     /* and cannot be unused yet - Sym */
@@ -2506,39 +2519,39 @@ yyreduce:
                                     add_local_name((yyvsp[0].string), current_type | (yyvsp[-1].number));
                                     scratch_free((yyvsp[0].string));
                                   }
-#line 2510 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2523 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 30: /* $@3: %empty  */
-#line 323 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 337 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                            { current_type = (yyvsp[0].number); }
-#line 2516 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2529 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 32: /* @4: %empty  */
-#line 328 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 342 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                              { (yyvsp[-2].ihe) = rule_define_class(&(yyval.number), (yyvsp[-1].string)); }
-#line 2522 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2535 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 33: /* type_decl: type_modifier_list L_CLASS identifier '{' @4 member_list '}'  */
-#line 329 "$REPO_ROOT$/src/compiler/internal/grammar.y"
-                                             { rule_define_class_members((yyvsp[-5].ihe), (yyvsp[-2].number)); (yyval.node) = 0; }
-#line 2528 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 343 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+                                             { rule_define_class_members((yyvsp[-5].ihe), (yyvsp[-2].number)); class_def_cooldown = 2; (yyval.node) = 0; }
+#line 2541 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 34: /* new_local_name: L_IDENTIFIER  */
-#line 334 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 348 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                             {
                                               pending_new_local_name_line = last_identifier_line;
                                               pending_new_local_name_column = last_identifier_column;
                                               (yyval.string) = (yyvsp[0].string);
                                             }
-#line 2538 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2551 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 35: /* new_local_name: L_DEFINED_NAME  */
-#line 340 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 354 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                             {
                                               if ((yyvsp[0].ihe)->dn.local_num != -1) {
                                                 yyerror("Illegal to redeclare local name '%s'", (yyvsp[0].ihe)->name);
@@ -2547,11 +2560,11 @@ yyreduce:
                                               pending_new_local_name_column = last_identifier_column;
                                               (yyval.string) = scratch_copy((yyvsp[0].ihe)->name);
                                             }
-#line 2551 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2564 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 37: /* atomic_type: L_CLASS L_DEFINED_NAME  */
-#line 353 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 367 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                             {
                                               if ((yyvsp[0].ihe)->dn.class_num == -1) {
                                                 yyerror("Undefined class '%s'", (yyvsp[0].ihe)->name);
@@ -2560,44 +2573,44 @@ yyreduce:
                                                 (yyval.number) = (yyvsp[0].ihe)->dn.class_num | TYPE_MOD_CLASS;
                                               }
                                             }
-#line 2564 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2577 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 38: /* atomic_type: L_CLASS L_IDENTIFIER  */
-#line 362 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 376 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                             {
                                               yyerror("Undefined class '%s'", (yyvsp[0].string));
                                               (yyval.number) = TYPE_ANY;
                                             }
-#line 2573 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2586 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 40: /* opt_atomic_type: %empty  */
-#line 370 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 384 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                         { (yyval.number) = TYPE_ANY; }
-#line 2579 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2592 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 42: /* basic_type: opt_atomic_type L_ARRAY  */
-#line 375 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 389 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                             { (yyval.number) = (yyvsp[-1].number) | TYPE_MOD_ARRAY; }
-#line 2585 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2598 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 44: /* arg_type: basic_type ref  */
-#line 380 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 394 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                    { (yyval.number) = (yyvsp[-1].number) | LOCAL_MOD_REF; }
-#line 2591 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2604 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 45: /* optional_default_arg_value: %empty  */
-#line 384 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 398 "$REPO_ROOT$/src/compiler/internal/grammar.y"
          { (yyval.node) = 0; }
-#line 2597 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2610 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 46: /* optional_default_arg_value: ':' L_FUNCTION_OPEN comma_expr ':' ')'  */
-#line 385 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 399 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                           {
     if (CONFIG_INT(__RC_WOMBLES__)) {
         if(*(outp-2) != ':') {
@@ -2617,21 +2630,21 @@ yyreduce:
     (yyval.node)->v.number = FP_FUNCTIONAL + 0 /* args */;
     pop_function_context();
 }
-#line 2621 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2634 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 47: /* new_arg: arg_type optional_star  */
-#line 407 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 421 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                               {
                                                 (yyval.number) = (yyvsp[-1].number) | (yyvsp[0].number);
                                                 if ((yyvsp[-1].number) != TYPE_VOID)
                                                   add_local_name("", (yyvsp[-1].number) | (yyvsp[0].number));
                                               }
-#line 2631 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2644 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 48: /* new_arg: arg_type optional_star new_local_name optional_default_arg_value  */
-#line 413 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 427 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                               {
                                                 if ((yyvsp[-3].number) == TYPE_VOID)
                                                   yyerror("Illegal to declare argument of type void.");
@@ -2639,11 +2652,11 @@ yyreduce:
                                                 scratch_free((yyvsp[-1].string));
                                                 (yyval.number) = (yyvsp[-3].number) | (yyvsp[-2].number);
                                               }
-#line 2643 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2656 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 49: /* new_arg: new_local_name  */
-#line 421 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 435 "$REPO_ROOT$/src/compiler/internal/grammar.y"
                                               {
                                                 if (exact_types) {
                                                   yyerror("Missing type for argument");
@@ -2652,20 +2665,20 @@ yyreduce:
                                                 scratch_free((yyvsp[0].string));
                                                 (yyval.number) = TYPE_ANY;
                                               }
-#line 2656 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2669 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 50: /* argument: %empty  */
-#line 433 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 447 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.argument).num_arg = 0;
       (yyval.argument).flags = 0;
     }
-#line 2665 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2678 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 52: /* argument: argument_list L_DOT_DOT_DOT  */
-#line 439 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 453 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int x = type_of_locals_ptr[max_num_locals-1];
       int lt = x & ~LOCAL_MODS;
@@ -2680,11 +2693,11 @@ yyreduce:
       if (lt != TYPE_ANY && !(lt & TYPE_MOD_ARRAY))
         yywarn("Variable to hold remainder of arguments should be an array.");
     }
-#line 2684 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2697 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 53: /* argument_list: new_arg  */
-#line 457 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 471 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (((yyvsp[0].number) & TYPE_MASK) == TYPE_VOID && !((yyvsp[0].number) & TYPE_MOD_CLASS)) {
         if ((yyvsp[0].number) & ~TYPE_MASK)
@@ -2695,11 +2708,11 @@ yyreduce:
       }
       (yyval.argument).flags = 0;
     }
-#line 2699 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2712 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 54: /* argument_list: argument_list ',' new_arg  */
-#line 468 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 482 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (!(yyval.argument).num_arg)    /* first arg was void w/no name */
         yyerror("argument of type void must be the only argument.");
@@ -2709,19 +2722,19 @@ yyreduce:
       (yyval.argument) = (yyvsp[-2].argument);
       (yyval.argument).num_arg++;
     }
-#line 2713 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2726 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 55: /* type_modifier_list: %empty  */
-#line 481 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 495 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.number) = 0;
     }
-#line 2721 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2734 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 56: /* type_modifier_list: L_TYPE_MODIFIER type_modifier_list  */
-#line 485 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 499 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-1].number) | (yyvsp[0].number);
       int acc_mod = (yyval.number) & DECL_ACCESS;
@@ -2735,36 +2748,36 @@ yyreduce:
       }
 #endif
     }
-#line 2739 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2752 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 57: /* type: type_modifier_list opt_basic_type  */
-#line 502 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 516 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = ((yyvsp[-1].number) << 16) | (yyvsp[0].number);
       current_type = (yyval.number);
     }
-#line 2748 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2761 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 58: /* cast: '(' basic_type optional_star ')'  */
-#line 510 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 524 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) | (yyvsp[-1].number);
     }
-#line 2756 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2769 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 60: /* opt_basic_type: %empty  */
-#line 518 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 532 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.number) = TYPE_UNKNOWN;
     }
-#line 2764 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2777 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 63: /* new_name: optional_star identifier  */
-#line 530 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 544 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (current_type & (FUNC_VARARGS << 16)){
         yyerror("Illegal to declare varargs variable.");
@@ -2789,11 +2802,11 @@ yyreduce:
       define_new_variable((yyvsp[0].string), current_type | (yyvsp[-1].number));
       scratch_free((yyvsp[0].string));
     }
-#line 2793 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2806 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 64: /* new_name: optional_star identifier L_ASSIGN expr0  */
-#line 555 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 569 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *expr, *newnode;
       int type;
@@ -2845,35 +2858,35 @@ yyreduce:
           newnode, expr);
       scratch_free((yyvsp[-2].string));
     }
-#line 2849 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2862 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 65: /* @5: %empty  */
-#line 610 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 624 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     { (yyval.number) = current_number_of_locals; }
-#line 2855 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2868 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 66: /* block: '{' @5 block_statements '}'  */
-#line 612 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 626 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).node = (yyvsp[-1].decl).node;
       (yyval.decl).num = current_number_of_locals - (yyvsp[-2].number);  /* calculate locals declared in this block */
     }
-#line 2864 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2877 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 70: /* local_declarations: %empty  */
-#line 622 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 636 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.decl).node = 0;
       (yyval.decl).num = 0;
     }
-#line 2873 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2886 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 71: /* $@6: %empty  */
-#line 627 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 641 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].number) == TYPE_VOID)
         yyerror("Illegal to declare local variable of type void.");
@@ -2882,22 +2895,22 @@ yyreduce:
        */
       current_type = (yyvsp[0].number);
     }
-#line 2886 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2899 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 72: /* local_declarations: local_declarations basic_type $@6 local_name_list ';'  */
-#line 636 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 650 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-4].decl).node && (yyvsp[-1].decl).node) {
         CREATE_STATEMENTS((yyval.decl).node, (yyvsp[-4].decl).node, (yyvsp[-1].decl).node);
       } else (yyval.decl).node = ((yyvsp[-4].decl).node ? (yyvsp[-4].decl).node : (yyvsp[-1].decl).node);
       (yyval.decl).num = (yyvsp[-4].decl).num + (yyvsp[-1].decl).num;
     }
-#line 2897 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2910 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 73: /* new_local_def: optional_star new_local_name  */
-#line 646 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 660 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (current_type & LOCAL_MOD_REF) {
         yyerror("Illegal to declare local variable as reference");
@@ -2909,11 +2922,11 @@ yyreduce:
       scratch_free((yyvsp[0].string));
       (yyval.node) = 0;
     }
-#line 2913 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2926 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 74: /* new_local_def: optional_star new_local_name L_ASSIGN expr0  */
-#line 658 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 672 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int type = (current_type | (yyvsp[-3].number)) & ~DECL_MODS;
 
@@ -2945,11 +2958,11 @@ yyreduce:
                          pending_new_local_name_line, pending_new_local_name_column));
       scratch_free((yyvsp[-2].string));
     }
-#line 2949 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2962 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 75: /* single_new_local_def: arg_type optional_star new_local_name  */
-#line 693 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 707 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-2].number) == TYPE_VOID)
         yyerror("Illegal to declare local variable of type void.");
@@ -2958,11 +2971,11 @@ yyreduce:
                           pending_new_local_name_column);
       scratch_free((yyvsp[0].string));
     }
-#line 2962 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 2975 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 76: /* single_new_local_def_with_init: single_new_local_def L_ASSIGN expr0  */
-#line 705 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 719 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int type = type_of_locals_ptr[(yyvsp[-2].number)];
 
@@ -2991,90 +3004,90 @@ yyreduce:
       CREATE_BINARY_OP((yyval.node), F_ASSIGN, 0, (yyvsp[0].node), 0);
       CREATE_OPCODE_1((yyval.node)->r.expr, F_LOCAL_LVALUE, 0, (yyvsp[-2].number));
     }
-#line 2995 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3008 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 77: /* local_name_list: new_local_def  */
-#line 737 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 751 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).node = (yyvsp[0].node);
       (yyval.decl).num = 1;
     }
-#line 3004 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3017 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 78: /* local_name_list: new_local_def ',' local_name_list  */
-#line 742 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 756 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-2].node) && (yyvsp[0].decl).node) {
         CREATE_STATEMENTS((yyval.decl).node, (yyvsp[-2].node), (yyvsp[0].decl).node);
       } else (yyval.decl).node = ((yyvsp[-2].node) ? (yyvsp[-2].node) : (yyvsp[0].decl).node);
       (yyval.decl).num = 1 + (yyvsp[0].decl).num;
     }
-#line 3015 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3028 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 79: /* $@7: %empty  */
-#line 752 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 766 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].number) == TYPE_VOID)
         yyerror("Illegal to declare local variable of type void.");
       current_type = (yyvsp[0].number);
     }
-#line 3025 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3038 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 80: /* local_declaration_statement: basic_type $@7 local_name_list ';'  */
-#line 758 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 772 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).node = (yyvsp[-1].decl).node;
       (yyval.decl).num = (yyvsp[-1].decl).num;
     }
-#line 3034 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3047 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 81: /* block_statements: %empty  */
-#line 766 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 780 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.decl).node = 0;
       (yyval.decl).num = 0;
     }
-#line 3043 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3056 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 82: /* block_statements: statement block_statements  */
-#line 771 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 785 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-1].node) && (yyvsp[0].decl).node) {
         CREATE_STATEMENTS((yyval.decl).node, (yyvsp[-1].node), (yyvsp[0].decl).node);
       } else (yyval.decl).node = ((yyvsp[-1].node) ? (yyvsp[-1].node) : (yyvsp[0].decl).node);
       (yyval.decl).num = (yyvsp[0].decl).num;
     }
-#line 3054 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3067 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 83: /* block_statements: local_declaration_statement block_statements  */
-#line 778 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 792 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-1].decl).node && (yyvsp[0].decl).node) {
         CREATE_STATEMENTS((yyval.decl).node, (yyvsp[-1].decl).node, (yyvsp[0].decl).node);
       } else (yyval.decl).node = ((yyvsp[-1].decl).node ? (yyvsp[-1].decl).node : (yyvsp[0].decl).node);
       (yyval.decl).num = (yyvsp[-1].decl).num + (yyvsp[0].decl).num;
     }
-#line 3065 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3078 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 84: /* block_statements: error ';' block_statements  */
-#line 785 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 799 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).node = (yyvsp[0].decl).node;
       (yyval.decl).num = (yyvsp[0].decl).num;
     }
-#line 3074 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3087 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 85: /* statement: comma_expr ';'  */
-#line 793 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 807 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = pop_value((yyvsp[-1].node));
 #ifdef DEBUG
@@ -3086,28 +3099,28 @@ yyreduce:
       }
 #endif
     }
-#line 3090 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3103 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 91: /* statement: decl_block  */
-#line 810 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 824 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[0].decl).node;
       pop_n_locals((yyvsp[0].decl).num);
     }
-#line 3099 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3112 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 92: /* statement: ';'  */
-#line 815 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 829 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = 0;
     }
-#line 3107 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3120 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 93: /* statement: L_BREAK ';'  */
-#line 819 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 833 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (context & SPECIAL_CONTEXT) {
         yyerror("Cannot break out of catch { } or time_expression { }");
@@ -3129,11 +3142,11 @@ yyreduce:
             (yyval.node) = 0;
           }
     }
-#line 3133 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3146 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 94: /* statement: L_CONTINUE ';'  */
-#line 841 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 855 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (context & SPECIAL_CONTEXT)
         yyerror("Cannot continue out of catch { } or time_expression { }");
@@ -3142,57 +3155,57 @@ yyreduce:
           yyerror("continue statement outside loop");
       CREATE_CONTROL_JUMP((yyval.node), CJ_CONTINUE);
     }
-#line 3146 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3159 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 95: /* $@8: %empty  */
-#line 853 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 867 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyvsp[-3].number) = context;
       context = LOOP_CONTEXT;
     }
-#line 3155 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3168 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 96: /* while: L_WHILE '(' comma_expr ')' $@8 statement  */
-#line 858 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 872 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_LOOP((yyval.node), 1, (yyvsp[0].node), 0, optimize_loop_test((yyvsp[-3].node)));
       context = (yyvsp[-5].number);
     }
-#line 3164 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3177 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 97: /* $@9: %empty  */
-#line 866 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 880 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyvsp[0].number) = context;
       context = LOOP_CONTEXT;
     }
-#line 3173 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3186 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 98: /* do: L_DO $@9 statement L_WHILE '(' comma_expr ')' ';'  */
-#line 871 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 885 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_LOOP((yyval.node), 0, (yyvsp[-5].node), 0, optimize_loop_test((yyvsp[-2].node)));
       context = (yyvsp[-7].number);
     }
-#line 3182 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3195 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 99: /* $@10: %empty  */
-#line 879 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 893 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyvsp[-5].decl).node = pop_value((yyvsp[-5].decl).node);
       (yyvsp[-7].number) = context;
       context = LOOP_CONTEXT;
     }
-#line 3192 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3205 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 100: /* for: L_FOR '(' first_for_expr ';' for_expr ';' for_expr ')' $@10 statement  */
-#line 885 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 899 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).num = (yyvsp[-7].decl).num; /* number of declarations (0/1) */
 
@@ -3208,11 +3221,11 @@ yyreduce:
 
       context = (yyvsp[-9].number);
     }
-#line 3212 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3225 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 101: /* foreach_var: L_DEFINED_NAME  */
-#line 904 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 918 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].ihe)->dn.local_num != -1) {
         CREATE_OPCODE_1((yyval.decl).node, F_LOCAL_LVALUE, 0, (yyvsp[0].ihe)->dn.local_num);
@@ -3233,11 +3246,11 @@ yyreduce:
         }
       (yyval.decl).num = 0;
     }
-#line 3237 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3250 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 102: /* foreach_var: single_new_local_def  */
-#line 925 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 939 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (type_of_locals_ptr[(yyvsp[0].number)] & LOCAL_MOD_REF) {
         CREATE_OPCODE_1((yyval.decl).node, F_REF_LVALUE, 0, (yyvsp[0].number));
@@ -3247,11 +3260,11 @@ yyreduce:
       }
       (yyval.decl).num = 1;
     }
-#line 3251 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3264 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 103: /* foreach_var: L_IDENTIFIER  */
-#line 935 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 949 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       char buf[256];
       char *end = EndOf(buf);
@@ -3265,41 +3278,41 @@ yyreduce:
       scratch_free((yyvsp[0].string));
       (yyval.decl).num = 0;
     }
-#line 3269 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3282 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 104: /* foreach_vars: foreach_var  */
-#line 952 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 966 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_FOREACH((yyval.decl).node, (yyvsp[0].decl).node, 0);
       (yyval.decl).num = (yyvsp[0].decl).num;
     }
-#line 3278 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3291 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 105: /* foreach_vars: foreach_var ',' foreach_var  */
-#line 957 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 971 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_FOREACH((yyval.decl).node, (yyvsp[-2].decl).node, (yyvsp[0].decl).node);
       (yyval.decl).num = (yyvsp[-2].decl).num + (yyvsp[0].decl).num;
       if ((yyvsp[-2].decl).node->v.number == F_REF_LVALUE)
         yyerror("Mapping key may not be a reference in foreach()");
     }
-#line 3289 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3302 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 106: /* $@11: %empty  */
-#line 967 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 981 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyvsp[-3].decl).node->v.expr = (yyvsp[-1].node);
       (yyvsp[-5].number) = context;
       context = LOOP_CONTEXT | LOOP_FOREACH;
     }
-#line 3299 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3312 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 107: /* foreach: L_FOREACH '(' foreach_vars L_IN expr0 ')' $@11 statement  */
-#line 973 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 987 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).num = (yyvsp[-5].decl).num;
 
@@ -3309,48 +3322,48 @@ yyreduce:
 
       context = (yyvsp[-7].number);
     }
-#line 3313 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3326 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 108: /* for_expr: %empty  */
-#line 986 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1000 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.node) = 0;
     }
-#line 3321 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3334 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 110: /* first_for_expr: for_expr  */
-#line 994 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1008 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).node = (yyvsp[0].node);
       (yyval.decl).num = 0;
     }
-#line 3330 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3343 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 111: /* first_for_expr: single_new_local_def_with_init  */
-#line 999 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1013 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.decl).node = (yyvsp[0].node);
       (yyval.decl).num = 1;
     }
-#line 3339 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3352 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 112: /* $@12: %empty  */
-#line 1007 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1021 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyvsp[-3].number) = context;
       context &= LOOP_CONTEXT;
       context |= SWITCH_CONTEXT;
       (yyvsp[-2].number) = mem_block[A_CASES].current_size;
     }
-#line 3350 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3363 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 113: /* switch: L_SWITCH '(' comma_expr ')' $@12 '{' local_declarations case switch_block '}'  */
-#line 1014 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1028 "$REPO_ROOT$/src/compiler/internal/grammar.y"
       {
         parse_node_t *node1, *node2;
 
@@ -3379,50 +3392,50 @@ yyreduce:
         (yyval.node) = node2;
         pop_n_locals((yyvsp[-3].decl).num);
       }
-#line 3383 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3396 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 114: /* switch_block: case switch_block  */
-#line 1046 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1060 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].node)){
         CREATE_STATEMENTS((yyval.node), (yyvsp[-1].node), (yyvsp[0].node));
       } else (yyval.node) = (yyvsp[-1].node);
     }
-#line 3393 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3406 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 115: /* switch_block: statement switch_block  */
-#line 1052 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1066 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].node)){
         CREATE_STATEMENTS((yyval.node), (yyvsp[-1].node), (yyvsp[0].node));
       } else (yyval.node) = (yyvsp[-1].node);
     }
-#line 3403 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3416 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 116: /* switch_block: %empty  */
-#line 1058 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1072 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.node) = 0;
     }
-#line 3411 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3424 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 117: /* case: L_CASE case_label ':'  */
-#line 1065 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1079 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[-1].node);
       (yyval.node)->v.expr = 0;
 
       add_to_mem_block(A_CASES, (char *)&((yyvsp[-1].node)), sizeof((yyvsp[-1].node)));
     }
-#line 3422 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3435 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 118: /* case: L_CASE case_label L_RANGE case_label ':'  */
-#line 1072 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1086 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ( (yyvsp[-3].node)->kind != NODE_CASE_NUMBER
           || (yyvsp[-1].node)->kind != NODE_CASE_NUMBER )
@@ -3436,11 +3449,11 @@ yyreduce:
 
       add_to_mem_block(A_CASES, (char *)&((yyvsp[-3].node)), sizeof((yyvsp[-3].node)));
     }
-#line 3440 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3453 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 119: /* case: L_CASE case_label L_RANGE ':'  */
-#line 1086 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1100 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ( (yyvsp[-2].node)->kind != NODE_CASE_NUMBER )
         yyerror("String case labels not allowed as range bounds");
@@ -3454,11 +3467,11 @@ yyreduce:
 
       add_to_mem_block(A_CASES, (char *)&((yyvsp[-2].node)), sizeof((yyvsp[-2].node)));
     }
-#line 3458 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3471 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 120: /* case: L_CASE L_RANGE case_label ':'  */
-#line 1100 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1114 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ( (yyvsp[-1].node)->kind != NODE_CASE_NUMBER )
         yyerror("String case labels not allowed as range bounds");
@@ -3471,11 +3484,11 @@ yyreduce:
 
       add_to_mem_block(A_CASES, (char *)&((yyval.node)), sizeof((yyval.node)));
     }
-#line 3475 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3488 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 121: /* case: L_DEFAULT ':'  */
-#line 1113 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1127 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (context & SWITCH_DEFAULT) {
         yyerror("Duplicate default");
@@ -3488,11 +3501,11 @@ yyreduce:
       add_to_mem_block(A_CASES, (char *)&((yyval.node)), sizeof((yyval.node)));
       context |= SWITCH_DEFAULT;
     }
-#line 3492 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3505 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 122: /* case_label: constant  */
-#line 1129 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1143 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((context & SWITCH_STRINGS) && (yyvsp[0].number))
         yyerror("Mixed case label list not allowed");
@@ -3506,11 +3519,11 @@ yyreduce:
       (yyval.node)->kind = NODE_CASE_NUMBER;
       (yyval.node)->r.number = (LPC_INT)(yyvsp[0].number);
     }
-#line 3510 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3523 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 123: /* case_label: string_con1  */
-#line 1143 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1157 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       POINTER_INT str;
       str = store_prog_string((yyvsp[0].string));
@@ -3522,51 +3535,51 @@ yyreduce:
       (yyval.node)->kind = NODE_CASE_STRING;
       (yyval.node)->r.number = (LPC_INT)str;
     }
-#line 3526 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3539 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 124: /* constant: constant '|' constant  */
-#line 1158 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1172 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) | (yyvsp[0].number);
     }
-#line 3534 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3547 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 125: /* constant: constant '^' constant  */
-#line 1162 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1176 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) ^ (yyvsp[0].number);
     }
-#line 3542 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3555 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 126: /* constant: constant '&' constant  */
-#line 1166 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1180 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) & (yyvsp[0].number);
     }
-#line 3550 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3563 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 127: /* constant: constant L_EQ constant  */
-#line 1170 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1184 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) == (yyvsp[0].number);
     }
-#line 3558 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3571 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 128: /* constant: constant L_NE constant  */
-#line 1174 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1188 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) != (yyvsp[0].number);
     }
-#line 3566 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3579 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 129: /* constant: constant L_ORDER constant  */
-#line 1178 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1192 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       switch((yyvsp[-1].number)){
         case F_GE: (yyval.number) = (yyvsp[-2].number) >= (yyvsp[0].number); break;
@@ -3574,131 +3587,131 @@ yyreduce:
         case F_GT: (yyval.number) = (yyvsp[-2].number) >  (yyvsp[0].number); break;
       }
     }
-#line 3578 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3591 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 130: /* constant: constant '<' constant  */
-#line 1186 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1200 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) < (yyvsp[0].number);
     }
-#line 3586 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3599 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 131: /* constant: constant L_LSH constant  */
-#line 1190 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1204 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) << (yyvsp[0].number);
     }
-#line 3594 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3607 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 132: /* constant: constant L_RSH constant  */
-#line 1194 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1208 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) >> (yyvsp[0].number);
     }
-#line 3602 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3615 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 133: /* constant: constant '+' constant  */
-#line 1198 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1212 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) + (yyvsp[0].number);
     }
-#line 3610 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3623 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 134: /* constant: constant '-' constant  */
-#line 1202 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1216 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) - (yyvsp[0].number);
     }
-#line 3618 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3631 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 135: /* constant: constant '*' constant  */
-#line 1206 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1220 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-2].number) * (yyvsp[0].number);
     }
-#line 3626 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3639 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 136: /* constant: constant '%' constant  */
-#line 1210 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1224 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].number)) (yyval.number) = (yyvsp[-2].number) % (yyvsp[0].number); else yyerror("Modulo by zero");
     }
-#line 3634 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3647 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 137: /* constant: constant '/' constant  */
-#line 1214 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1228 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].number)) (yyval.number) = (yyvsp[-2].number) / (yyvsp[0].number); else yyerror("Division by zero");
     }
-#line 3642 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3655 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 138: /* constant: '(' constant ')'  */
-#line 1218 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1232 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[-1].number);
     }
-#line 3650 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3663 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 139: /* constant: L_NUMBER  */
-#line 1222 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1236 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = (yyvsp[0].number);
     }
-#line 3658 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3671 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 140: /* constant: '-' L_NUMBER  */
-#line 1226 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1240 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = -(yyvsp[0].number);
     }
-#line 3666 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3679 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 141: /* constant: L_NOT L_NUMBER  */
-#line 1230 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1244 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = !(yyvsp[0].number);
     }
-#line 3674 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3687 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 142: /* constant: '~' L_NUMBER  */
-#line 1234 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1248 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = ~(yyvsp[0].number);
     }
-#line 3682 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3695 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 143: /* comma_expr: expr0  */
-#line 1241 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1255 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[0].node);
     }
-#line 3690 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3703 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 144: /* comma_expr: comma_expr ',' expr0  */
-#line 1245 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1259 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_TWO_VALUES((yyval.node), (yyvsp[0].node)->type, pop_value((yyvsp[-2].node)), (yyvsp[0].node));
     }
-#line 3698 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3711 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 146: /* expr0: ref lvalue  */
-#line 1256 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1270 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int op;
 
@@ -3725,11 +3738,11 @@ yyreduce:
       }
       CREATE_UNARY_OP_1((yyval.node), F_MAKE_REF, TYPE_ANY, (yyvsp[0].node), op);
     }
-#line 3729 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3742 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 147: /* expr0: lvalue L_ASSIGN expr0  */
-#line 1283 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1297 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *l = (yyvsp[-2].node), *r = (yyvsp[0].node);
       int opcode = (yyvsp[-1].number);
@@ -3780,20 +3793,20 @@ yyreduce:
         }
       }
     }
-#line 3784 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3797 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 148: /* expr0: error L_ASSIGN expr0  */
-#line 1334 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1348 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       yyerror("Illegal LHS");
       CREATE_ERROR((yyval.node));
     }
-#line 3793 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3806 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 149: /* expr0: expr0 '?' expr0 ':' expr0  */
-#line 1339 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1353 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *p1 = (yyvsp[-2].node), *p2 = (yyvsp[0].node);
 
@@ -3817,41 +3830,41 @@ yyreduce:
       }
       (yyval.node)->type = ((p1->type == p2->type) ? p1->type : TYPE_ANY);
     }
-#line 3821 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3834 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 150: /* expr0: expr0 L_QUESTION_QUESTION expr0  */
-#line 1363 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1377 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       /* Nullish coalescing: left ?? right
        * Return left if defined, otherwise return right */
       CREATE_NULLISH((yyval.node), (yyvsp[-2].node), (yyvsp[0].node));
     }
-#line 3831 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3844 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 151: /* expr0: expr0 L_LOR expr0  */
-#line 1369 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1383 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_LAND_LOR((yyval.node), F_LOR, (yyvsp[-2].node), (yyvsp[0].node));
       if (IS_NODE((yyvsp[-2].node), NODE_LAND_LOR, F_LOR))
         (yyvsp[-2].node)->kind = NODE_BRANCH_LINK;
     }
-#line 3841 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3854 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 152: /* expr0: expr0 L_LAND expr0  */
-#line 1375 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1389 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_LAND_LOR((yyval.node), F_LAND, (yyvsp[-2].node), (yyvsp[0].node));
       if (IS_NODE((yyvsp[-2].node), NODE_LAND_LOR, F_LAND))
         (yyvsp[-2].node)->kind = NODE_BRANCH_LINK;
     }
-#line 3851 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3864 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 153: /* expr0: expr0 '|' expr0  */
-#line 1381 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1395 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int t1 = (yyvsp[-2].node)->type, t3 = (yyvsp[0].node)->type;
 
@@ -3876,19 +3889,19 @@ yyreduce:
       }
       else (yyval.node) = binary_int_op((yyvsp[-2].node), (yyvsp[0].node), F_OR, "|");
     }
-#line 3880 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3893 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 154: /* expr0: expr0 '^' expr0  */
-#line 1406 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1420 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = binary_int_op((yyvsp[-2].node), (yyvsp[0].node), F_XOR, "^");
     }
-#line 3888 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3901 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 155: /* expr0: expr0 '&' expr0  */
-#line 1410 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1424 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int t1 = (yyvsp[-2].node)->type, t3 = (yyvsp[0].node)->type;
       if (is_boolean((yyvsp[-2].node)) && is_boolean((yyvsp[0].node)))
@@ -3911,11 +3924,11 @@ yyreduce:
         CREATE_BINARY_OP((yyval.node), F_AND, t1, (yyvsp[-2].node), (yyvsp[0].node));
       } else (yyval.node) = binary_int_op((yyvsp[-2].node), (yyvsp[0].node), F_AND, "&");
     }
-#line 3915 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3928 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 156: /* expr0: expr0 L_EQ expr0  */
-#line 1433 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1447 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (exact_types && !compatible_types2((yyvsp[-2].node)->type, (yyvsp[0].node)->type)){
         char buf[256];
@@ -3937,11 +3950,11 @@ yyreduce:
           CREATE_BINARY_OP((yyval.node), F_EQ, TYPE_NUMBER, (yyvsp[-2].node), (yyvsp[0].node));
         }
     }
-#line 3941 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3954 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 157: /* expr0: expr0 L_NE expr0  */
-#line 1455 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1469 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (exact_types && !compatible_types2((yyvsp[-2].node)->type, (yyvsp[0].node)->type)){
         char buf[256];
@@ -3955,11 +3968,11 @@ yyreduce:
       }
       CREATE_BINARY_OP((yyval.node), F_NE, TYPE_NUMBER, (yyvsp[-2].node), (yyvsp[0].node));
     }
-#line 3959 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 3972 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 158: /* expr0: expr0 L_ORDER expr0  */
-#line 1469 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1483 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (exact_types) {
         int t1 = (yyvsp[-2].node)->type;
@@ -4003,11 +4016,11 @@ yyreduce:
       }
       CREATE_BINARY_OP((yyval.node), (yyvsp[-1].number), TYPE_NUMBER, (yyvsp[-2].node), (yyvsp[0].node));
     }
-#line 4007 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4020 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 159: /* expr0: expr0 '<' expr0  */
-#line 1513 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1527 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (exact_types) {
         int t1 = (yyvsp[-2].node)->type, t3 = (yyvsp[0].node)->type;
@@ -4044,27 +4057,27 @@ yyreduce:
       }
       CREATE_BINARY_OP((yyval.node), F_LT, TYPE_NUMBER, (yyvsp[-2].node), (yyvsp[0].node));
     }
-#line 4048 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4061 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 160: /* expr0: expr0 L_LSH expr0  */
-#line 1550 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1564 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = binary_int_op((yyvsp[-2].node), (yyvsp[0].node), F_LSH, "<<");
     }
-#line 4056 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4069 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 161: /* expr0: expr0 L_RSH expr0  */
-#line 1554 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1568 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = binary_int_op((yyvsp[-2].node), (yyvsp[0].node), F_RSH, ">>");
     }
-#line 4064 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4077 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 162: /* expr0: expr0 '+' expr0  */
-#line 1558 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1572 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int result_type;
 
@@ -4234,11 +4247,11 @@ yyreduce:
           break;
       }
     }
-#line 4238 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4251 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 163: /* expr0: expr0 '-' expr0  */
-#line 1728 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1742 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int result_type;
 
@@ -4332,11 +4345,11 @@ yyreduce:
           CREATE_BINARY_OP((yyval.node), F_SUBTRACT, result_type, (yyvsp[-2].node), (yyvsp[0].node));
       }
     }
-#line 4336 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4349 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 164: /* expr0: expr0 '*' expr0  */
-#line 1822 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1836 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int result_type;
 
@@ -4416,19 +4429,19 @@ yyreduce:
           CREATE_BINARY_OP((yyval.node), F_MULTIPLY, result_type, (yyvsp[-2].node), (yyvsp[0].node));
       }
     }
-#line 4420 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4433 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 165: /* expr0: expr0 '%' expr0  */
-#line 1902 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1916 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = binary_int_op((yyvsp[-2].node), (yyvsp[0].node), F_MOD, "%");
     }
-#line 4428 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4441 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 166: /* expr0: expr0 '/' expr0  */
-#line 1906 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 1920 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int result_type;
 
@@ -4523,11 +4536,11 @@ yyreduce:
           CREATE_BINARY_OP((yyval.node), F_DIVIDE, result_type, (yyvsp[-2].node), (yyvsp[0].node));
       }
     }
-#line 4527 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4540 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 167: /* expr0: cast expr0  */
-#line 2001 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2015 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[0].node);
       (yyval.node)->type = (yyvsp[-1].number);
@@ -4548,11 +4561,11 @@ yyreduce:
         yyerror(buf);
       }
     }
-#line 4552 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4565 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 168: /* expr0: L_INC lvalue  */
-#line 2022 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2036 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_UNARY_OP((yyval.node), F_PRE_INC, 0, (yyvsp[0].node));
       if (exact_types){
@@ -4573,11 +4586,11 @@ yyreduce:
         }
       } else (yyval.node)->type = TYPE_ANY;
     }
-#line 4577 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4590 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 169: /* expr0: L_DEC lvalue  */
-#line 2043 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2057 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_UNARY_OP((yyval.node), F_PRE_DEC, 0, (yyvsp[0].node));
       if (exact_types){
@@ -4599,11 +4612,11 @@ yyreduce:
       } else (yyval.node)->type = TYPE_ANY;
 
     }
-#line 4603 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4616 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 170: /* expr0: L_NOT expr0  */
-#line 2065 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2079 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[0].node)->kind == NODE_NUMBER) {
         (yyval.node) = (yyvsp[0].node);
@@ -4612,11 +4625,11 @@ yyreduce:
         CREATE_UNARY_OP((yyval.node), F_NOT, TYPE_NUMBER, (yyvsp[0].node));
       }
     }
-#line 4616 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4629 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 171: /* expr0: '~' expr0  */
-#line 2074 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2088 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (exact_types && !IS_TYPE((yyvsp[0].node)->type, TYPE_NUMBER))
         type_error("Bad argument to ~", (yyvsp[0].node)->type);
@@ -4627,11 +4640,11 @@ yyreduce:
         CREATE_UNARY_OP((yyval.node), F_COMPL, TYPE_NUMBER, (yyvsp[0].node));
       }
     }
-#line 4631 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4644 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 172: /* expr0: '-' expr0  */
-#line 2085 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2099 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int result_type;
       if (exact_types){
@@ -4655,11 +4668,11 @@ yyreduce:
           CREATE_UNARY_OP((yyval.node), F_NEGATE, result_type, (yyvsp[0].node));
       }
     }
-#line 4659 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4672 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 173: /* expr0: lvalue L_INC  */
-#line 2109 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2123 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_UNARY_OP((yyval.node), F_POST_INC, 0, (yyvsp[-1].node));
       (yyval.node)->v.number = F_POST_INC;
@@ -4681,11 +4694,11 @@ yyreduce:
         }
       } else (yyval.node)->type = TYPE_ANY;
     }
-#line 4685 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4698 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 174: /* expr0: lvalue L_DEC  */
-#line 2131 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2145 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_UNARY_OP((yyval.node), F_POST_DEC, 0, (yyvsp[-1].node));
       if (exact_types){
@@ -4706,21 +4719,21 @@ yyreduce:
         }
       } else (yyval.node)->type = TYPE_ANY;
     }
-#line 4710 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4723 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 181: /* return: L_RETURN ';'  */
-#line 2161 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2175 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (exact_types && !IS_TYPE(exact_types, TYPE_VOID))
         yywarn("Non-void functions must return a value.");
       CREATE_RETURN((yyval.node), 0);
     }
-#line 4720 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4733 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 182: /* return: L_RETURN comma_expr ';'  */
-#line 2167 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2181 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (exact_types && !compatible_types((yyvsp[-1].node)->type, exact_types)) {
         char buf[256];
@@ -4737,60 +4750,60 @@ yyreduce:
         CREATE_RETURN((yyval.node), (yyvsp[-1].node));
       }
     }
-#line 4741 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4754 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 183: /* expr_list: %empty  */
-#line 2187 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2201 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       CREATE_EXPR_LIST((yyval.node), 0);
     }
-#line 4749 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4762 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 184: /* expr_list: expr_list2  */
-#line 2191 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2205 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_EXPR_LIST((yyval.node), (yyvsp[0].node));
     }
-#line 4757 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4770 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 185: /* expr_list: expr_list2 ','  */
-#line 2195 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2209 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_EXPR_LIST((yyval.node), (yyvsp[-1].node));
     }
-#line 4765 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4778 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 186: /* expr_list_node: expr0  */
-#line 2202 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2216 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_EXPR_NODE((yyval.node), (yyvsp[0].node), 0);
     }
-#line 4773 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4786 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 187: /* expr_list_node: expr0 L_DOT_DOT_DOT  */
-#line 2206 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2220 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_EXPR_NODE((yyval.node), (yyvsp[-1].node), 1);
     }
-#line 4781 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4794 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 188: /* expr_list2: expr_list_node  */
-#line 2213 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2227 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyvsp[0].node)->kind = 1;
       (yyval.node) = (yyvsp[0].node);
     }
-#line 4790 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4803 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 189: /* expr_list2: expr_list2 ',' expr_list_node  */
-#line 2218 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2232 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyvsp[0].node)->kind = 0;
 
@@ -4799,36 +4812,36 @@ yyreduce:
       (yyval.node)->l.expr->r.expr = (yyvsp[0].node);
       (yyval.node)->l.expr = (yyvsp[0].node);
     }
-#line 4803 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4816 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 190: /* expr_list3: %empty  */
-#line 2230 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2244 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       /* this is a dummy node */
       CREATE_EXPR_LIST((yyval.node), 0);
     }
-#line 4812 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4825 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 191: /* expr_list3: expr_list4  */
-#line 2235 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2249 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_EXPR_LIST((yyval.node), (yyvsp[0].node));
     }
-#line 4820 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4833 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 192: /* expr_list3: expr_list4 ','  */
-#line 2239 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2253 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_EXPR_LIST((yyval.node), (yyvsp[-1].node));
     }
-#line 4828 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4841 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 193: /* expr_list4: assoc_pair  */
-#line 2246 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2260 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = new_node_no_line();
       (yyval.node)->kind = 2;
@@ -4838,11 +4851,11 @@ yyreduce:
       /* we keep track of the end of the chain in the left nodes */
       (yyval.node)->l.expr = (yyval.node);
     }
-#line 4842 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4855 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 194: /* expr_list4: expr_list4 ',' assoc_pair  */
-#line 2256 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2270 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *expr;
 
@@ -4857,19 +4870,19 @@ yyreduce:
       (yyvsp[-2].node)->kind += 2;
       (yyval.node) = (yyvsp[-2].node);
     }
-#line 4861 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4874 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 195: /* assoc_pair: expr0 ':' expr0  */
-#line 2274 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2288 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_TWO_VALUES((yyval.node), 0, (yyvsp[-2].node), (yyvsp[0].node));
     }
-#line 4869 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 4882 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 196: /* lvalue: expr4  */
-#line 2281 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2295 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
 #define LV_ILLEGAL 1
 #define LV_RANGE 2
@@ -4985,19 +4998,19 @@ yyreduce:
           break;
       }
     }
-#line 4989 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5002 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 198: /* l_new_function_open: L_FUNCTION_OPEN efun_override  */
-#line 2401 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2415 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = ((yyvsp[0].number) << 8) | FP_EFUN;
     }
-#line 4997 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5010 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 200: /* expr4: L_DEFINED_NAME  */
-#line 2409 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2423 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int i;
       if ((i = (yyvsp[0].ihe)->dn.local_num) != -1) {
@@ -5070,11 +5083,11 @@ yyreduce:
           yyerror(buf);
         }
     }
-#line 5074 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5087 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 201: /* expr4: L_IDENTIFIER  */
-#line 2482 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2496 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       char buf[256];
       char *end = EndOf(buf);
@@ -5092,30 +5105,30 @@ yyreduce:
       if (current_function_context)
         current_function_context->bindable = FP_NOT_BINDABLE;
     }
-#line 5096 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5109 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 202: /* expr4: L_PARAMETER  */
-#line 2500 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2514 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_PARAMETER((yyval.node), TYPE_ANY, (yyvsp[0].number));
     }
-#line 5104 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5117 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 203: /* @13: %empty  */
-#line 2504 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2518 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.contextp) = current_function_context;
       /* already flagged as an error */
       if (current_function_context)
         current_function_context = current_function_context->parent;
     }
-#line 5115 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5128 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 204: /* expr4: '$' '(' @13 comma_expr ')'  */
-#line 2511 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2525 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *node;
 
@@ -5138,11 +5151,11 @@ yyreduce:
         node->v.expr = (yyvsp[-1].node);
       }
     }
-#line 5142 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5155 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 205: /* expr4: expr4 L_ARROW identifier  */
-#line 2534 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2548 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-2].node)->type == TYPE_ANY) {
         int cmi;
@@ -5166,11 +5179,11 @@ yyreduce:
 
       scratch_free((yyvsp[0].string));
     }
-#line 5170 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5183 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 206: /* expr4: expr4 L_DOT identifier  */
-#line 2558 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2572 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-2].node)->type == TYPE_ANY) {
         int cmi;
@@ -5194,11 +5207,11 @@ yyreduce:
 
       scratch_free((yyvsp[0].string));
     }
-#line 5198 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5211 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 207: /* expr4: expr4 '[' comma_expr L_RANGE comma_expr ']'  */
-#line 2582 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2596 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
     if (!CONFIG_INT(__RC_OLD_RANGE_BEHAVIOR__)) {
       if (CONFIG_INT(__RC_WARN_OLD_RANGE_BEHAVIOR__)) {
@@ -5209,57 +5222,57 @@ yyreduce:
     }
       (yyval.node) = make_range_node(F_NN_RANGE, (yyvsp[-5].node), (yyvsp[-3].node), (yyvsp[-1].node));
     }
-#line 5213 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5226 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 208: /* expr4: expr4 '[' '<' comma_expr L_RANGE comma_expr ']'  */
-#line 2593 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2607 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = make_range_node(F_RN_RANGE, (yyvsp[-6].node), (yyvsp[-3].node), (yyvsp[-1].node));
     }
-#line 5221 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5234 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 209: /* expr4: expr4 '[' '<' comma_expr L_RANGE '<' comma_expr ']'  */
-#line 2597 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2611 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-1].node)->kind == NODE_NUMBER && (yyvsp[-1].node)->v.number <= 1)
         (yyval.node) = make_range_node(F_RE_RANGE, (yyvsp[-7].node), (yyvsp[-4].node), 0);
       else
         (yyval.node) = make_range_node(F_RR_RANGE, (yyvsp[-7].node), (yyvsp[-4].node), (yyvsp[-1].node));
     }
-#line 5232 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5245 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 210: /* expr4: expr4 '[' comma_expr L_RANGE '<' comma_expr ']'  */
-#line 2604 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2618 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-1].node)->kind == NODE_NUMBER && (yyvsp[-1].node)->v.number <= 1)
         (yyval.node) = make_range_node(F_NE_RANGE, (yyvsp[-6].node), (yyvsp[-4].node), 0);
       else
         (yyval.node) = make_range_node(F_NR_RANGE, (yyvsp[-6].node), (yyvsp[-4].node), (yyvsp[-1].node));
     }
-#line 5243 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5256 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 211: /* expr4: expr4 '[' comma_expr L_RANGE ']'  */
-#line 2611 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2625 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = make_range_node(F_NE_RANGE, (yyvsp[-4].node), (yyvsp[-2].node), 0);
     }
-#line 5251 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5264 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 212: /* expr4: expr4 '[' '<' comma_expr L_RANGE ']'  */
-#line 2615 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2629 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = make_range_node(F_RE_RANGE, (yyvsp[-5].node), (yyvsp[-2].node), 0);
     }
-#line 5259 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5272 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 213: /* expr4: expr4 '[' '<' comma_expr ']'  */
-#line 2619 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2633 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (IS_NODE((yyvsp[-4].node), NODE_CALL, F_AGGREGATE)
           && (yyvsp[-1].node)->kind == NODE_NUMBER) {
@@ -5305,11 +5318,11 @@ yyreduce:
         }
       } else (yyval.node)->type = TYPE_ANY;
     }
-#line 5309 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5322 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 214: /* expr4: expr4 '[' comma_expr ']'  */
-#line 2665 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2679 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       /* Something stupid like ({ 1, 2, 3 })[1]; we take the
        * time to optimize this because people who don't understand
@@ -5365,19 +5378,19 @@ yyreduce:
         }
       } else (yyval.node)->type = TYPE_ANY;
     }
-#line 5369 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5382 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 216: /* expr4: '(' comma_expr ')'  */
-#line 2722 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2736 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[-1].node);
     }
-#line 5377 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5390 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 219: /* @14: %empty  */
-#line 2728 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2742 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       auto max_local_variables = CFG_INT(__MAX_LOCAL_VARIABLES__);
 
@@ -5398,11 +5411,11 @@ yyreduce:
       exact_types = TYPE_ANY;
       context = 0;
     }
-#line 5402 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5415 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 220: /* expr4: L_BASIC_TYPE @14 '(' argument ')' block  */
-#line 2749 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2763 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if ((yyvsp[-2].argument).flags & ARG_IS_VARARGS) {
         yyerror("Anonymous varargs functions aren't implemented");
@@ -5438,11 +5451,11 @@ yyreduce:
       type_of_locals_ptr -= max_num_locals;
       reactivate_current_locals();
     }
-#line 5442 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5455 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 221: /* expr4: l_new_function_open ':' ')'  */
-#line 2785 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2799 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (CONFIG_INT(__RC_WOMBLES__)) {
         if(*(outp-2) != ':') {
@@ -5480,11 +5493,11 @@ yyreduce:
           break;
       }
     }
-#line 5484 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5497 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 222: /* expr4: l_new_function_open ',' expr_list2 ':' ')'  */
-#line 2823 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2837 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (CONFIG_INT(__RC_WOMBLES__)) {
         if(*(outp-2) != ':') {
@@ -5579,11 +5592,11 @@ yyreduce:
                       break;
       }
     }
-#line 5583 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5596 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 223: /* expr4: L_FUNCTION_OPEN comma_expr ':' ')'  */
-#line 2918 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2932 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (CONFIG_INT(__RC_WOMBLES__)) {
         if(*(outp-2) != ':') {
@@ -5606,11 +5619,11 @@ yyreduce:
         + (current_function_context->num_parameters << 8);
       pop_function_context();
     }
-#line 5610 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5623 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 224: /* expr4: L_MAPPING_OPEN expr_list3 ']' ')'  */
-#line 2941 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2955 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (CONFIG_INT(__RC_WOMBLES__)) {
         if(*(outp-2) != ']') {
@@ -5619,11 +5632,11 @@ yyreduce:
       }
       CREATE_CALL((yyval.node), F_AGGREGATE_ASSOC, TYPE_MAPPING, (yyvsp[-2].node));
     }
-#line 5623 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5636 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 225: /* expr4: L_ARRAY_OPEN expr_list '}' ')'  */
-#line 2950 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2964 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       if (CONFIG_INT(__RC_WOMBLES__)) {
         if(*(outp-2) != '}') {
@@ -5632,116 +5645,116 @@ yyreduce:
       }
       CREATE_CALL((yyval.node), F_AGGREGATE, TYPE_ANY | TYPE_MOD_ARRAY, (yyvsp[-2].node));
     }
-#line 5636 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5649 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 226: /* expr_or_block: block  */
-#line 2962 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2976 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[0].decl).node;
     }
-#line 5644 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5657 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 227: /* expr_or_block: '(' comma_expr ')'  */
-#line 2966 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2980 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = insert_pop_value((yyvsp[-1].node));
     }
-#line 5652 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5665 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 228: /* @15: %empty  */
-#line 2973 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2987 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       context = SPECIAL_CONTEXT;
     }
-#line 5661 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5674 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 229: /* catch: L_CATCH @15 expr_or_block  */
-#line 2978 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 2992 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_CATCH((yyval.node), (yyvsp[0].node));
       context = (yyvsp[-1].number);
     }
-#line 5670 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5683 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 230: /* tree: L_TREE block  */
-#line 2986 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3000 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
 #ifdef DEBUG
       (yyval.node) = new_node_no_line();
       lpc_tree_form((yyvsp[0].decl).node, (yyval.node));
 #endif
     }
-#line 5681 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5694 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 231: /* tree: L_TREE '(' comma_expr ')'  */
-#line 2993 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3007 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
 #ifdef DEBUG
       (yyval.node) = new_node_no_line();
       lpc_tree_form((yyvsp[-1].node), (yyval.node));
 #endif
     }
-#line 5692 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5705 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 232: /* sscanf: L_SSCANF '(' expr0 ',' expr0 lvalue_list ')'  */
-#line 3003 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3017 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int p = (yyvsp[-1].node)->v.number;
       CREATE_LVALUE_EFUN((yyval.node), TYPE_NUMBER, (yyvsp[-1].node));
       CREATE_BINARY_OP_1((yyval.node)->l.expr, F_SSCANF, 0, (yyvsp[-4].node), (yyvsp[-2].node), p);
     }
-#line 5702 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5715 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 233: /* parse_command: L_PARSE_COMMAND '(' expr0 ',' expr0 ',' expr0 lvalue_list ')'  */
-#line 3012 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3026 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int p = (yyvsp[-1].node)->v.number;
       CREATE_LVALUE_EFUN((yyval.node), TYPE_NUMBER, (yyvsp[-1].node));
       CREATE_TERNARY_OP_1((yyval.node)->l.expr, F_PARSE_COMMAND, 0,
           (yyvsp[-6].node), (yyvsp[-4].node), (yyvsp[-2].node), p);
     }
-#line 5713 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5726 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 234: /* @16: %empty  */
-#line 3022 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3036 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       context = SPECIAL_CONTEXT;
     }
-#line 5722 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5735 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 235: /* time_expression: L_TIME_EXPRESSION @16 expr_or_block  */
-#line 3027 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3041 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_TIME_EXPRESSION((yyval.node), (yyvsp[0].node));
       context = (yyvsp[-1].number);
     }
-#line 5731 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5744 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 236: /* lvalue_list: %empty  */
-#line 3035 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3049 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.node) = new_node_no_line();
       (yyval.node)->r.expr = 0;
       (yyval.node)->v.number = 0;
     }
-#line 5741 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5754 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 237: /* lvalue_list: ',' lvalue lvalue_list  */
-#line 3041 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3055 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *insert;
 
@@ -5752,103 +5765,103 @@ yyreduce:
       (yyvsp[0].node)->r.expr = insert;
       (yyval.node)->v.number++;
     }
-#line 5756 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5769 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 238: /* string: string_con2  */
-#line 3055 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3069 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       CREATE_STRING((yyval.node), (yyvsp[0].string));
       scratch_free((yyvsp[0].string));
     }
-#line 5765 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5778 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 240: /* string_con1: '(' string_con1 ')'  */
-#line 3064 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3078 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.string) = (yyvsp[-1].string);
     }
-#line 5773 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5786 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 241: /* string_con1: string_con1 '+' string_con1  */
-#line 3068 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3082 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.string) = scratch_join((yyvsp[-2].string), (yyvsp[0].string));
     }
-#line 5781 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5794 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 243: /* string_con2: string_con2 L_STRING  */
-#line 3076 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3090 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.string) = scratch_join((yyvsp[-1].string), (yyvsp[0].string));
     }
-#line 5789 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5802 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 244: /* class_init: identifier ':' expr0  */
-#line 3083 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3097 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = new_node();
       (yyval.node)->l.expr = (parse_node_t *)(yyvsp[-2].string);
       (yyval.node)->v.expr = (yyvsp[0].node);
       (yyval.node)->r.expr = 0;
     }
-#line 5800 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5813 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 245: /* opt_class_init: %empty  */
-#line 3093 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3107 "$REPO_ROOT$/src/compiler/internal/grammar.y"
             {
       (yyval.node) = 0;
     }
-#line 5808 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5821 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 246: /* opt_class_init: opt_class_init ',' class_init  */
-#line 3097 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3111 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[0].node);
       (yyval.node)->r.expr = (yyvsp[-2].node);
     }
-#line 5817 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5830 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 247: /* @17: %empty  */
-#line 3105 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3119 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       (yyvsp[0].number) = num_refs;
       context |= ARG_LIST;
     }
-#line 5827 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5840 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 248: /* function_call: efun_override '(' @17 expr_list ')'  */
-#line 3111 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3125 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       context = (yyvsp[-2].number);
       (yyval.node) = validate_efun_call((yyvsp[-4].number),(yyvsp[-1].node));
       (yyval.node) = check_refs(num_refs - (yyvsp[-3].number), (yyvsp[-1].node), (yyval.node));
       num_refs = (yyvsp[-3].number);
     }
-#line 5838 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5851 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 249: /* @18: %empty  */
-#line 3118 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3132 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       (yyvsp[0].number) = num_refs;
       context |= ARG_LIST;
     }
-#line 5848 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5861 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 250: /* function_call: L_NEW '(' @18 expr_list ')'  */
-#line 3124 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3138 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       ident_hash_elem_t *ihe;
       int f;
@@ -5873,11 +5886,11 @@ yyreduce:
       (yyval.node) = check_refs(num_refs - (yyvsp[-3].number), (yyvsp[-1].node), (yyval.node));
       num_refs = (yyvsp[-3].number);
     }
-#line 5877 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5890 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 251: /* function_call: L_NEW '(' L_CLASS L_DEFINED_NAME opt_class_init ')'  */
-#line 3149 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3163 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *node;
 
@@ -5912,11 +5925,11 @@ yyreduce:
         }
       }
     }
-#line 5916 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5929 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 252: /* function_call: L_NEW '(' L_CLASS L_IDENTIFIER opt_class_init ')'  */
-#line 3184 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3198 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *node;
       char buf[256];
@@ -5934,21 +5947,21 @@ yyreduce:
         node = node->r.expr;
       }
     }
-#line 5938 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5951 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 253: /* @19: %empty  */
-#line 3202 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3216 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       (yyvsp[0].number) = num_refs;
       context |= ARG_LIST;
     }
-#line 5948 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 5961 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 254: /* function_call: L_DEFINED_NAME '(' @19 expr_list ')'  */
-#line 3208 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3222 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int f;
       int i;
@@ -6073,21 +6086,21 @@ yyreduce:
       (yyval.node) = check_refs(num_refs - (yyvsp[-3].number), (yyvsp[-1].node), (yyval.node));
       num_refs = (yyvsp[-3].number);
     }
-#line 6077 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6090 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 255: /* @20: %empty  */
-#line 3333 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3347 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       (yyvsp[0].number) = num_refs;
       context |= ARG_LIST;
     }
-#line 6087 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6100 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 256: /* function_call: function_name '(' @20 expr_list ')'  */
-#line 3339 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3353 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       char *name = (yyvsp[-4].string);
 
@@ -6149,21 +6162,21 @@ yyreduce:
       num_refs = (yyvsp[-3].number);
       scratch_free(name);
     }
-#line 6153 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6166 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 257: /* @21: %empty  */
-#line 3401 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3415 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       (yyvsp[0].number) = num_refs;
       context |= ARG_LIST;
     }
-#line 6163 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6176 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 258: /* function_call: expr4 '[' comma_expr ']' '(' @21 expr_list ')'  */
-#line 3407 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3421 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *expr;
       parse_node_t *index_expr;
@@ -6208,21 +6221,21 @@ yyreduce:
       (yyval.node) = check_refs(num_refs - (yyvsp[-3].number), (yyvsp[-1].node), (yyval.node));
       num_refs = (yyvsp[-3].number);
     }
-#line 6212 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6225 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 259: /* @22: %empty  */
-#line 3452 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3466 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       (yyvsp[0].number) = num_refs;
       context |= ARG_LIST;
     }
-#line 6222 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6235 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 260: /* function_call: expr4 L_ARROW identifier '(' @22 expr_list ')'  */
-#line 3458 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3472 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       ident_hash_elem_t *ihe;
       int f;
@@ -6267,21 +6280,21 @@ yyreduce:
       (yyval.node) = check_refs(num_refs - (yyvsp[-3].number), (yyvsp[-1].node), (yyval.node));
       num_refs = (yyvsp[-3].number);
     }
-#line 6271 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6284 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 261: /* @23: %empty  */
-#line 3503 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3517 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.number) = context;
       (yyvsp[0].number) = num_refs;
       context |= ARG_LIST;
     }
-#line 6281 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6294 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 262: /* function_call: '(' '*' comma_expr ')' '(' @23 expr_list ')'  */
-#line 3509 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3523 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       parse_node_t *expr;
 
@@ -6303,11 +6316,11 @@ yyreduce:
       (yyval.node) = check_refs(num_refs - (yyvsp[-3].number), (yyvsp[-1].node), (yyval.node));
       num_refs = (yyvsp[-3].number);
     }
-#line 6307 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6320 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 263: /* efun_override: L_EFUN L_COLON_COLON identifier  */
-#line 3534 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3548 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       svalue_t *res;
       ident_hash_elem_t *ihe;
@@ -6327,11 +6340,11 @@ yyreduce:
       }
       scratch_free((yyvsp[0].string));
     }
-#line 6331 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6344 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 264: /* efun_override: L_EFUN L_COLON_COLON L_NEW  */
-#line 3554 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3568 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       svalue_t *res;
 
@@ -6344,11 +6357,11 @@ yyreduce:
         (yyval.number) = -1;
       } else (yyval.number) = new_efun;
     }
-#line 6348 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6361 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 266: /* function_name: L_COLON_COLON identifier  */
-#line 3571 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3585 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int l = strlen((yyvsp[0].string)) + 1;
       char *p;
@@ -6362,11 +6375,11 @@ yyreduce:
         *(p+3) = *p;
       strncpy((yyval.string), ":::", 3);
     }
-#line 6366 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6379 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 267: /* function_name: L_BASIC_TYPE L_COLON_COLON identifier  */
-#line 3585 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3599 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int z, l = strlen((yyvsp[0].string)) + 1;
       char *p;
@@ -6381,11 +6394,11 @@ yyreduce:
       (yyval.string)[z-2] = ':';
       (yyval.string)[z-1] = ':';
     }
-#line 6385 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6398 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 268: /* function_name: identifier L_COLON_COLON identifier  */
-#line 3600 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3614 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       int l = strlen((yyvsp[-2].string));
       /* "ob" and "name" -> ":ob::name" */
@@ -6397,11 +6410,11 @@ yyreduce:
       scratch_free((yyvsp[-2].string));
       scratch_free((yyvsp[0].string));
     }
-#line 6401 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6414 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 269: /* cond: L_IF '(' comma_expr ')' statement optional_else_part  */
-#line 3615 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3629 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       /* x != 0 -> x */
       if (IS_NODE((yyvsp[-3].node), NODE_BINARY_OP, F_NE)) {
@@ -6432,27 +6445,27 @@ yyreduce:
       }
       CREATE_IF((yyval.node), (yyvsp[-3].node), (yyvsp[-1].node), (yyvsp[0].node));
     }
-#line 6436 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6449 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 270: /* optional_else_part: %empty  */
-#line 3649 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3663 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = 0;
     }
-#line 6444 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6457 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
   case 271: /* optional_else_part: L_ELSE statement  */
-#line 3653 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3667 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
       (yyval.node) = (yyvsp[0].node);
     }
-#line 6452 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6465 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
 
 
-#line 6456 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
+#line 6469 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
 
         default: break;
       }
@@ -6687,5 +6700,5 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 3657 "$REPO_ROOT$/src/compiler/internal/grammar.y"
+#line 3671 "$REPO_ROOT$/src/compiler/internal/grammar.y"
 

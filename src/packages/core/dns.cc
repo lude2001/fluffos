@@ -80,6 +80,7 @@ struct AddrNumberQuery {
   const char *name;
   svalue_t call_back;
   object_t *ob_to_call;
+  object_t *command_giver;
   evdns_getaddrinfo_request *req;
   int err;
   evutil_addrinfo *res;
@@ -128,17 +129,26 @@ void on_query_addr_by_name_finish(AddrNumberQuery *query) {
   // push the key
   push_number(query->key);
   set_eval(max_eval_cost);
+  object_t *new_command_giver = nullptr;
+  if (query->command_giver && !(query->command_giver->flags & O_DESTRUCTED)) {
+    new_command_giver = query->command_giver;
+  }
+  save_command_giver(new_command_giver);
   if (query->call_back.type == T_STRING) {
     safe_apply(query->call_back.u.string, query->ob_to_call, 3, ORIGIN_INTERNAL);
   } else {
     safe_call_function_pointer(query->call_back.u.fp, 3);
   }
+  restore_command_giver();
 
   if (query->res != nullptr) evutil_freeaddrinfo(query->res);
 
   free_string(query->name);
   free_svalue(&query->call_back, "on_addr_result");
   free_object(&query->ob_to_call, "on_addr_result: ");
+  if (query->command_giver) {
+    free_object(&query->command_giver, "on_addr_result: command_giver");
+  }
   delete query;
 }
 
@@ -171,6 +181,10 @@ int query_addr_by_name(const char *name, svalue_t *call_back) {
   query->name = make_shared_string(name);
   query->ob_to_call = current_object;
   assign_svalue_no_free(&query->call_back, call_back);
+  if (CONFIG_INT(__RC_THIS_PLAYER_IN_CALL_OUT__) && command_giver) {
+    query->command_giver = command_giver;
+    add_ref(command_giver, "query_addr_number: command_giver");
+  }
 
   add_ref(current_object, "query_addr_number: ");
 

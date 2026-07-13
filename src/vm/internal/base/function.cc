@@ -338,12 +338,11 @@ svalue_t *safe_call_function_pointer(funptr_t *funp, int num_arg) {
 
   error_context_t econ;
   save_context(&econ);
+  econ.save_sp -= num_arg;
   try {
     ret = call_function_pointer(funp, num_arg);
   } catch (const char *) {
     restore_context(&econ);
-    /* condition was restored to where it was when we came in */
-    pop_n_elems(num_arg);
     ret = nullptr;
   }
   pop_context(&econ);
