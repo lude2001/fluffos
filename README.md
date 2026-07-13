@@ -102,10 +102,11 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - `safe_apply()` 和函数指针回调异常路径的 value stack 回滚修复。
 - async 文件/数据库回调与 DNS resolve 回调在配置允许时保留
   `this_player()`。
+- `to_buffer()`、buffer 字节数组语义、buffer range 赋值、buffer `foreach`
+  和 byte ref 行为。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
-`recompile_object()`、buffer 字节数组/ref 行为重构、FFI、WebAssembly
-目标，以及 CI/release 流程重构。
+`recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。
 
 ## Windows 构建
 

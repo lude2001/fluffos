@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `09ec81cbf4775ca1972c514f35f075611cec25a7`
-  (`merge additional upstream issue fixes`)
+- Latest local merge commit: `9ddb8d623bfe972f64d7681400ce498b01199932`
+  (`merge upstream buffer byte semantics`)
 - Previous local merge commit:
-  `c168e3aa07dcfbd193485a51a7387ce055bf7412`
-  (`merge additional upstream runtime fixes`)
+  `09ec81cbf4775ca1972c514f35f075611cec25a7`
+  (`merge additional upstream issue fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -119,9 +119,50 @@ Notes:
   broader async callback execution coverage still comes from the existing async
   tests.
 
+## Merged In `9ddb8d623bfe972f64d7681400ce498b01199932`
+
+The following official PR #1250 runtime/compiler behavior was selectively
+merged or manually backported:
+
+- Added public `to_buffer()` and internal `_to_buffer()` conversion support for
+  strings, buffers, and integer arrays.
+- Allowed buffer concatenation and compound assignment with buffers, strings,
+  and integer arrays while preserving strict byte conversion.
+- Allowed buffer range assignment from buffers, strings, and integer arrays.
+- Enforced strict buffer byte writes and byte lvalue arithmetic in the
+  `0..255` range instead of silently truncating.
+- Added buffer `foreach` support, including writable byte refs for
+  `foreach(int ref c in buffer_value)`.
+- Reduced use of the global byte lvalue state for byte refs by carrying the
+  byte pointer in the active lvalue/ref.
+- Kept string `foreach ref` behavior conservative in this branch: the existing
+  tests still assert that string refs do not mutate the source string.
+- Added focused operator tests for buffer byte bounds, buffer range assignment,
+  buffer foreach, and buffer refs.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/buffer_bytes.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/buffer_range_assign.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/foreach.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/ref.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check`
+
+Notes:
+
+- Official PR #1250 docs/sidebar changes were not imported because this branch
+  uses local Chinese repository documentation and a different docs boundary.
+- The official split compiler frontend files are not present in this branch;
+  the behavior was adapted into the older local `grammar.y` / `lex.cc` layout.
+- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` from
+  `src/compiler/internal/grammar.y`; the generated parser table changes are
+  expected.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `09ec81cb`:
+These official changes remain intentionally unmerged as of `9ddb8d62`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -130,8 +171,9 @@ These official changes remain intentionally unmerged as of `09ec81cb`:
   Coverity items tied to official-only file layout also remain unmerged.
 - PR #1257 and PRs #1253-#1255: official CI/release workflow restructuring and
   automatic release triggers.
-- PR #1250: string `foreach`/`ref` fixes, buffer-as-byte-array behavior,
-  `to_buffer()`, strict byte range checks, and broader ref tests.
+- PR #1250, remaining scope: official docs/sidebar updates and any
+  official-only string/ref test cases tied to the newer split compiler/test
+  layout.
 - PR #1247: the large multi-round memory-safety and correctness audit batch.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including CRLF
