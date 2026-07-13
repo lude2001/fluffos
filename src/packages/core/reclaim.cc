@@ -25,6 +25,7 @@ static void check_svalue(svalue_t *v) {
 
   nested++;
   if (nested > MAX_RECURSION) {
+    nested--;
     return;
   }
   switch (v->type) {
@@ -46,17 +47,7 @@ static void check_svalue(svalue_t *v) {
       break;
     case T_FUNCTION: {
       svalue_t tmp;
-      program_t *prog;
-
       if (v->u.fp->hdr.owner && (v->u.fp->hdr.owner->flags & O_DESTRUCTED)) {
-        if (v->u.fp->hdr.type == (FP_LOCAL | FP_NOT_BINDABLE)) {
-          prog = v->u.fp->hdr.owner->prog;
-          prog->func_ref--;
-          debug(d_flag, "subtr func ref /%s: now %i\n", prog->filename, prog->func_ref);
-          if (!prog->ref && !prog->func_ref) {
-            deallocate_program(prog);
-          }
-        }
         free_object(&v->u.fp->hdr.owner, "reclaim_objects");
         v->u.fp->hdr.owner = nullptr;
         cleaned++;
