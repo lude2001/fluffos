@@ -388,5 +388,5 @@ evaluator stack size : 1000
 compiler stack size : 200
 
 # get_os_env()/set_os_env() allow-lists. Writable names are implicitly readable.
-allowed os environment variables : PATH:FLUFFOS_TEST_RO
+allowed os environment variables : PATH:FLUFFOS_TEST_RO:FT_MYSQL_HOST:FT_MYSQL_DB:FT_MYSQL_USER
 writable os environment variables : FLUFFOS_TEST_RW

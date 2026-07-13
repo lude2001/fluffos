@@ -3,15 +3,53 @@ int calledDB;
 #endif
 
 int conn = 0;
+
+#if defined(__PACKAGE_DB__) && defined(__USE_MYSQL__)
+void test_mysql_binary_row_lengths() {
+    string host = get_os_env("FT_MYSQL_HOST");
+    string db = get_os_env("FT_MYSQL_DB");
+    string user = get_os_env("FT_MYSQL_USER");
+    mixed res;
+
+    if (undefinedp(host) || undefinedp(db) || undefinedp(user)) {
+        write("MySQL test env is not configured, skipping MySQL binary row-length test...\n");
+        return;
+    }
+
+    conn = db_connect(host, db, user, __USE_MYSQL__);
+    ASSERT_NE(0, conn);
+
+    db_exec(conn, "DROP TABLE IF EXISTS fluffos_binary_regression");
+    ASSERT_EQ(0, db_exec(conn,
+        "CREATE TABLE fluffos_binary_regression (id INT PRIMARY KEY, payload VARBINARY(16))"));
+    ASSERT_EQ(0, db_exec(conn,
+        "INSERT INTO fluffos_binary_regression VALUES (1, X'00'), (2, X'000102')"));
+    ASSERT_EQ(2, db_exec(conn,
+        "SELECT payload FROM fluffos_binary_regression ORDER BY id"));
+
+    res = db_fetch(conn, 1);
+    ASSERT_EQ(1, sizeof(res));
+    ASSERT_EQ(1, sizeof(res[0]));
+    ASSERT_EQ(0, res[0][0]);
+
+    res = db_fetch(conn, 2);
+    ASSERT_EQ(1, sizeof(res));
+    ASSERT_EQ(3, sizeof(res[0]));
+    ASSERT_EQ(0, res[0][0]);
+    ASSERT_EQ(1, res[0][1]);
+    ASSERT_EQ(2, res[0][2]);
+
+    ASSERT_EQ(0, db_exec(conn, "DROP TABLE fluffos_binary_regression"));
+    db_close(conn);
+}
+#endif
+
 void do_tests() {
 #ifndef __PACKAGE_DB__
     write("PACKAGE_DB is not enabled, skipping DB tests...\n");
     return;
 #else
-#ifndef __USE_SQLITE3__
-    write("USE_SQLITE3 is not enabled, skipping SQL tests...\n");
-    return;
-#else
+#ifdef __USE_SQLITE3__
     // test db functions through sqlite
     int rows = 0;
     mixed res;
@@ -66,10 +104,7 @@ void do_tests() {
 
     db_close(conn);
 
-#ifndef __PACKAGE_ASYNC__
-    write("PACKAGE_ASYNC is not enabled, skipping async db tests...\n");
-    return;
-#else
+#ifdef __PACKAGE_ASYNC__
     conn = db_connect("", "/test.sqlite", "", __USE_SQLITE3__);
     ASSERT_NE(0, conn);
     db_exec(conn, "DROP TABLE IF EXISTS tbl1");
@@ -93,7 +128,17 @@ void do_tests() {
     call_out(function() {
         ASSERT_EQ(1, calledDB);
     }, 1);
+#else
+    write("PACKAGE_ASYNC is not enabled, skipping async db tests...\n");
 #endif // __PACKAGE_ASYNC__
+#else
+    write("USE_SQLITE3 is not enabled, skipping SQLite tests...\n");
 #endif // __USE_SQLITE3__
+
+#ifdef __USE_MYSQL__
+    test_mysql_binary_row_lengths();
+#else
+    write("USE_MYSQL is not enabled, skipping MySQL binary row-length test...\n");
+#endif // __USE_MYSQL__
 #endif // __PACKAGE_DB__
 }
