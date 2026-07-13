@@ -122,6 +122,8 @@ int external_start(int which, svalue_t *args, svalue_t *arg1, svalue_t *arg2, sv
   ret = posix_spawn(&pid, newargs[0], &file_actions, nullptr, newargs.data(), newenviron);
   if (ret) {
     debug(external_start, "external_start: posix_spawn() error: %s\n", strerror(ret));
+    socket_close(fd, SC_FORCE | SC_FINAL_CLOSE);
+    sv[0] = -1;
     return EESOCKET;
   }
 

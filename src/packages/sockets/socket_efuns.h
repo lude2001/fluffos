@@ -40,6 +40,12 @@ enum socket_state {
   STATE_DATA_XFER
 };
 
+enum socket_close_flags {
+  SC_FORCE = 1u,
+  SC_DO_CALLBACK = 2u,
+  SC_FINAL_CLOSE = 4u,
+};
+
 #define BUF_SIZE 65535 /* max reliable packet size        */
 #ifdef IPV6
 #define ADDR_BUF_SIZE INET6_ADDRSTRLEN

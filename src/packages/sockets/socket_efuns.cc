@@ -43,11 +43,6 @@ static void call_callback(int fd, int what, int num_arg);
 
 namespace {
 
-/* flags for socket_close */
-#define SC_FORCE 1u
-#define SC_DO_CALLBACK 2u
-#define SC_FINAL_CLOSE 4u
-
 const char *error_strings[ERROR_STRINGS] = {"Problem creating socket",
                                             "Problem with setsockopt",
                                             "Problem setting non-blocking mode",
