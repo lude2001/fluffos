@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `56c00880b40692bbc12a803026dd739e042859f2`
-  (`merge partial upstream compile-time master applies`)
+- Latest local merge commit: `99aa8be9e5db99f26d503bec7beae6ff32856921`
+  (`merge partial upstream compiler hardening fixes`)
 - Previous local merge commit:
-  `1b03c79fa98733e8b7265f56eb4d27bb5003b017`
-  (`merge partial upstream preprocessor comment fixes`)
+  `56c00880b40692bbc12a803026dd739e042859f2`
+  (`merge partial upstream compile-time master applies`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -544,15 +544,51 @@ Notes:
 - The new master applies preserve existing production behavior when the mudlib
   master returns the original path or does not route to a custom hook.
 
+## Merged In `99aa8be9e5db99f26d503bec7beae6ff32856921`
+
+The following official PR #1247/#1258 compiler-hardening items were selectively
+merged or manually reconciled with this branch's older `lex.cc` /
+`compiler.cc` layout:
+
+- The local old compiler had an additional precomposed warning buffer in
+  `define_new_function()` that could include source-derived function/program
+  names. It now calls `yywarn("%s", buff)` instead of treating that buffer as a
+  printf format string.
+- The local-name allocator's normal block path now copies the already-computed
+  byte length with `memcpy()` rather than re-scanning with `strcpy()`, matching
+  the safer official hardening direction around local-name storage.
+- Added `/single/tests/compiler/long_local_name.c` as local coverage for a
+  near-`MAXLINE` local/global-name compile path.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/long_local_name.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/replaceable_empty.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/include_file.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
+- `git diff --check -- src\compiler\internal\compiler.cc src\compiler\internal\lex.cc testsuite\single\tests\compiler\long_local_name.c`
+
+Notes:
+
+- This is not a full merge of PR #1247 or PR #1258.
+- Official #1258's `recompile_object()` dangling filename-pointer fix remains
+  pending until this branch carries `recompile_object()` from PR #1237.
+- Official's `>4096` identifier regression cannot be expressed directly in this
+  branch's LPC source tests because the old lexer enforces `MAXLINE=4096` first;
+  the added test therefore pins the largest local source-level case this branch
+  can compile without changing lexer line-length semantics.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `56c00880`:
+These official changes remain intentionally unmerged as of `99aa8be9`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
-- PR #1258: the `recompile_object()` dangling filename-pointer fix is not
-  applicable until this branch carries `recompile_object()`; any remaining
-  Coverity items tied to official-only file layout also remain unmerged.
+- PR #1258, remaining scope: the `recompile_object()` dangling filename-pointer
+  fix is not applicable until this branch carries `recompile_object()`; any
+  remaining Coverity items tied to official-only file layout also remain
+  unmerged.
 - PR #1257 and PRs #1253-#1255: official CI/release workflow restructuring and
   automatic release triggers.
 - PR #1250, remaining scope: official docs/sidebar updates and any

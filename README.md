@@ -132,6 +132,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   disassembler switch table、trace/compiler 格式串、`strftime()` 栈空间、
   checkmemory 默认失败消息、`norm()` helper 长度来源，以及 MUD 端口输入长度
   边界。
+- PR #1247/#1258 的 compiler hardening 增量：本地旧 compiler 额外的
+  `yywarn()` 格式串保护、local-name 缓冲复制路径对齐，以及本地
+  `MAXLINE` 边界下的长局部名回归测试。
 - PR #1239/#1241 的预处理 directive 注释修复：directive 行内 `/*...*/`
   按空白处理、跨物理行 block comment 不泄漏为代码，并补充 `#define`、
   `#ifdef`、`#undef`、`#if` 的本地回归测试。
