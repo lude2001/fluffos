@@ -1226,11 +1226,11 @@ constant:
     }
   | constant '%' constant
     {
-      if ($3) $$ = $1 % $3; else yyerror("Modulo by zero");
+      if ($3) $$ = ($3 == -1) ? 0 : $1 % $3; else yyerror("Modulo by zero");
     }
   | constant '/' constant
     {
-      if ($3) $$ = $1 / $3; else yyerror("Division by zero");
+      if ($3) $$ = ($3 == -1) ? (LPC_INT)(0ULL - (uint64_t)$1) : $1 / $3; else yyerror("Division by zero");
     }
   | '(' constant ')'
     {

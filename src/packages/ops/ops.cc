@@ -48,7 +48,12 @@ void f_div_eq() {
       if (!sp->u.number) {
         error("Division by 0nn\n");
       }
-      sp->u.number = argp->u.number /= sp->u.number;
+      if (sp->u.number == -1) {
+        argp->u.number = (LPC_INT)(0ULL - (uint64_t)argp->u.number);
+      } else {
+        argp->u.number /= sp->u.number;
+      }
+      sp->u.number = argp->u.number;
       sp->subtype = 0;
       break;
     }
@@ -381,7 +386,12 @@ void f_mod_eq() {
   if (sp->u.number == 0) {
     error("Modulo by 0\n");
   }
-  sp->u.number = argp->u.number %= sp->u.number;
+  if (sp->u.number == -1) {
+    argp->u.number = 0;
+  } else {
+    argp->u.number %= sp->u.number;
+  }
+  sp->u.number = argp->u.number;
   sp->subtype = 0;
 }
 

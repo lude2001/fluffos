@@ -3465,7 +3465,11 @@ void eval_instruction(char *p) {
             if (!(sp--)->u.number) {
               error("Division by zero\n");
             }
-            sp->u.number /= (sp + 1)->u.number;
+            if ((sp + 1)->u.number == -1) {
+              sp->u.number = (LPC_INT)(0ULL - (uint64_t)sp->u.number);
+            } else {
+              sp->u.number /= (sp + 1)->u.number;
+            }
             break;
           }
 
@@ -3784,7 +3788,11 @@ void eval_instruction(char *p) {
         if ((sp--)->u.number == 0) {
           error("Modulus by zero.\n");
         }
-        sp->u.number %= (sp + 1)->u.number;
+        if ((sp + 1)->u.number == -1) {
+          sp->u.number = 0;
+        } else {
+          sp->u.number %= (sp + 1)->u.number;
+        }
       } break;
       case F_MOD_EQ:
         f_mod_eq();

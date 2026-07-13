@@ -3645,7 +3645,7 @@ yyreduce:
   case 136: /* constant: constant '%' constant  */
 #line 1228 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
-      if ((yyvsp[0].number)) (yyval.number) = (yyvsp[-2].number) % (yyvsp[0].number); else yyerror("Modulo by zero");
+      if ((yyvsp[0].number)) (yyval.number) = ((yyvsp[0].number) == -1) ? 0 : (yyvsp[-2].number) % (yyvsp[0].number); else yyerror("Modulo by zero");
     }
 #line 3651 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
@@ -3653,7 +3653,7 @@ yyreduce:
   case 137: /* constant: constant '/' constant  */
 #line 1232 "$REPO_ROOT$/src/compiler/internal/grammar.y"
     {
-      if ((yyvsp[0].number)) (yyval.number) = (yyvsp[-2].number) / (yyvsp[0].number); else yyerror("Division by zero");
+      if ((yyvsp[0].number)) (yyval.number) = ((yyvsp[0].number) == -1) ? (LPC_INT)(0ULL - (uint64_t)(yyvsp[-2].number)) : (yyvsp[-2].number) / (yyvsp[0].number); else yyerror("Division by zero");
     }
 #line 3659 "$REPO_ROOT$/build/work/src/grammar.autogen.cc"
     break;
