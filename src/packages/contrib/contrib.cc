@@ -704,7 +704,7 @@ void f_terminal_colour() {
     // Look it up in the mapping.
     repused = 0;
     copy_and_push_string(parts[i]);
-    svalue_t *reptmp = apply(APPLY_TERMINAL_COLOUR_REPLACE, current_object, 1, ORIGIN_EFUN);
+    svalue_t *reptmp = safe_apply(APPLY_TERMINAL_COLOUR_REPLACE, current_object, 1, ORIGIN_EFUN);
     if (reptmp && reptmp->type == T_STRING) {
       rep = reinterpret_cast<char *>(alloca(SVALUE_STRLEN(reptmp) + 1));
       strcpy(rep, reptmp->u.string);
@@ -1933,10 +1933,12 @@ void f_repeat_string() {
   if (repeat > 0) {
     str = sp->u.string;
     len = SVALUE_STRLEN(sp);
-    if ((newlen = len * repeat) > max_string_length) {
+    if (len == 0) {
+      repeat = 0;
+    } else if (repeat > max_string_length / len) {
       repeat = max_string_length / len;
-      newlen = len * repeat;
     }
+    newlen = len * repeat;
   }
   if (repeat <= 0) {
     free_string_svalue(sp);

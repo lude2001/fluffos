@@ -166,6 +166,10 @@ TEXT;
   int flag_i = 1 << 16; // PCRE_I
   ASSERT_EQ("xbc", pcre_replace("abc", "(A)", ({"x"}), flag_i));
   ASSERT_EQ("a!bc", pcre_replace_callback("abc", "(A)", (: $1 + "!" :), flag_i));
+  ASSERT_EQ("X", pcre_replace("a", "((a))", ({ "X", "YYYY" })));
+  ASSERT_EQ("Xc", pcre_replace("abc", "((ab))", ({ "X", "Y" })));
+  ASSERT_EQ("[LONGREPLACEMENT]", pcre_replace("[x]", "(x)", ({ "LONGREPLACEMENT" })));
+  ASSERT_EQ("aXc", pcre_replace("abc", "(b)", ({ "X" })));
 
   // pcre_match with flags: case-insensitive and anchored.
   ASSERT_EQ(1, pcre_match("abc", "ABC", flag_i));

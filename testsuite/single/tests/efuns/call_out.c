@@ -26,6 +26,9 @@ void two_arg(int x, int y) {
   ASSERT(y == 2);
 }
 
+void noop() {
+}
+
 void finish() {
   busy = 0;
   ASSERT(called["basic_tests"] == 6);
@@ -43,6 +46,7 @@ void do_tests() {
 
   tp = this_player();
   called = ([ ]);
+  ASSERT(remove_call_out(call_out("noop", MAX_INT)) != -1);
   call_out( (: no_args :), 1);
   call_out( "no_args", 2);
   call_out( (: one_arg, 1 :), 3);

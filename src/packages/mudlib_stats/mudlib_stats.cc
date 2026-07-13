@@ -342,7 +342,12 @@ static const char *author_for_file(const char *file) {
   if (ret == nullptr || ret == (svalue_t *)-1 || ret->type != T_STRING) {
     return nullptr;
   }
-  strcpy(buff, ret->u.string);
+  size_t n = SVALUE_STRLEN(ret);
+  if (n >= sizeof(buff)) {
+    n = sizeof(buff) - 1;
+  }
+  memcpy(buff, ret->u.string, n);
+  buff[n] = '\0';
   return buff;
 }
 
@@ -429,7 +434,12 @@ static const char *domain_for_file(const char *file) {
   if (ret == nullptr || ret == (svalue_t *)-1 || ret->type != T_STRING) {
     return nullptr;
   }
-  strcpy(buff, ret->u.string);
+  size_t n = SVALUE_STRLEN(ret);
+  if (n >= sizeof(buff)) {
+    n = sizeof(buff) - 1;
+  }
+  memcpy(buff, ret->u.string, n);
+  buff[n] = '\0';
   return buff;
 }
 
@@ -449,7 +459,7 @@ static void save_stat_list(const char *file, mudlib_stats_t *list) {
       }
       f = fopen(file, "w");
     } else {
-      sprintf(fname, "%s/%s", CONFIG_STR(__LOG_DIR__), file);
+      snprintf(fname, sizeof(fname_buf), "%s/%s", CONFIG_STR(__LOG_DIR__), file);
       if (fname[0] == '/') {
         fname++;
       }
@@ -497,9 +507,14 @@ static void restore_stat_list(const char *file, mudlib_stats_t **list) {
     debug_message("*Warning: unable to open stat file %s for reading.\n", file);
     return;
   }
-  while (fscanf(f, "%s", fname) != EOF) {
+  char scan_fmt[16];
+  snprintf(scan_fmt, sizeof(scan_fmt), "%%%ds",
+           (int)(sizeof(fname_buf) - (size_t)(fname - fname_buf) - 1));
+  while (fscanf(f, scan_fmt, fname) == 1) {
     entry = add_stat_entry(fname, list);
-    fscanf(f, "%d %d\n", &entry->moves, &entry->heart_beats);
+    if (fscanf(f, "%d %d\n", &entry->moves, &entry->heart_beats) != 2) {
+      break;
+    }
   }
   fclose(f);
 }

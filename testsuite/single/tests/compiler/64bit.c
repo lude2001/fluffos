@@ -37,6 +37,11 @@ mixed* func6() {
   ASSERT_EQ(16681099904, i);
 }
 
+mixed* func_int_min_div_mod() {
+  ASSERT_EQ(MAX_INT + 1, (MAX_INT + 1) / -1);
+  ASSERT_EQ(0, (MAX_INT + 1) % -1);
+}
+
 mixed* func7() {
   // "0000770-7 (bitwise XOR)"
   ASSERT_EQ(0x11000000000, (0x10000000000 ^ 0x01000000000));
@@ -153,6 +158,7 @@ nosave mixed *tests = ({
   (: func4 :),
   (: func5 :),
   (: func6 :),
+  (: func_int_min_div_mod :),
   (: func7 :),
   (: func8 :),
   (: func_f1 :),

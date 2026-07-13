@@ -613,14 +613,22 @@ static LPC_INT cond_get_exp(int priority) {
         break;
       case DIV:
         if (value2) {
-          value /= value2;
+          if (value2 == -1) {
+            value = (LPC_INT)(0ULL - (uint64_t)value);
+          } else {
+            value /= value2;
+          }
         } else {
           lexerror("division by 0 in #if");
         }
         break;
       case MOD:
         if (value2) {
-          value %= value2;
+          if (value2 == -1) {
+            value = 0;
+          } else {
+            value %= value2;
+          }
         } else {
           lexerror("modulo by 0 in #if");
         }
@@ -3603,8 +3611,10 @@ static void init_instrs() {
         return;                           \
       }                                   \
     }                                     \
-  } else                                  \
+  } else {                                \
     lexerror(e);                          \
+    return;                               \
+  }                                       \
   *q++ = 0
 
 static int cmygetc() {

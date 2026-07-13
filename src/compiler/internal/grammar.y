@@ -1984,7 +1984,11 @@ expr0:
               break;
             }
             $$ = $1;
-            $1->v.number /= $3->v.number;
+            if ($3->v.number == -1) {
+              $1->v.number = (LPC_INT)(0ULL - (uint64_t)$1->v.number);
+            } else {
+              $1->v.number /= $3->v.number;
+            }
             break;
           }
           if ($3->kind == NODE_REAL) {
