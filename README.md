@@ -139,6 +139,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1247 第十批 reclaim 安全修复：`reclaim_objects()` 超过递归上限时
   保持 `nested` 计数平衡，并避免提前释放 destructed owner 的 `FP_LOCAL`
   `func_ref`，防止后续 funptr 释放时双重递减。
+- PR #1247 MySQL 二进制字段回归覆盖：`db.c` 在启用 MySQL 且配置了
+  `FT_MYSQL_HOST`、`FT_MYSQL_DB`、`FT_MYSQL_USER` 时验证每一行 VARBINARY
+  结果按实际 row length 返回；普通开发环境未配置 MySQL 时自动跳过。
 - PR #1247/#1258 的 compiler hardening 增量：本地旧 compiler 额外的
   `yywarn()` 格式串保护、local-name 缓冲复制路径对齐，以及本地
   `MAXLINE` 边界下的长局部名回归测试。

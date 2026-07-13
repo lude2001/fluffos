@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `ae8a687fa34a442c0891c6109ba342e734e84277`
-  (`test: cover buffer range assignment backport`)
+- Latest local merge commit: `bab352bad1679d7f838e72cd9c121faf8008a483`
+  (`test: cover optional mysql binary row lengths`)
 - Previous local merge commit:
-  `b7e294247ee027115fb9333701b2d3ff29a245b0`
-  (`merge upstream reclaim safety fixes`)
+  `ae8a687fa34a442c0891c6109ba342e734e84277`
+  (`test: cover buffer range assignment backport`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -864,9 +864,43 @@ Validation for this merge:
 - `..\build\dist\driver.exe etc\config.test -ftest`
 - `git diff --check -- testsuite/single/tests/operators/buffer_range_assign.c`
 
+## Merged In `bab352bad1679d7f838e72cd9c121faf8008a483`
+
+The following official PR #1247 MySQL regression coverage was adapted:
+
+- Extended `/single/tests/efuns/db.c` so the MySQL section can run even when
+  SQLite support is not enabled in the current Windows build.
+- Added optional coverage for per-row binary field lengths: when
+  `FT_MYSQL_HOST`, `FT_MYSQL_DB`, and `FT_MYSQL_USER` are present in the OS
+  environment, the test creates a temporary `VARBINARY` table and verifies that
+  `db_fetch()` returns each payload as a buffer sized to that row's actual
+  binary length.
+- Added those short MySQL test environment names to
+  `/testsuite/etc/config.test`'s `get_os_env()` allow-list. The names are kept
+  short so the existing config-line limit is not crossed.
+- The coverage is intentionally optional. A normal developer machine or CI
+  build without MySQL credentials now skips this MySQL live check without
+  failing the DB efun test.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/db.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/get_os_env.c`
+- `git diff --check -- testsuite/etc/config.test testsuite/single/tests/efuns/db.c`
+
+Notes:
+
+- A full testsuite run reached `/single/tests/efuns/db.c`, skipped the optional
+  MySQL live check because the environment variables were not configured, and
+  then later failed in the existing `/single/tests/efuns/async.c` callback path
+  with `async_read()` returning `-1`. That later async failure is not caused by
+  this MySQL coverage change and was not used as the gating signal for this
+  commit.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `ae8a687f`:
+These official changes remain intentionally unmerged as of `bab352ba`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -879,10 +913,9 @@ These official changes remain intentionally unmerged as of `ae8a687f`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the tenth partial runtime-hardening batch:
-  MySQL regression coverage, remaining official-only tests, optional-package
-  live coverage not enabled by the current Windows build, and any FFI or newer
-  compiler-layout-specific parts.
+- PR #1247, remaining scope after the MySQL optional coverage batch: remaining
+  official-only tests, optional-package live coverage not enabled by the
+  current Windows build, and any FFI or newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including any
   official-only cases tied to file layout or test harness differences.
