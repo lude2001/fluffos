@@ -2238,7 +2238,7 @@ int yylex() {
               if (*outp == '*') {
                 outp++;
                 skip_comment();
-                c = *outp++;
+                c = ' ';
               } else if (*outp == '/') {
                 outp++;
                 skip_line();
