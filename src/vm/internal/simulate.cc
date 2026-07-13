@@ -789,13 +789,13 @@ int recompile_object(object_t *target) {
     if (f == -1) {
       error("recompile_object: could not read the file '/%s'.\n", source_path.c_str());
     }
+    DEFER { close(f); };
 #ifdef _WIN32
     _setmode(f, _O_BINARY);
 #endif
     save_command_giver(command_giver);
-    new_prog = compile_file(std::make_unique<FileLexStream>(f), obname.c_str());
+    new_prog = compile_file(std::make_unique<FileLexStream>(f), old_prog->filename);
     restore_command_giver();
-    close(f);
     update_compile_av(total_lines);
     total_lines = 0;
 
