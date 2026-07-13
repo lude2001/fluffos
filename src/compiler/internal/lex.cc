@@ -4535,7 +4535,7 @@ static char *alloc_local_name(const char *name) {
     lb_index = 0;
   }
   res = &(lnamebuf->block[lb_index]);
-  strcpy(res, name);
+  memcpy(res, name, len);
   lb_index += len;
   return res;
 }

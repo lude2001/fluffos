@@ -1135,7 +1135,7 @@ int define_new_function(const char *name, int num_arg, int num_local, int flags,
           p = strput(p, end, "current function in return type ");
           p = get_two_types(p, end, funtype, type);
 
-          yywarn(buff);
+          yywarn("%s", buff);
         }
 
         for (i = 0; i < num_arg; i++) {
