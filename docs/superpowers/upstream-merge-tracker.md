@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `bab352bad1679d7f838e72cd9c121faf8008a483`
-  (`test: cover optional mysql binary row lengths`)
+- Latest local merge commit: `c98193933a4abfafd2b65ef2386973cef4630228`
+  (`merge upstream living parse safety coverage`)
 - Previous local merge commit:
-  `ae8a687fa34a442c0891c6109ba342e734e84277`
-  (`test: cover buffer range assignment backport`)
+  `bab352bad1679d7f838e72cd9c121faf8008a483`
+  (`test: cover optional mysql binary row lengths`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -898,9 +898,32 @@ Notes:
   this MySQL coverage change and was not used as the gating signal for this
   commit.
 
+## Merged In `c98193933a4abfafd2b65ef2386973cef4630228`
+
+The following remaining official PR #1247 parser/socket safety coverage was
+adapted:
+
+- `living_parse()` now skips non-object entries in the `parse_command("%l")`
+  object list instead of dereferencing them as objects. This matches the
+  official guard for caller-provided `0` values or destructed objects that were
+  turned into `0` by `check_for_destr()`.
+- Added `/single/tests/crasher/living_parse_nonobject.c` to cover `%l` parsing
+  with non-object list entries.
+- Added `/single/tests/crasher/socket_long_host.c` to cover clean rejection of
+  a socket target whose host portion is longer than the fixed host buffer. The
+  underlying runtime fix was already present locally; this commit adds the
+  missing local testsuite coverage adapted to this branch's include layout.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/living_parse_nonobject.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/socket_long_host.c`
+- `git diff --check -- src/packages/ops/parse.cc testsuite/single/tests/crasher/living_parse_nonobject.c testsuite/single/tests/crasher/socket_long_host.c`
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `bab352ba`:
+These official changes remain intentionally unmerged as of `c9819393`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -913,7 +936,7 @@ These official changes remain intentionally unmerged as of `bab352ba`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the MySQL optional coverage batch: remaining
+- PR #1247, remaining scope after the parser/socket coverage batch: remaining
   official-only tests, optional-package live coverage not enabled by the
   current Windows build, and any FFI or newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.

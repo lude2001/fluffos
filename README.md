@@ -142,6 +142,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1247 MySQL 二进制字段回归覆盖：`db.c` 在启用 MySQL 且配置了
   `FT_MYSQL_HOST`、`FT_MYSQL_DB`、`FT_MYSQL_USER` 时验证每一行 VARBINARY
   结果按实际 row length 返回；普通开发环境未配置 MySQL 时自动跳过。
+- PR #1247 parser/socket crasher 覆盖：`living_parse()` 会跳过
+  `parse_command("%l")` 输入列表中的非对象元素，并补充超长 socket host
+  必须干净拒绝的回归测试。
 - PR #1247/#1258 的 compiler hardening 增量：本地旧 compiler 额外的
   `yywarn()` 格式串保护、local-name 缓冲复制路径对齐，以及本地
   `MAXLINE` 边界下的长局部名回归测试。
