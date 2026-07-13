@@ -451,18 +451,22 @@ argument:
   |   argument_list
   |   argument_list L_DOT_DOT_DOT
     {
-      int x = type_of_locals_ptr[max_num_locals-1];
-      int lt = x & ~LOCAL_MODS;
-
       $$ = $1;
       $$.flags |= ARG_IS_VARARGS;
 
-      if (x & LOCAL_MOD_REF) {
-        yyerror("Variable to hold remainder of args may not be a reference");
-        x &= ~LOCAL_MOD_REF;
+      if (max_num_locals <= 0) {
+        yyerror("'...' requires a preceding parameter to hold the remaining arguments.");
+      } else {
+        int x = type_of_locals_ptr[max_num_locals-1];
+        int lt = x & ~LOCAL_MODS;
+
+        if (x & LOCAL_MOD_REF) {
+          yyerror("Variable to hold remainder of args may not be a reference");
+          x &= ~LOCAL_MOD_REF;
+        }
+        if (lt != TYPE_ANY && !(lt & TYPE_MOD_ARRAY))
+          yywarn("Variable to hold remainder of arguments should be an array.");
       }
-      if (lt != TYPE_ANY && !(lt & TYPE_MOD_ARRAY))
-        yywarn("Variable to hold remainder of arguments should be an array.");
     }
 ;
 
