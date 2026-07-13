@@ -21,6 +21,19 @@ void do_tests() {
 
   // INDEX at strlen() return 0
   ASSERT_EQ(0, catch(charAt(tmp, strlen(tmp))));
+  ASSERT_EQ(0, charAt(tmp, strlen(tmp)));
+
+  // Strings index by extended grapheme cluster, and Unicode treats CRLF as a
+  // single cluster.
+  ASSERT_EQ(1, strlen("\r\n"));
+  ASSERT_EQ(6, strlen("\r\nhello"));
+  ASSERT_EQ(7, strlen("\n\rhello"));
+  ASSERT_EQ(13, charAt("\r\n", 0));
+  ASSERT_EQ(0, charAt("\r\n", 1));
+  ASSERT_EQ(oob, catch(charAt("\r\n", 2)));
+  ASSERT_EQ(-1, strsrch("\r\nhello", "\n"));
+  ASSERT_EQ(0, strsrch("\r\nhello", "\r\n"));
+  ASSERT_EQ(0, strsrch("\n\rhello", "\n"));
 
   // OOB cases
   ASSERT_EQ(oob, catch(charAt(tmp, -1 * strlen(tmp))));
