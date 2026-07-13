@@ -1625,12 +1625,8 @@ void f_replaceable() {
   } else {
     if (st_num_arg == 2) {
       numignore = sp->u.arr->size;
-      if (numignore) {
-        ignore = reinterpret_cast<const char **>(
-            DCALLOC(numignore + 2, sizeof(char *), TAG_TEMPORARY, "replaceable"));
-      } else {
-        ignore = nullptr;
-      }
+      ignore = reinterpret_cast<const char **>(
+          DCALLOC(numignore + 2, sizeof(char *), TAG_TEMPORARY, "replaceable"));
       ignore[0] = findstring(APPLY_CREATE);
       ignore[1] = findstring(APPLY___INIT);
       for (i = 0; i < numignore; i++) {
@@ -2117,7 +2113,7 @@ void f_query_replaced_program() {
     free_object(&sp->u.ob, "f_query_replaced_program");
   } else {
     if (current_object->replaced_program) {
-      res = add_slash(sp->u.ob->replaced_program);
+      res = add_slash(current_object->replaced_program);
     }
     STACK_INC;
   }

@@ -125,6 +125,12 @@ array_t *allocate_array2(int n, svalue_t *svp) {
 
   if (svp->type == T_FUNCTION) {
     ret = allocate_array(n);
+    /*
+     * The callback runs arbitrary LPC and may error() out of the loop.
+     * Keep the partially built array on the VM stack so normal unwinding
+     * reclaims it, then detach it on the successful path below.
+     */
+    push_refed_array(ret);
 
     for (i = 0; i < n; i++) {
       svalue_t *r;
@@ -134,6 +140,7 @@ array_t *allocate_array2(int n, svalue_t *svp) {
       ret->item[i] = *r;
       r->type = T_NUMBER;
     }
+    sp--;
   } else {
     ret = allocate_empty_array(n);
 

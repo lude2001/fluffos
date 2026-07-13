@@ -1314,9 +1314,9 @@ char *string_print_formatted(const char *format_str, int argc, svalue_t *argv) {
           cheat[i] = '\0';
 
           if (carg->type == T_REAL) {
-            sprintf(temp, cheat, carg->u.real);
+            snprintf(temp, sizeof(temp), cheat, carg->u.real);
           } else {
-            sprintf(temp, cheat, carg->u.number);
+            snprintf(temp, sizeof(temp), cheat, carg->u.number);
           }
           {
             int const tmpl = strlen(temp);

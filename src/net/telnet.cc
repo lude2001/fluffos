@@ -323,6 +323,9 @@ static inline void on_telnet_subnegotiation(unsigned char cmd, const char *buf, 
       switch (action) {
         case LM_MODE:
           /* Don't do anything with an ACK */
+          if (size < 2) {
+            break;
+          }
           if (!(buf[1] & MODE_ACK)) {
             /* Accept only EDIT and TRAPSIG && force them too */
             const unsigned char sb_ack[] = {LM_MODE, MODE_EDIT | MODE_TRAPSIG | MODE_ACK};
@@ -337,12 +340,18 @@ static inline void on_telnet_subnegotiation(unsigned char cmd, const char *buf, 
         }
         /* refuse FORWARDMASK */
         case TELNET_DO: {
+          if (size < 2) {
+            break;
+          }
           const unsigned char sb_wont[] = {WONT, static_cast<unsigned char>(buf[1])};
           telnet_subnegotiation(ip->telnet, TELNET_TELOPT_LINEMODE,
                                 reinterpret_cast<const char *>(sb_wont), sizeof(sb_wont));
           break;
         }
         case TELNET_WILL: {
+          if (size < 2) {
+            break;
+          }
           const unsigned char sb_dont[] = {DONT, static_cast<unsigned char>(buf[1])};
           telnet_subnegotiation(ip->telnet, TELNET_TELOPT_LINEMODE,
                                 reinterpret_cast<const char *>(sb_dont), sizeof(sb_dont));
@@ -665,12 +674,12 @@ void on_telnet_do_zmp(const char **argv, unsigned long argc, interactive_t *ip) 
   // Push the command
   copy_and_push_string(argv[0]);
 
-  // Push the array
+  // Push the array of arguments (argv[0] is the command, already pushed).
   array_t *arr = allocate_array(argc - 1);
   for (int i = 1; i < argc; i++) {
-    arr->item[i].u.string = string_copy(argv[i], "ZMP");
-    arr->item[i].type = T_STRING;
-    arr->item[i].subtype = STRING_MALLOC;
+    arr->item[i - 1].u.string = string_copy(argv[i], "ZMP");
+    arr->item[i - 1].type = T_STRING;
+    arr->item[i - 1].subtype = STRING_MALLOC;
   }
   push_refed_array(arr);
 

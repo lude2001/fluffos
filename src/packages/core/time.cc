@@ -4,6 +4,7 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 #ifdef F_PERF_COUNTER_NS
 void f_perf_counter_ns() {
@@ -135,12 +136,12 @@ void f_strftime() {
   }
 
   const auto max_string_length = CONFIG_INT(__MAX_STRING_LENGTH__);
-  char buf[max_string_length];
-  int const size = strftime(buf, sizeof(buf), arg_fmt, res_tm);
+  std::vector<char> buf(max_string_length);
+  size_t const size = strftime(buf.data(), buf.size(), arg_fmt, res_tm);
   buf[size] = '\0';
 
   pop_2_elems();
-  copy_and_push_string(buf);
+  copy_and_push_string(buf.data());
 }
 #endif
 

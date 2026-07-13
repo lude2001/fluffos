@@ -313,4 +313,9 @@ TEXT;
     ASSERT_EQ("123", sprintf("%d", 123.0));
     ASSERT_EQ("123", sprintf("%d", 123.123)); // truncates
     ASSERT_EQ("123.000000", sprintf("%f", 123));
+
+    ASSERT(strlen(sprintf("%.1077f", 0.0)) > 1000);
+    ASSERT(strlen(sprintf("%.2000f", 1234567890123456789.0)) > 1000);
+    ASSERT(strlen(sprintf("%.5000f", -1.0)) > 1000);
+    ASSERT(strlen(sprintf("%.5000d", -1)) > 0);
 }
