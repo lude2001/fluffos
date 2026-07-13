@@ -1061,6 +1061,9 @@ static svalue_t *living_parse(array_t *obarr, array_t *warr, int *cix_in, int *f
   *fail = 0;
 
   for (obix = 0; obix < obarr->size; obix++) {
+    if (obarr->item[obix].type != T_OBJECT) {
+      continue;
+    }
     if (obarr->item[obix].u.ob->flags & O_ENABLE_COMMANDS) {
       assign_svalue_no_free(&live->item[tix++], &obarr->item[obix]);
     }
