@@ -142,16 +142,20 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1230 的编译期 master applies：`inherit_program()` 和
   `include_file()`，支持 inherit/include 重定向、内联源码和拒绝路径，并补充
   本地 compiler hook 回归测试。
-- PR #1237 的热重载基础层：对象全局变量块改为独立 `TAG_OBJ_VARS`
-  分配，并加入 `prog_generation` 字段，为后续 `recompile_object()` 的按名称
-  迁移做准备；function pointer 现在记录创建时的 owner generation，
-  `FP_LOCAL` 按创建时 program 对称持有 `func_ref`，并能在 owner program
-  被替换后把依赖旧布局的本地/functional 指针判定为 stale；当前尚未暴露
-  新的热重载 efun。
+- PR #1237 的热重载能力：对象全局变量块改为独立 `TAG_OBJ_VARS`
+  分配，并加入 `prog_generation` 字段；function pointer 记录创建时的
+  owner generation，`FP_LOCAL` 按创建时 program 对称持有 `func_ref`，
+  并能在 owner program 被替换后把依赖旧布局的本地/functional 指针判定为
+  stale；`recompile_object(object)` 已暴露为 efun，可原地更新 master copy
+  和 clones 的 program，按变量名迁移全局状态，重建 master/simul_efun 调度表，
+  并拒绝 clone 目标、正在执行的 program frame、嵌套调用和已有
+  `replace_program()` 的不安全目标。
+- PR #1258 的 `recompile_object()` filename lifetime 修复：重编译时传给
+  compiler 的文件名改为稳定的旧 program 文件名，并用 `DEFER` 保证源码 fd
+  在异常路径也会关闭。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
-完整 `recompile_object()` 热重载主体、FFI、WebAssembly 目标，以及 CI/release
-流程重构。
+官方 hot-reload daemon/demo、FFI、WebAssembly 目标，以及 CI/release 流程重构。
 
 ## Windows 构建
 

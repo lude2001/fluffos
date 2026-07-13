@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `3ebd18267178a324798779a4ae19be90306fe0dc`
-  (`merge partial upstream funptr generation guards`)
+- Latest local merge commit: `9e2aed146a581a951c7e79bb153c7d583761bca1`
+  (`merge upstream recompile filename lifetime fix`)
 - Previous local merge commit:
-  `06719fab6466eed700d3bc6474b23dd02c27adca`
-  (`merge partial upstream object variable blocks`)
+  `721fa0e65938b5b60fcb71fe6b8b82078ee5d552`
+  (`merge upstream recompile object efun`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -663,16 +663,71 @@ Notes:
   behave the same until an object program generation is actually bumped by the
   later hot-reload efun.
 
+## Merged In `721fa0e65938b5b60fcb71fe6b8b82078ee5d552`
+
+The following official PR #1237 `recompile_object()` core behavior was
+selectively merged:
+
+- Added public `recompile_object(object)` efun.
+- Recompiling a master copy now swaps the new program into the live master copy
+  and its loaded clones in place.
+- Global variables migrate by name so existing state survives compatible source
+  changes, while newly introduced variables keep their initializer values.
+- Master applies and simul_efun dispatch tables are rebuilt before running the
+  recompiled program's `__INIT`.
+- Stale function-pointer protection from the earlier `prog_generation` merge is
+  now active when a program is replaced.
+- Pending `replace_program()` state is cancelled at the swap point.
+- Unsafe targets are rejected, including clone targets, objects whose old
+  program is currently executing on the VM stack, nested `recompile_object()`
+  calls, and objects that already have pending `replace_program()` state before
+  the recompile begins.
+- Added focused local regression coverage for master-and-clone updates,
+  variable migration by name, new variable initializers, stale local function
+  pointers, and clone-target rejection.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check`
+
+Notes:
+
+- This is a local-layout merge of the core efun and swap machinery from PR
+  #1237. It is not a wholesale import of every official hot-reload demo,
+  documentation page, or broad official regression fixture.
+- Existing production mudlibs do not need changes unless they deliberately call
+  `recompile_object()` or depend on the new hot-reload behavior.
+
+## Merged In `9e2aed146a581a951c7e79bb153c7d583761bca1`
+
+The following official PR #1258 `recompile_object()` Coverity fix was
+selectively merged after PR #1237 became applicable in this branch:
+
+- `recompile_object()` now passes the stable `old_prog->filename` pointer to
+  the compiler instead of passing a temporary local string buffer.
+- The source file descriptor opened for recompilation is closed through `DEFER`,
+  so compile-error paths do not leak it.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- src/vm/internal/simulate.cc`
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `3ebd1826`:
+These official changes remain intentionally unmerged as of `9e2aed14`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
-- PR #1258, remaining scope: the `recompile_object()` dangling filename-pointer
-  fix remains pending until this branch carries the `recompile_object()` efun
-  body; any remaining Coverity items tied to official-only file layout also
-  remain unmerged.
+- PR #1258, remaining scope: any remaining Coverity items tied to
+  official-only file layout remain unmerged. The lexer local-name, restore
+  overflow, and `recompile_object()` dangling filename-pointer fixes are merged
+  in local form.
 - PR #1257 and PRs #1253-#1255: official CI/release workflow restructuring and
   automatic release triggers.
 - PR #1250, remaining scope: official docs/sidebar updates and any
@@ -680,17 +735,17 @@ These official changes remain intentionally unmerged as of `3ebd1826`:
   layout.
 - PR #1247, remaining scope after the eighth partial runtime-hardening batch:
   MySQL regression coverage, any still-unmerged restore/deep-nesting error-path
-  coverage, remaining official-only tests, and all `recompile_object()`, FFI, or
-  newer compiler-layout-specific parts.
+  coverage, remaining official-only tests, and any FFI or newer
+  compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including any
   official-only cases tied to file layout or test harness differences.
-- PR #1237, remaining scope: the `recompile_object()` hot-reload efun body,
-  live program swap, variable migration, master/simul_efun handling,
-  executing-frame guard, clone/virtual/call_out/heart_beat safety handling, and
-  focused regression tests. The object variable block allocation foundation is
-  already merged in `06719fab`; the function-pointer generation/staleness
-  foundation is already merged in `3ebd1826`.
+- PR #1237, remaining scope: official hot-reload daemon/demo documentation,
+  broader official regression fixtures not represented by the current local
+  focused test, and any official-only test harness shape. The core efun, live
+  master/clone program swap, variable migration, master/simul_efun rebuild,
+  executing-frame guard, clone-target rejection, `replace_program()` guard, and
+  stale function-pointer protection are merged in local form.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
 - PR #1230, remaining scope: official hot-reload daemon/demo documentation and
   any official-only test/doc shape not represented in this branch's local
