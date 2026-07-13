@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `06719fab6466eed700d3bc6474b23dd02c27adca`
-  (`merge partial upstream object variable blocks`)
+- Latest local merge commit: `3ebd18267178a324798779a4ae19be90306fe0dc`
+  (`merge partial upstream funptr generation guards`)
 - Previous local merge commit:
-  `fa228dce2b4ca9eb7f7219474dac2b4014d2d13d`
-  (`merge partial upstream crlf string semantics tests`)
+  `06719fab6466eed700d3bc6474b23dd02c27adca`
+  (`merge partial upstream object variable blocks`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -631,9 +631,41 @@ Notes:
   generation checks, executing-frame guards, clone/virtual/call_out/heart_beat
   safety handling, and focused regression tests.
 
+## Merged In `3ebd18267178a324798779a4ae19be90306fe0dc`
+
+The following official PR #1237 function-pointer foundation was selectively
+merged:
+
+- Function pointer headers now snapshot the owner's `prog_generation` at
+  creation or `bind()` time.
+- `call_function_pointer()` now rejects stale `FP_LOCAL` and `FP_FUNCTIONAL`
+  pointers when their owner object has moved to a newer program generation.
+- `FP_LOCAL` pointers now store the creation-time `program_t` and hold/release
+  `func_ref` against that program, rather than decrementing the owner's current
+  program after a later swap.
+- Debug-memory checking now accounts `FP_LOCAL` extra function refs against the
+  stored creation program.
+- `%O` formatting now prints local function pointers from the stored creation
+  program and tolerates removed simul_efun table entries.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- src/vm/internal/base/function.h src/vm/internal/base/function.cc src/packages/core/efuns_main.cc src/packages/develop/checkmemory.cc src/packages/core/sprintf.cc`
+
+Notes:
+
+- This is still a partial merge of PR #1237. It does not expose
+  `recompile_object()` yet, but it makes the later program swap safe for
+  existing function-pointer lifetime and stale-layout checks.
+- Current production mudlibs do not need changes. Existing function pointers
+  behave the same until an object program generation is actually bumped by the
+  later hot-reload efun.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `06719fab`:
+These official changes remain intentionally unmerged as of `3ebd1826`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -654,10 +686,11 @@ These official changes remain intentionally unmerged as of `06719fab`:
 - PR #1244: remaining issue fixes not covered by this merge, including any
   official-only cases tied to file layout or test harness differences.
 - PR #1237, remaining scope: the `recompile_object()` hot-reload efun body,
-  live program swap, variable migration, master/simul_efun handling, stale
-  function-pointer detection, executing-frame guard, clone/virtual/call_out/
-  heart_beat safety handling, and focused regression tests. The object variable
-  block allocation foundation is already merged in `06719fab`.
+  live program swap, variable migration, master/simul_efun handling,
+  executing-frame guard, clone/virtual/call_out/heart_beat safety handling, and
+  focused regression tests. The object variable block allocation foundation is
+  already merged in `06719fab`; the function-pointer generation/staleness
+  foundation is already merged in `3ebd1826`.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
 - PR #1230, remaining scope: official hot-reload daemon/demo documentation and
   any official-only test/doc shape not represented in this branch's local

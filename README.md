@@ -144,7 +144,10 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   本地 compiler hook 回归测试。
 - PR #1237 的热重载基础层：对象全局变量块改为独立 `TAG_OBJ_VARS`
   分配，并加入 `prog_generation` 字段，为后续 `recompile_object()` 的按名称
-  迁移和 stale function pointer 检查做准备；当前尚未暴露新的热重载 efun。
+  迁移做准备；function pointer 现在记录创建时的 owner generation，
+  `FP_LOCAL` 按创建时 program 对称持有 `func_ref`，并能在 owner program
+  被替换后把依赖旧布局的本地/functional 指针判定为 stale；当前尚未暴露
+  新的热重载 efun。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 完整 `recompile_object()` 热重载主体、FFI、WebAssembly 目标，以及 CI/release
