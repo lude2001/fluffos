@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `362f6fefae58197c27baa7243ac494db6882c9dd`
-  (`merge upstream hot reload demo coverage`)
+- Latest local merge commit: `af6ccca5849049377135f204b70d775c301dcf72`
+  (`merge remaining upstream safety fixes`)
 - Previous local merge commit:
-  `1b8c5cc68c32380d80b4f19f81456c09f62239ce`
-  (`merge upstream recompile object regression coverage`)
+  `362f6fefae58197c27baa7243ac494db6882c9dd`
+  (`merge upstream hot reload demo coverage`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -790,9 +790,46 @@ Notes:
 - The official documentation-site page for hot reload was not imported
   wholesale; local project docs summarize the boundary here and in the README.
 
+## Merged In `af6ccca5849049377135f204b70d775c301dcf72`
+
+The following remaining low-risk official PR #1247 safety/correctness fixes
+were selectively adapted:
+
+- `ed` now clamps expanded printed lines before copying to the caller buffer,
+  bounds default filename reuse, caps typed filename collection, and reserves
+  enough room for escaped replacement/pattern text.
+- `sprintf()` column/table formatting now owns the rendered `%O`/string buffer
+  used by pending column/table state instead of borrowing the transient clean
+  buffer. Pending column/table pad and owned storage are released on unwind.
+- `restore_variable()` / restore mapping paths now report malformed or
+  too-deep top-level mapping sizing failures as restore errors, and clear the
+  transient restore scratch state before `error()` paths that would otherwise
+  longjmp past normal cleanup.
+- `replace_dollars()` now checks output growth against the replacement string
+  length actually written, not the matched pattern length.
+- Added `sprintf_column_object.c` coverage and expanded `restore_variable.c`
+  coverage for deeply nested crafted input.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/restore_variable.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf_column_object.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/ed.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- src/packages/core/ed.cc src/packages/dwlib/dwlib.cc src/vm/internal/base/object.cc src/packages/core/sprintf.cc testsuite/single/tests/efuns/restore_variable.c testsuite/single/tests/efuns/sprintf_column_object.c`
+
+Notes:
+
+- `src/packages/dwlib/dwlib.cc` is adapted in source, but the current Windows
+  build configuration does not enable `PACKAGE_DWLIB`; validation for that
+  exact optional package path is therefore code-review/build-layout coverage,
+  not a live LPC package test in this run.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `362f6fef`:
+These official changes remain intentionally unmerged as of `af6ccca5`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -805,9 +842,9 @@ These official changes remain intentionally unmerged as of `362f6fef`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the eighth partial runtime-hardening batch:
-  MySQL regression coverage, any still-unmerged restore/deep-nesting error-path
-  coverage, remaining official-only tests, and any FFI or newer
+- PR #1247, remaining scope after the ninth partial runtime-hardening batch:
+  MySQL regression coverage, remaining official-only tests, optional-package
+  live coverage not enabled by the current Windows build, and any FFI or newer
   compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including any

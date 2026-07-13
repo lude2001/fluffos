@@ -133,6 +133,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   disassembler switch table、trace/compiler 格式串、`strftime()` 栈空间、
   checkmemory 默认失败消息、`norm()` helper 长度来源，以及 MUD 端口输入长度
   边界。
+- PR #1247 第九批剩余低风险安全修复：`ed` 静态缓冲边界、`sprintf()`
+  column/table 生命周期、`restore_variable()` 深层/异常路径 scratch 清理，以及
+  `replace_dollars()` 替换长度检查。
 - PR #1247/#1258 的 compiler hardening 增量：本地旧 compiler 额外的
   `yywarn()` 格式串保护、local-name 缓冲复制路径对齐，以及本地
   `MAXLINE` 边界下的长局部名回归测试。
