@@ -112,6 +112,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   `uncompress()`、`terminal_colour()`、`repeat_string()`、`replace_string()`、
   `get_dir()`、`add_action()`、`call_out()`、matrix、mudlib stats、macro 参数
   解析，以及 `INT_MIN` 除法/取模常量折叠保护。
+- PR #1247 第三批部分 async 安全修复：async worker in-flight 请求引用标记、
+  `async_getdir()` 目录项缓冲尺寸修复，以及 async read/write/getdir 拒绝路径
+  下的 callback 释放。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 `recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。
