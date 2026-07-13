@@ -74,12 +74,15 @@ static inline void assign_value_to_lvalue(svalue_t *lval, svalue_t *value, const
       if (value->type != T_NUMBER) {
         error("Illegal rhs to byte lvalue\n");
       }
-      char c = static_cast<char>(value->u.number);
+      LPC_INT n = value->u.number;
 
-      if (global_lvalue_byte.subtype == 0 && c == '\0') {
+      if (n < 0 || n > 255) {
+        error("Buffer byte value out of range: must be 0..255.\n");
+      }
+      if (lval->subtype == 0 && n == 0) {
         error("Strings cannot contain 0 bytes.\n");
       }
-      *global_lvalue_byte.u.lvalue_byte = c;
+      *lval->u.lvalue_byte = static_cast<unsigned char>(n);
       break;
     }
     case T_LVALUE_RANGE:
@@ -588,6 +591,38 @@ static struct {
 } global_lvalue_codepoint;
 static svalue_t global_lvalue_codepoint_sv = {T_LVALUE_CODEPOINT};
 
+buffer_t *svalue_to_buffer_bytes(svalue_t *from) {
+  if (from->type == T_BUFFER) {
+    from->u.buf->ref++;
+    return from->u.buf;
+  }
+
+  if (from->type == T_STRING) {
+    int len = SVALUE_STRLEN(from);
+    buffer_t *buf = allocate_buffer(len);
+    memcpy(buf->item, from->u.string, len);
+    return buf;
+  }
+
+  if (from->type == T_ARRAY) {
+    array_t *arr = from->u.arr;
+    buffer_t *buf = allocate_buffer(arr->size);
+
+    for (int i = 0; i < arr->size; i++) {
+      if (arr->item[i].type != T_NUMBER || arr->item[i].u.number < 0 ||
+          arr->item[i].u.number > 255) {
+        free_buffer(buf);
+        error("Illegal array item in buffer conversion: must be ints 0..255.\n");
+      }
+      buf->item[i] = static_cast<unsigned char>(arr->item[i].u.number);
+    }
+    return buf;
+  }
+
+  error("Illegal value for buffer conversion: expected string, buffer, or int array.\n");
+  return nullptr;
+}
+
 /*
  * Compute the address of an array element.
  */
@@ -958,12 +993,11 @@ void copy_lvalue_range(svalue_t *from) {
     }
 
     case T_BUFFER: {
-      if (from->type != T_BUFFER) {
-        error("Illegal rhs to buffer range lvalue.\n");
-      }
+      buffer_t *conv = nullptr;
+      buffer_t *fbuf = (from->type == T_BUFFER) ? from->u.buf : (conv = svalue_to_buffer_bytes(from));
 
-      if ((fsize = from->u.buf->size) == ind2 - ind1) {
-        memcpy((owner->u.buf)->item + ind1, from->u.buf->item, fsize);
+      if ((fsize = fbuf->size) == ind2 - ind1) {
+        memcpy((owner->u.buf)->item + ind1, fbuf->item, fsize);
       } else {
         buffer_t *b;
         unsigned char *old_item = (owner->u.buf)->item;
@@ -975,7 +1009,7 @@ void copy_lvalue_range(svalue_t *from) {
           memcpy(b->item, old_item, ind1);
           new_item += ind1;
         }
-        memcpy(new_item, from->u.buf, fsize);
+        memcpy(new_item, fbuf->item, fsize);
         new_item += fsize;
 
         if ((size -= ind2) >= 1) {
@@ -984,7 +1018,12 @@ void copy_lvalue_range(svalue_t *from) {
         free_buffer(owner->u.buf);
         owner->u.buf = b;
       }
-      free_buffer(from->u.buf);
+      if (conv) {
+        free_buffer(conv);
+        free_svalue(from, "copy_lvalue_range: buffer conversion");
+      } else {
+        free_buffer(from->u.buf);
+      }
       break;
     }
   }
@@ -1023,6 +1062,12 @@ void assign_lvalue_codepoint(F &&func) {
     global_lvalue_codepoint.iter = std::make_unique<EGCSmartIterator>(
         global_lvalue_codepoint.owner->u.string, SVALUE_STRLEN(global_lvalue_codepoint.owner));
   }
+}
+
+LPC_INT codepoint_lvalue_add(LPC_INT delta) {
+  UChar32 out = 0;
+  assign_lvalue_codepoint([&out, delta](UChar32 c) { return out = c + delta; });
+  return out;
 }
 
 void assign_lvalue_range(svalue_t *from) {
@@ -1114,12 +1159,11 @@ void assign_lvalue_range(svalue_t *from) {
     }
 
     case T_BUFFER: {
-      if (from->type != T_BUFFER) {
-        error("Illegal rhs to buffer range lvalue.\n");
-      }
+      buffer_t *conv = nullptr;
+      buffer_t *fbuf = (from->type == T_BUFFER) ? from->u.buf : (conv = svalue_to_buffer_bytes(from));
 
-      if ((fsize = from->u.buf->size) == ind2 - ind1) {
-        memcpy((owner->u.buf)->item + ind1, from->u.buf->item, fsize);
+      if ((fsize = fbuf->size) == ind2 - ind1) {
+        memcpy((owner->u.buf)->item + ind1, fbuf->item, fsize);
       } else {
         buffer_t *b;
         unsigned char *old_item = (owner->u.buf)->item;
@@ -1131,7 +1175,7 @@ void assign_lvalue_range(svalue_t *from) {
           memcpy(b->item, old_item, ind1);
           new_item += ind1;
         }
-        memcpy(new_item, from->u.buf, fsize);
+        memcpy(new_item, fbuf->item, fsize);
         new_item += fsize;
 
         if ((size -= ind2) >= 1) {
@@ -1139,6 +1183,9 @@ void assign_lvalue_range(svalue_t *from) {
         }
         free_buffer(owner->u.buf);
         owner->u.buf = b;
+      }
+      if (conv) {
+        free_buffer(conv);
       }
       break;
     }
@@ -2094,7 +2141,10 @@ void eval_instruction(char *p) {
             lval->u.real++;
             break;
           case T_LVALUE_BYTE:
-            ++*global_lvalue_byte.u.lvalue_byte;
+            if (*lval->u.lvalue_byte == 255) {
+              error("Buffer byte value out of range: must be 0..255.\n");
+            }
+            ++*lval->u.lvalue_byte;
             break;
           case T_LVALUE_CODEPOINT: {
             assign_lvalue_codepoint([](UChar32 c) { return c + 1; });
@@ -2182,7 +2232,7 @@ void eval_instruction(char *p) {
           }
 
           if (reflval->type == T_LVALUE_BYTE) {
-            push_number(*global_lvalue_byte.u.lvalue_byte);
+            push_number(*reflval->u.lvalue_byte);
             break;
           } else if (reflval->type == T_LVALUE_CODEPOINT) {
             push_number(u8_egc_index_as_single_codepoint(
@@ -2499,19 +2549,23 @@ void eval_instruction(char *p) {
       case F_ADD: {
         switch (sp->type) {
           case T_BUFFER: {
-            if (!((sp - 1)->type == T_BUFFER)) {
-              error("Bad type argument to +. Had %s and %s.\n", type_name((sp - 1)->type),
-                    type_name(sp->type));
-            } else {
-              buffer_t *b;
+            buffer_t *conv = nullptr;
+            buffer_t *left = ((sp - 1)->type == T_BUFFER) ? (sp - 1)->u.buf
+                                                          : (conv = svalue_to_buffer_bytes(sp - 1));
+            buffer_t *b;
 
-              b = allocate_buffer(sp->u.buf->size + (sp - 1)->u.buf->size);
-              memcpy(b->item, (sp - 1)->u.buf->item, (sp - 1)->u.buf->size);
-              memcpy(b->item + (sp - 1)->u.buf->size, sp->u.buf->item, sp->u.buf->size);
-              free_buffer((sp--)->u.buf);
+            b = allocate_buffer(left->size + sp->u.buf->size);
+            memcpy(b->item, left->item, left->size);
+            memcpy(b->item + left->size, sp->u.buf->item, sp->u.buf->size);
+            free_buffer((sp--)->u.buf);
+            if (conv) {
+              free_buffer(conv);
+              free_svalue(sp, "F_ADD: buffer conversion");
+            } else {
               free_buffer(sp->u.buf);
-              sp->u.buf = b;
             }
+            sp->type = T_BUFFER;
+            sp->u.buf = b;
             break;
           } /* end of x + T_BUFFER */
           case T_NUMBER: {
@@ -2557,6 +2611,19 @@ void eval_instruction(char *p) {
             break;
           } /* end of x + T_REAL */
           case T_ARRAY: {
+            if ((sp - 1)->type == T_BUFFER) {
+              buffer_t *conv = svalue_to_buffer_bytes(sp);
+              buffer_t *b = allocate_buffer((sp - 1)->u.buf->size + conv->size);
+
+              memcpy(b->item, (sp - 1)->u.buf->item, (sp - 1)->u.buf->size);
+              memcpy(b->item + (sp - 1)->u.buf->size, conv->item, conv->size);
+              free_buffer(conv);
+              free_array((sp--)->u.arr);
+              free_buffer(sp->u.buf);
+              sp->type = T_BUFFER;
+              sp->u.buf = b;
+              break;
+            }
             if (!((sp - 1)->type == T_ARRAY)) {
               error("Bad type argument to +. Had %s and %s\n", type_name((sp - 1)->type),
                     type_name(sp->type));
@@ -2583,6 +2650,19 @@ void eval_instruction(char *p) {
           } /* end of x + T_MAPPING */
           case T_STRING: {
             switch ((sp - 1)->type) {
+              case T_BUFFER: {
+                buffer_t *conv = svalue_to_buffer_bytes(sp);
+                buffer_t *b = allocate_buffer((sp - 1)->u.buf->size + conv->size);
+
+                memcpy(b->item, (sp - 1)->u.buf->item, (sp - 1)->u.buf->size);
+                memcpy(b->item + (sp - 1)->u.buf->size, conv->item, conv->size);
+                free_buffer(conv);
+                free_string_svalue(sp--);
+                free_buffer(sp->u.buf);
+                sp->type = T_BUFFER;
+                sp->u.buf = b;
+                break;
+              }
               case T_OBJECT: {
                 char buff[1024];
                 object_t *ob = (sp - 1)->u.ob;
@@ -2691,15 +2771,20 @@ void eval_instruction(char *p) {
             }
             break;
           case T_BUFFER:
-            if (sp->type != T_BUFFER) {
-              bad_argument(sp, T_BUFFER, 2, instruction);
-            } else {
+            {
+              buffer_t *conv = nullptr;
+              buffer_t *rhs = (sp->type == T_BUFFER) ? sp->u.buf : (conv = svalue_to_buffer_bytes(sp));
               buffer_t *b;
 
-              b = allocate_buffer(lval->u.buf->size + sp->u.buf->size);
+              b = allocate_buffer(lval->u.buf->size + rhs->size);
               memcpy(b->item, lval->u.buf->item, lval->u.buf->size);
-              memcpy(b->item + lval->u.buf->size, sp->u.buf->item, sp->u.buf->size);
-              free_buffer(sp->u.buf);
+              memcpy(b->item + lval->u.buf->size, rhs->item, rhs->size);
+              if (conv) {
+                free_buffer(conv);
+                free_svalue(sp, "F_ADD_EQ: buffer conversion");
+              } else {
+                free_buffer(sp->u.buf);
+              }
               free_buffer(lval->u.buf);
               lval->u.buf = b;
             }
@@ -2722,25 +2807,46 @@ void eval_instruction(char *p) {
             }
             break;
           case T_LVALUE_BYTE: {
-            char c;
+            LPC_INT res;
 
             if (sp->type != T_NUMBER) {
               error("Bad right type to += of char lvalue.\n");
             }
 
-            c = *global_lvalue_byte.u.lvalue_byte + sp->u.number;
+            res = *lval->u.lvalue_byte + sp->u.number;
 
-            if (global_lvalue_byte.subtype == 0 && c == '\0') {
+            if (res < 0 || res > 255) {
+              error("Buffer byte value out of range: must be 0..255.\n");
+            }
+            if (lval->subtype == 0 && res == 0) {
               error("Strings cannot contain 0 bytes.\n");
             }
-            *global_lvalue_byte.u.lvalue_byte = c;
+            *lval->u.lvalue_byte = static_cast<unsigned char>(res);
+            if (instruction == F_ADD_EQ) {
+              sp->subtype = 0;
+              sp->u.number = res;
+            }
+          } break;
+          case T_LVALUE_CODEPOINT: {
+            LPC_INT res;
+
+            if (sp->type != T_NUMBER) {
+              error("Bad right type to += of char lvalue.\n");
+            }
+            res = codepoint_lvalue_add(sp->u.number);
+            if (instruction == F_ADD_EQ) {
+              sp->subtype = 0;
+              sp->u.number = res;
+            }
           } break;
           default:
             bad_arg(1, instruction);
         }
 
         if (instruction == F_ADD_EQ) { /* not void add_eq */
-          assign_svalue_no_free(sp, lval);
+          if (lval->type != T_LVALUE_BYTE && lval->type != T_LVALUE_CODEPOINT) {
+            assign_svalue_no_free(sp, lval);
+          }
         } else {
           /*
            * but if (void)add_eq then no need to produce an
@@ -2785,15 +2891,23 @@ void eval_instruction(char *p) {
             sp->u.lvalue = fp + EXTRACT_UCHAR(pc++);
           }
         } else if (sp->type == T_STRING) {
-          STACK_INC;
-          sp->type = T_NUMBER;
-          global_lvalue_codepoint.index = 0;
-          global_lvalue_codepoint.owner = sp - 1;
-          global_lvalue_codepoint.iter =
-              std::make_unique<EGCSmartIterator>((sp - 1)->u.string, SVALUE_STRLEN((sp - 1)));
-          if (!global_lvalue_codepoint.iter->ok()) {
+          bool valid;
+          {
+            EGCSmartIterator check(sp->u.string, SVALUE_STRLEN(sp));
+            valid = check.ok();
+          }
+          if (!valid) {
             error("f_foreach: Invalid utf-8 string.");
           }
+          STACK_INC;
+          sp->type = T_NUMBER;
+          sp->subtype = 0;
+          sp->u.number = 0;
+        } else if (sp->type == T_BUFFER) {
+          STACK_INC;
+          sp->type = T_NUMBER;
+          sp->subtype = 0;
+          sp->u.number = 0;
         } else {
           CHECK_TYPES(sp, T_ARRAY, 2, F_FOREACH);
 
@@ -2824,6 +2938,9 @@ void eval_instruction(char *p) {
             error(
                 "Invalid Program: Somehow a reference in foreach acquired a value before coming "
                 "into scope.");
+          if (loc->type == T_REF) {
+            free_svalue(loc, "foreach: reused ref loop variable");
+          }
           loc->type = T_REF;
           loc->u.ref = ref;
           ref->ref++;
@@ -2856,20 +2973,48 @@ void eval_instruction(char *p) {
             break;
           }
         } else if ((sp - 2)->type == T_STRING) { /* string */
-          auto pos =
-              global_lvalue_codepoint.iter->post_index_to_offset(global_lvalue_codepoint.index);
-          if (pos > 0) {
+          svalue_t *owner = sp - 2;
+          int idx = (sp - 1)->u.number;
+          UChar32 c = u8_egc_index_as_single_codepoint(owner->u.string, SVALUE_STRLEN(owner), idx);
+          if (c != -2 && c != 0) {
             if (sp->type == T_REF) {
+              if (c < 0) {
+                error("Indexed character is multi-codepoint.\n");
+              }
+              global_lvalue_codepoint.index = idx;
+              global_lvalue_codepoint.owner = owner;
+              global_lvalue_codepoint.iter =
+                  std::make_unique<EGCSmartIterator>(owner->u.string, SVALUE_STRLEN(owner));
               sp->u.ref->lvalue = &global_lvalue_codepoint_sv;
             } else {
               free_svalue(sp->u.lvalue, "foreach-string");
               sp->u.lvalue->type = T_NUMBER;
               sp->u.lvalue->subtype = 0;
-              sp->u.lvalue->u.number = u8_egc_index_as_single_codepoint(
-                  global_lvalue_codepoint.owner->u.string,
-                  SVALUE_STRLEN(global_lvalue_codepoint.owner), global_lvalue_codepoint.index);
+              sp->u.lvalue->u.number = c;
             }
-            global_lvalue_codepoint.index++;
+            (sp - 1)->u.number = idx + 1;
+
+            COPY_SHORT(&offset, pc);
+            pc -= offset;
+            break;
+          }
+        } else if ((sp - 2)->type == T_BUFFER) { /* buffer */
+          svalue_t *owner = sp - 2;
+          int idx = (sp - 1)->u.number;
+          if (idx < owner->u.buf->size) {
+            if (sp->type == T_REF) {
+              ref_t *ref = sp->u.ref;
+              ref->sv.type = T_LVALUE_BYTE;
+              ref->sv.subtype = 1;
+              ref->sv.u.lvalue_byte = owner->u.buf->item + idx;
+              ref->lvalue = &ref->sv;
+            } else {
+              free_svalue(sp->u.lvalue, "foreach-buffer");
+              sp->u.lvalue->type = T_NUMBER;
+              sp->u.lvalue->subtype = 0;
+              sp->u.lvalue->u.number = owner->u.buf->item[idx];
+            }
+            (sp - 1)->u.number = idx + 1;
 
             COPY_SHORT(&offset, pc);
             pc -= offset;
@@ -2916,7 +3061,7 @@ void eval_instruction(char *p) {
           free_array((sp--)->u.arr);
           free_mapping((sp--)->u.map);
         } else {
-          /* array or string */
+          /* array, buffer, or string */
           sp -= 2;
           if (sp->type == T_STRING) {
             free_string_svalue(sp--);
@@ -2924,6 +3069,8 @@ void eval_instruction(char *p) {
             global_lvalue_codepoint.index = 0;
             global_lvalue_codepoint.owner = nullptr;
             global_lvalue_codepoint.iter.reset();
+          } else if (sp->type == T_BUFFER) {
+            free_buffer((sp--)->u.buf);
           } else {
             free_array((sp--)->u.arr);
           }
@@ -3060,8 +3207,14 @@ void eval_instruction(char *p) {
               if (sp->type != T_NUMBER) {
                 error("Illegal rhs to byte lvalue\n");
               } else {
-                char c = (sp--)->u.number & 0xff;
-                *global_lvalue_byte.u.lvalue_byte = c;
+                LPC_INT n = (sp--)->u.number;
+                if (n < 0 || n > 255) {
+                  error("Buffer byte value out of range: must be 0..255.\n");
+                }
+                if (lval->subtype == 0 && n == 0) {
+                  error("Strings cannot contain 0 bytes.\n");
+                }
+                *lval->u.lvalue_byte = static_cast<unsigned char>(n);
               }
               break;
             }
@@ -3266,12 +3419,15 @@ void eval_instruction(char *p) {
             sp->u.real = --(lval->u.real);
             break;
           case T_LVALUE_BYTE:
-            if (global_lvalue_byte.subtype == 0 && *global_lvalue_byte.u.lvalue_byte == '\x1') {
+            if (*lval->u.lvalue_byte == 0) {
+              error("Buffer byte value out of range: must be 0..255.\n");
+            }
+            if (lval->subtype == 0 && *lval->u.lvalue_byte == '\x1') {
               error("Strings cannot contain 0 bytes.\n");
             }
             sp->type = T_NUMBER;
             sp->subtype = 0;
-            sp->u.number = --(*global_lvalue_byte.u.lvalue_byte);
+            sp->u.number = --(*lval->u.lvalue_byte);
             break;
           default:
             error("-- of non-numeric argument\n");
@@ -3288,7 +3444,13 @@ void eval_instruction(char *p) {
             lval->u.real--;
             break;
           case T_LVALUE_BYTE:
-            --(*global_lvalue_byte.u.lvalue_byte);
+            if (*lval->u.lvalue_byte == 0) {
+              error("Buffer byte value out of range: must be 0..255.\n");
+            }
+            if (lval->subtype == 0 && *lval->u.lvalue_byte == '\x1') {
+              error("Strings cannot contain 0 bytes.\n");
+            }
+            --(*lval->u.lvalue_byte);
             break;
           case T_LVALUE_CODEPOINT:
             assign_lvalue_codepoint([](UChar32 c) { return c - 1; });
@@ -3384,9 +3546,12 @@ void eval_instruction(char *p) {
             sp->u.real = ++lval->u.real;
             break;
           case T_LVALUE_BYTE:
+            if (*lval->u.lvalue_byte == 255) {
+              error("Buffer byte value out of range: must be 0..255.\n");
+            }
             sp->type = T_NUMBER;
             sp->subtype = 0;
-            sp->u.number = ++*global_lvalue_byte.u.lvalue_byte;
+            sp->u.number = ++*lval->u.lvalue_byte;
             break;
           case T_LVALUE_CODEPOINT:
             assign_lvalue_codepoint([](UChar32 c) { return ++c; });
@@ -3718,9 +3883,15 @@ void eval_instruction(char *p) {
             sp->u.real = lval->u.real--;
             break;
           case T_LVALUE_BYTE:
+            if (*lval->u.lvalue_byte == 0) {
+              error("Buffer byte value out of range: must be 0..255.\n");
+            }
+            if (lval->subtype == 0 && *lval->u.lvalue_byte == '\x1') {
+              error("Strings cannot contain 0 bytes.\n");
+            }
             sp->type = T_NUMBER;
             sp->subtype = 0;
-            sp->u.number = (*global_lvalue_byte.u.lvalue_byte)--;
+            sp->u.number = (*lval->u.lvalue_byte)--;
             break;
           case T_LVALUE_CODEPOINT:
             assign_lvalue_codepoint([](UChar32 c) { return --c; });
@@ -3743,8 +3914,11 @@ void eval_instruction(char *p) {
             sp->u.real = lval->u.real++;
             break;
           case T_LVALUE_BYTE:
+            if (*lval->u.lvalue_byte == 255) {
+              error("Buffer byte value out of range: must be 0..255.\n");
+            }
             sp->type = T_NUMBER;
-            sp->u.number = (*global_lvalue_byte.u.lvalue_byte)++;
+            sp->u.number = (*lval->u.lvalue_byte)++;
             sp->subtype = 0;
             break;
           case T_LVALUE_CODEPOINT:

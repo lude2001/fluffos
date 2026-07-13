@@ -1316,8 +1316,12 @@ expr0:
            side of the tree node. */
         CREATE_BINARY_OP($$, opcode, r->type, r, l);
 
-        /* allow TYPE_STRING += TYPE_NUMBER | TYPE_OBJECT */
-        if (exact_types && !compatible_types(r->type, l->type) &&
+        int buffer_conv = ((opcode == F_ASSIGN || opcode == F_ADD_EQ) &&
+                           l->type == TYPE_BUFFER &&
+                           (r->type == TYPE_STRING || (r->type & TYPE_MOD_ARRAY)));
+
+        /* allow TYPE_STRING += TYPE_NUMBER | TYPE_OBJECT, and buffer promotion */
+        if (exact_types && !compatible_types(r->type, l->type) && !buffer_conv &&
             !(opcode == F_ADD_EQ && l->type == TYPE_STRING &&
               ((COMP_TYPE(r->type, TYPE_NUMBER)) || r->type == TYPE_OBJECT))) {
           char buf[256];
@@ -1340,6 +1344,10 @@ expr0:
           } else if (l->type == TYPE_NUMBER && r->type == TYPE_REAL) {
             $$->l.expr = promote_to_int(r);
             $$->type = TYPE_NUMBER;
+          } else if (opcode == F_ADD_EQ && l->type == TYPE_BUFFER &&
+                     (r->type == TYPE_STRING || (r->type & TYPE_MOD_ARRAY))) {
+            $$->l.expr = promote_to_buffer(r);
+            $$->type = TYPE_BUFFER;
           }
         }
       }
@@ -1605,6 +1613,13 @@ expr0:
               {
                 if (t3 == TYPE_REAL || t3 == TYPE_NUMBER || t3 == TYPE_OBJECT){
                   result_type = TYPE_STRING;
+                } else goto add_error;
+                break;
+              }
+            case TYPE_BUFFER:
+              {
+                if (t3 == TYPE_BUFFER || t3 == TYPE_STRING || (t3 & TYPE_MOD_ARRAY)) {
+                  result_type = TYPE_BUFFER;
                 } else goto add_error;
                 break;
               }

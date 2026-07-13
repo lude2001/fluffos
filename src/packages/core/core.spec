@@ -25,6 +25,7 @@ object _this_object();
 /* used for implicit float/int conversions */
 int _to_int(string | float | int OR_BUFFER);
 float _to_float(string | float | int);
+buffer _to_buffer(string | buffer | mixed *);
 /* used by new() */
 object _new(string, ...);
 
@@ -33,6 +34,7 @@ mixed evaluate _evaluate(mixed, ...);
 object this_object _this_object();
 int to_int _to_int(string | float | int OR_BUFFER);
 float to_float _to_float(string | float | int);
+buffer to_buffer _to_buffer(string | buffer | mixed *);
 object clone_object _new(string, ...);
 
 function bind(function, object);

@@ -49,7 +49,30 @@ void do_tests() {
       c++;
     }
 
-    ASSERT_EQ("abcdefg", str); // not suppose to change
+    ASSERT_EQ("abcdefg", str);
+  }
+
+  {
+    buffer buf = to_buffer("abc");
+    int* bytes = ({});
+
+    foreach(int c in buf) {
+      bytes += ({ c });
+    }
+
+    ASSERT_EQ(({ 'a', 'b', 'c' }), bytes);
+  }
+
+  {
+    buffer buf = to_buffer("abc");
+
+    foreach(int ref c in buf) {
+      c++;
+    }
+
+    ASSERT_EQ('b', buf[0]);
+    ASSERT_EQ('c', buf[1]);
+    ASSERT_EQ('d', buf[2]);
   }
 
 }

@@ -2895,6 +2895,14 @@ void f__to_float() {
 }
 #endif
 
+#ifdef F__TO_BUFFER
+void f__to_buffer() {
+  buffer_t *buf = svalue_to_buffer_bytes(sp);
+  free_svalue(sp, "f__to_buffer");
+  put_buffer(buf);
+}
+#endif
+
 #ifdef F__TO_INT
 void f__to_int() {
   LPC_INT temp = 0;
