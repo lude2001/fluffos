@@ -249,9 +249,7 @@ static void mark_funp(funptr_t *fp) {
   }
   switch (fp->hdr.type) {
     case FP_LOCAL | FP_NOT_BINDABLE:
-      if (fp->hdr.owner) {
-        fp->hdr.owner->prog->extra_func_ref++;
-      }
+      fp->f.local.prog->extra_func_ref++;
       break;
     case FP_FUNCTIONAL:
     case FP_FUNCTIONAL | FP_NOT_BINDABLE:

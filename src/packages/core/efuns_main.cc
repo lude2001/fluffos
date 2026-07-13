@@ -137,6 +137,7 @@ void f_bind() {
   *new_fp = *old_fp;
   new_fp->hdr.ref = 1;
   new_fp->hdr.owner = ob; /* one ref from being on stack */
+  new_fp->hdr.owner_gen = ob->prog_generation;
   if (new_fp->hdr.args) {
     new_fp->hdr.args->ref++;
   }
