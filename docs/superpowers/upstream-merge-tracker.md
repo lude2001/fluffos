@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `94c3029bee39d9528c9243debc1757c85c8f429f`
-  (`merge partial upstream call_other type-check fix`)
+- Latest local merge commit: `797ca93624c7543a54ba3e453d0f96af25be5f2a`
+  (`merge partial upstream parser lifetime fix`)
 - Previous local merge commit:
-  `b6a529611506f9350877d859d1039f6edb424732`
-  (`merge partial upstream external socket cleanup`)
+  `94c3029bee39d9528c9243debc1757c85c8f429f`
+  (`merge partial upstream call_other type-check fix`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -377,9 +377,45 @@ Notes:
   `build/lpc-full-test-pr1247-call-other.log`; that build artifact is not
   tracked.
 
+## Merged In `797ca93624c7543a54ba3e453d0f96af25be5f2a`
+
+The following official PR #1247 parser lifetime fix was selectively merged or
+manually backported as a seventh partial batch:
+
+- Parser verb nodes removed during an active parse are now deferred until the
+  outermost parse unwinds, preventing `parse_vn` from pointing at freed memory
+  if a handler destructs itself or calls `parse_remove()` from a
+  `can_`/`direct_`/`do_` apply.
+- `clear_result()` initializes each saved argument count to zero, so
+  error-path cleanup never reads uninitialized counts.
+- If a handler is already destructed when `we_are_finished()` commits a
+  candidate, the half-built result is freed and `best_match` is cleared so the
+  parser does not call `do_the_call()` with a null/destructed target.
+- Added `/single/tests/crasher/parser_handler_destruct.c` to cover a handler
+  destructing itself from `direct_*` while returning success.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/parser_handler_destruct.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/parse_utf8.c`
+- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-parser-uaf.log`
+- `git diff --check -- src/packages/parser/parser.cc testsuite/single/tests/crasher/parser_handler_destruct.c`
+
+Notes:
+
+- This is still a partial merge of PR #1247, not a full PR merge.
+- The full testsuite command exited with status 0 and wrote its log to
+  `build/lpc-full-test-pr1247-parser-uaf.log`; that build artifact is not
+  tracked.
+- An initial parallel run of the focused parser tests left a local
+  `build/dist/driver.exe` test process after timeout; it was stopped by exact
+  path before rerunning `parse_utf8.c` successfully. The separate production
+  `D:\code_env\FluffOS\libexec\fluffos\driver.exe` process was not touched.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `94c3029b`:
+These official changes remain intentionally unmerged as of `797ca936`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -391,10 +427,9 @@ These official changes remain intentionally unmerged as of `94c3029b`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the sixth partial `call_other` batch:
-  parser mid-parse destruct/use-after-free handling; allocator-initializer leak
-  paths; additional `sprintf` fixes; mapping compose cleanup; MySQL regression
-  coverage; telnet LINEMODE/ZMP handling;
+- PR #1247, remaining scope after the seventh partial parser batch:
+  allocator-initializer leak paths; additional `sprintf` fixes; mapping compose
+  cleanup; MySQL regression coverage; telnet LINEMODE/ZMP handling;
   trace/compiler/disassembler format-string and table fixes; `replaceable()`
   empty-ignore handling; `query_replaced_program()` target-object fix; and all
   `recompile_object()`, FFI, or newer compiler-layout-specific parts.
