@@ -104,6 +104,10 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   `this_player()`。
 - `to_buffer()`、buffer 字节数组语义、buffer range 赋值、buffer `foreach`
   和 byte ref 行为。
+- PR #1247 第一批部分安全修复：`write_buffer()` 边界保护、`read_file()`
+  终止符边界保护、反向 `strsrch()` 非边界匹配保护、`sys_reload_tls()`
+  端口索引检查、socket 地址/accept 边界修复，以及 MySQL BLOB 按行长度
+  读取。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 `recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。

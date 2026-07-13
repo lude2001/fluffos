@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `9ddb8d623bfe972f64d7681400ce498b01199932`
-  (`merge upstream buffer byte semantics`)
+- Latest local merge commit: `726e990d17b11614ac9387c4b60cdc7f77bf9d73`
+  (`merge partial upstream audit safety fixes`)
 - Previous local merge commit:
-  `09ec81cbf4775ca1972c514f35f075611cec25a7`
-  (`merge additional upstream issue fixes`)
+  `9ddb8d623bfe972f64d7681400ce498b01199932`
+  (`merge upstream buffer byte semantics`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -160,9 +160,50 @@ Notes:
   `src/compiler/internal/grammar.y`; the generated parser table changes are
   expected.
 
+## Merged In `726e990d17b11614ac9387c4b60cdc7f77bf9d73`
+
+The following official PR #1247 fixes were selectively merged or manually
+backported as a first partial safety batch:
+
+- `write_buffer()` now rejects negative lengths and checks offset/length bounds
+  without signed overflow.
+- `read_file()` now clamps the terminator write to the actual bytes read after
+  the forward line scan and maximum-size clamp.
+- Reverse EGC search no longer loops forever when an unaligned match is found at
+  offset zero.
+- `sys_reload_tls()` now validates the requested port against the number of
+  `external_port` entries instead of comparing an index to the byte size of the
+  array.
+- `lpcaddr_to_sockaddr()` now rejects host names that would overflow its fixed
+  host buffer.
+- `socket_accept()` now applies close-on-exec handling to the accepted OS socket
+  fd and closes the accepted fd on that error path.
+- MySQL binary/string fields now allocate buffers from the current row's actual
+  BLOB length instead of the column-wide maximum length.
+- Added focused regressions for `write_buffer()` bounds, reverse `strsrch()`,
+  and invalid `sys_reload_tls()` port indexes.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/write_buffer_bounds.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/strsrch.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sys_reload_tls.c`
+- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-partial.log`
+- `git diff --check`
+
+Notes:
+
+- This is a partial merge of PR #1247, not a full PR merge.
+- The full testsuite command exited with status 0 and wrote its log to
+  `build/lpc-full-test-pr1247-partial.log`; that build artifact is not tracked.
+- This batch intentionally focused on low-risk runtime safety fixes that do not
+  require adopting official-only compiler layout, hot-reload, or larger package
+  restructuring.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `9ddb8d62`:
+These official changes remain intentionally unmerged as of `726e990d`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -174,7 +215,16 @@ These official changes remain intentionally unmerged as of `9ddb8d62`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247: the large multi-round memory-safety and correctness audit batch.
+- PR #1247, remaining scope after the first partial safety batch: parser
+  mid-parse destruct/use-after-free handling; allocator-initializer leak paths;
+  additional `sprintf` fixes; `pcre_replace()` heap overflow work; async
+  in-flight set/getdir path handling; `call_other()` type-check bounds;
+  macro-parameter hang fixes; `random_number(0)` handling; string allocation
+  hash-overflow protection; `uncompress()` and `terminal_colour()` leak fixes;
+  `INT_MIN` division/modulo cases; `input_to` `#` apply handling; external
+  socket teardown; matrix, mudlib stats, `get_dir()`, `add_action()`, and
+  `call_out()` bounds; MySQL regression coverage; telnet LINEMODE/ZMP handling;
+  and all `recompile_object()`, FFI, or newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including CRLF
   string-semantics test updates and any official-only cases tied to file layout
