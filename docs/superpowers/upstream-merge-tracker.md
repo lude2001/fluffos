@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `a8fada2406154b2ab0942b85d00388114d29d730`
-  (`merge partial upstream runtime hardening fixes`)
+- Latest local merge commit: `1b03c79fa98733e8b7265f56eb4d27bb5003b017`
+  (`merge partial upstream preprocessor comment fixes`)
 - Previous local merge commit:
-  `797ca93624c7543a54ba3e453d0f96af25be5f2a`
-  (`merge partial upstream parser lifetime fix`)
+  `a8fada2406154b2ab0942b85d00388114d29d730`
+  (`merge partial upstream runtime hardening fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -462,9 +462,44 @@ Notes:
 - The full testsuite command exited with status 0. Its output was observed in
   the terminal and was not redirected to a tracked artifact.
 
+## Merged In `1b03c79fa98733e8b7265f56eb4d27bb5003b017`
+
+The following official PR #1239/#1241 preprocessor directive comment behavior
+was selectively merged or manually backported into this branch's older
+`src/compiler/internal/lex.cc` layout:
+
+- Block comments inside preprocessor directive payloads now fold to whitespace
+  instead of being removed entirely, so macro bodies such as
+  `1 -/* comment */-1` keep token boundaries.
+- Directive-line block comments that span physical lines remain consumed as
+  part of the directive, preventing continuation text from being tokenized as
+  normal LPC code.
+- Existing local trailing-line-comment handling for directive payloads is now
+  pinned by tests for `#define`, `#ifdef`, `#undef`, and nested macro argument
+  expansion.
+- Added `/single/tests/compiler/preprocessor.c` to cover block-comment tails,
+  live and dead `#if` branches, string literals containing comment markers,
+  comment-as-whitespace token separation, trailing `//` macro comments, and
+  `#ifdef`/`#undef` lookup with trailing comments.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
+- `git diff --check -- src/compiler/internal/lex.cc testsuite/single/tests/compiler/preprocessor.c`
+
+Notes:
+
+- This is a local-layout backport of PR #1239/#1241 behavior, not a wholesale
+  import of official `lexer_rules_pp.cc`, generated Flex scanner changes, or
+  official GTest compiler harness changes.
+- The initial focused test failed before rebuilding the driver because the old
+  dist binary still tokenized `1 -/* comment */-1` as `1--1`; after rebuilding,
+  the focused test passed.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `a8fada24`:
+These official changes remain intentionally unmerged as of `1b03c79f`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
