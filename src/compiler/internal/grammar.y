@@ -1315,8 +1315,19 @@ expr0:
           yyerror(buf);
         }
 
-        if (opcode == F_ASSIGN)
+        if (opcode == F_ASSIGN) {
           $$->l.expr = do_promotions(r, l->type);
+        }
+
+        if (opcode == F_ADD_EQ || opcode == F_SUB_EQ || opcode == F_MULT_EQ || opcode == F_DIV_EQ) {
+          if (l->type == TYPE_REAL && r->type == TYPE_NUMBER) {
+            $$->l.expr = promote_to_float(r);
+            $$->type = TYPE_REAL;
+          } else if (l->type == TYPE_NUMBER && r->type == TYPE_REAL) {
+            $$->l.expr = promote_to_int(r);
+            $$->type = TYPE_NUMBER;
+          }
+        }
       }
     }
   | error L_ASSIGN expr0

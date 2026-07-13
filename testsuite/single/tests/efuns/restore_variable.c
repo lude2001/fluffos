@@ -40,4 +40,24 @@ void do_tests() {
 	IS("([1:" + x + ",])", ([1:y ]));
 	IS("([" + x + ":" + x + ",])", ([ y: y ]));
     }
+
+    {
+	string wide_map = "";
+	string wide_arr = "";
+	mapping rm;
+	mixed *ra;
+
+	for (i = 0; i < 500; i++) {
+	    wide_map += i + ":({" + i + ",}),";
+	    wide_arr += "({" + i + ",}),";
+	}
+
+	rm = restore_variable("([" + wide_map + "])");
+	ASSERT_EQ(500, sizeof(rm));
+	ASSERT_EQ(7, rm[7][0]);
+
+	ra = restore_variable("({" + wide_arr + "})");
+	ASSERT_EQ(500, sizeof(ra));
+	ASSERT_EQ(499, ra[499][0]);
+    }
 }

@@ -606,6 +606,18 @@ void f_unique_mapping(void) {
   // item with same result together.
   typedef std::map<svalue_t, std::deque<svalue_t *>, unique_svalue_compare> MapResult;
   MapResult result;
+  mapping_t *m = nullptr;
+  bool completed = false;
+  DEFER {
+    for (auto &item : result) {
+      svalue_t key = item.first;
+      free_svalue(&key, "unique_mapping key");
+    }
+    if (!completed && m) {
+      free_mapping(m);
+    }
+  };
+
   int size = v->size;
   while (size--) {
     svalue_t *sv;
@@ -644,15 +656,13 @@ void f_unique_mapping(void) {
   }
 
   // Translate result into LPC mapping
-  mapping_t *m = allocate_mapping(0);
+  m = allocate_mapping(0);
   for (auto &item : result) {
     auto key = item.first;
     auto values = item.second;
 
-    // FIXME: find_for_insert can actually throw error if we exceeded maximum
-    // mapping size! we will leave garbage when that happens.
-    //
-    // key is copied, but not freed, the value is freed at the end of the loop.
+    // find_for_insert/allocate_empty_array may error; the scope guard above
+    // releases copied keys and drops any partial mapping in that case.
     svalue_t *l = find_for_insert(m, &key, 0);
     l->type = T_ARRAY;
     l->u.arr = allocate_empty_array(values.size());
@@ -660,9 +670,8 @@ void f_unique_mapping(void) {
       // values are copied.
       assign_svalue_no_free(&l->u.arr->item[i], values[i]);
     }
-    // Free reference
-    free_svalue(&key, "unique_mapping");
   }
+  completed = true;
   pop_n_elems(num_arg);
   push_refed_mapping(m);
 }

@@ -1,6 +1,7 @@
 #include "base/std.h"
 
 #include <chrono>
+#include <climits>  // for INT_MAX
 #include <ctype.h>  // for isdigit
 #include <cstdio>   // for std::remove
 #include <math.h>   // for pow
@@ -235,10 +236,37 @@ void save_svalue(svalue_t *v, char **buf) {
   }
 }
 
-static int restore_internal_size(const char **str, int is_mapping, int depth) {
+static bool grow_restore_sizes(int depth) {
+  if (!sizes) {
+    max_depth = 128;
+    while (max_depth <= depth) {
+      if (max_depth > INT_MAX / 2) {
+        return false;
+      }
+      max_depth <<= 1;
+    }
+    sizes =
+        reinterpret_cast<int *>(DCALLOC(max_depth, sizeof(int), TAG_TEMPORARY, "restore_internal_size"));
+  } else if (depth >= max_depth) {
+    while (max_depth <= depth) {
+      if (max_depth > INT_MAX / 2) {
+        return false;
+      }
+      max_depth <<= 1;
+    }
+    sizes = RESIZE(sizes, max_depth, int, TAG_TEMPORARY, "restore_internal_size");
+  }
+  return true;
+}
+
+static int restore_internal_size(const char **str, int is_mapping, int depth, int nest) {
   const char *cp = *str;
   int size = 0;
   char c, delim, toggle = 0;
+
+  if (nest > MAX_SAVE_SVALUE_DEPTH) {
+    return 0;
+  }
 
   delim = is_mapping ? ':' : ',';
   while ((c = *cp++)) {
@@ -259,17 +287,17 @@ static int restore_internal_size(const char **str, int is_mapping, int depth) {
       case '(': {
         if (*cp == '{') {
           *str = ++cp;
-          if (!restore_internal_size(str, 0, save_svalue_depth++)) {
+          if (!restore_internal_size(str, 0, save_svalue_depth++, nest + 1)) {
             return 0;
           }
         } else if (*cp == '[') {
           *str = ++cp;
-          if (!restore_internal_size(str, 1, save_svalue_depth++)) {
+          if (!restore_internal_size(str, 1, save_svalue_depth++, nest + 1)) {
             return 0;
           }
         } else if (*cp == '/') {
           *str = ++cp;
-          if (!restore_internal_size(str, 0, save_svalue_depth++)) {
+          if (!restore_internal_size(str, 0, save_svalue_depth++, nest + 1)) {
             return 0;
           }
         } else {
@@ -287,18 +315,8 @@ static int restore_internal_size(const char **str, int is_mapping, int depth) {
       case ']': {
         if (*cp++ == ')' && is_mapping) {
           *str = cp;
-          if (!sizes) {
-            max_depth = 128;
-            while (max_depth <= depth) {
-              max_depth <<= 1;
-            }
-            sizes = reinterpret_cast<int *>(
-                DCALLOC(max_depth, sizeof(int), TAG_TEMPORARY, "restore_internal_size"));
-          } else if (depth >= max_depth) {
-            while ((max_depth <<= 1) <= depth) {
-              ;
-            }
-            sizes = RESIZE(sizes, max_depth, int, TAG_TEMPORARY, "restore_internal_size");
+          if (!grow_restore_sizes(depth)) {
+            return 0;
           }
           sizes[depth] = size;
           return 1;
@@ -311,18 +329,8 @@ static int restore_internal_size(const char **str, int is_mapping, int depth) {
       case '}': {
         if (*cp++ == ')' && !is_mapping) {
           *str = cp;
-          if (!sizes) {
-            max_depth = 128;
-            while (max_depth <= depth) {
-              max_depth <<= 1;
-            }
-            sizes = reinterpret_cast<int *>(
-                DCALLOC(max_depth, sizeof(int), TAG_TEMPORARY, "restore_internal_size"));
-          } else if (depth >= max_depth) {
-            while ((max_depth <<= 1) <= depth) {
-              ;
-            }
-            sizes = RESIZE(sizes, max_depth, int, TAG_TEMPORARY, "restore_internal_size");
+          if (!grow_restore_sizes(depth)) {
+            return 0;
           }
           sizes[depth] = size;
           return 1;
@@ -381,17 +389,17 @@ static int restore_size(const char **str, int is_mapping) {
       case '(': {
         if (*cp == '{') {
           *str = ++cp;
-          if (!restore_internal_size(str, 0, save_svalue_depth++)) {
+          if (!restore_internal_size(str, 0, save_svalue_depth++, 1)) {
             return -1;
           }
         } else if (*cp == '[') {
           *str = ++cp;
-          if (!restore_internal_size(str, 1, save_svalue_depth++)) {
+          if (!restore_internal_size(str, 1, save_svalue_depth++, 1)) {
             return -1;
           }
         } else if (*cp == '/') {
           *str = ++cp;
-          if (!restore_internal_size(str, 0, save_svalue_depth++)) {
+          if (!restore_internal_size(str, 0, save_svalue_depth++, 1)) {
             return -1;
           }
         } else {

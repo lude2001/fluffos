@@ -19,6 +19,17 @@ void do_tests() {
     stack = call_stack(4);
     ASSERT_EQ(1, arrayp(stack));
     ASSERT(sizeof(filter(stack, (: stringp :))) == n);
+    ASSERT(strsrch(stack[0], ":") != -1);
+
+    entry = map(({ 0 }), (: call_stack(4) :))[0];
+    ASSERT(sizeof(filter(entry, (: stringp :))) == sizeof(entry));
+    ASSERT(strsrch(entry[0], ":") != -1);
+
+    catch {
+        stack = call_stack(4);
+    };
+    ASSERT(sizeof(filter(stack, (: stringp :))) == sizeof(stack));
+    ASSERT(strsrch(stack[0], ":") != -1);
 
     ASSERT(catch(call_stack(5)));
     ASSERT(catch(call_stack(-100)));

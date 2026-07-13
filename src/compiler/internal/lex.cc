@@ -4432,15 +4432,30 @@ typedef struct lname_linked_buf_s {
   char block[4096];
 } lname_linked_buf_t;
 
+typedef struct lname_big_buf_s {
+  struct lname_big_buf_s *next;
+} lname_big_buf_t;
+
 lname_linked_buf_t *lnamebuf = nullptr;
+static lname_big_buf_t *lname_big_list = nullptr;
 
 int lb_index = 4096;
 
 static char *alloc_local_name(const char *name) {
-  int len = strlen(name) + 1;
+  size_t len = strlen(name) + 1;
   char *res;
 
-  if (lb_index + len > 4096) {
+  if (len > sizeof(lnamebuf->block)) {
+    auto *big = reinterpret_cast<lname_big_buf_t *>(
+        DMALLOC(sizeof(lname_big_buf_t) + len, TAG_COMPILER, "alloc_local_name"));
+    big->next = lname_big_list;
+    lname_big_list = big;
+    res = reinterpret_cast<char *>(big + 1);
+    memcpy(res, name, len);
+    return res;
+  }
+
+  if (lb_index + len > sizeof(lnamebuf->block)) {
     lname_linked_buf_t *new_buf;
     new_buf = reinterpret_cast<lname_linked_buf_t *>(
         DMALLOC(sizeof(lname_linked_buf_t), TAG_COMPILER, "alloc_local_name"));
@@ -4530,6 +4545,7 @@ void debug_dump_ident_hash_table(int noisy)
 void free_unused_identifiers() {
   ident_hash_elem_list_t *ihel, *next;
   lname_linked_buf_t *lnb, *lnbn;
+  lname_big_buf_t *lbb, *lbbn;
   int i;
 
   /* clean up dirty idents */
@@ -4572,6 +4588,14 @@ void free_unused_identifiers() {
   }
   lnamebuf = nullptr;
   lb_index = 4096;
+
+  lbb = lname_big_list;
+  while (lbb) {
+    lbbn = lbb->next;
+    FREE(lbb);
+    lbb = lbbn;
+  }
+  lname_big_list = nullptr;
 #if 0
   debug_dump_ident_hash_table(0);
 #endif
