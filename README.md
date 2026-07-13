@@ -126,6 +126,12 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1247 第七批部分 parser 生命周期修复：active parse 期间延迟释放
   verb node，并在 handler 中途 destruct 时清理半成品结果，避免
   mid-parse use-after-free / null object 调用。
+- PR #1247 第八批部分运行时硬化修复：`allocate(n, function)` 异常路径、
+  telnet LINEMODE/ZMP 边界、`query_replaced_program()` 无参分支、
+  `replaceable(ob, ({}))`、mapping compose key 释放、`sprintf()` 大 precision、
+  disassembler switch table、trace/compiler 格式串、`strftime()` 栈空间、
+  checkmemory 默认失败消息、`norm()` helper 长度来源，以及 MUD 端口输入长度
+  边界。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 `recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。

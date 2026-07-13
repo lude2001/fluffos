@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `797ca93624c7543a54ba3e453d0f96af25be5f2a`
-  (`merge partial upstream parser lifetime fix`)
+- Latest local merge commit: `a8fada2406154b2ab0942b85d00388114d29d730`
+  (`merge partial upstream runtime hardening fixes`)
 - Previous local merge commit:
-  `94c3029bee39d9528c9243debc1757c85c8f429f`
-  (`merge partial upstream call_other type-check fix`)
+  `797ca93624c7543a54ba3e453d0f96af25be5f2a`
+  (`merge partial upstream parser lifetime fix`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -413,9 +413,58 @@ Notes:
   path before rerunning `parse_utf8.c` successfully. The separate production
   `D:\code_env\FluffOS\libexec\fluffos\driver.exe` process was not touched.
 
+## Merged In `a8fada2406154b2ab0942b85d00388114d29d730`
+
+The following official PR #1247 fixes were selectively merged or manually
+backported as an eighth partial runtime-hardening batch:
+
+- `allocate(n, function)` now keeps the partially built result array on the VM
+  stack while running per-element callbacks, so callback errors do not leak the
+  result or already-stored refcounted values.
+- Telnet LINEMODE subnegotiation now checks the second suboption byte exists
+  before reading or echoing it, and ZMP argument arrays fill `item[0..n-1]`
+  instead of writing one slot past the end.
+- `query_replaced_program()` without an explicit object now reads
+  `current_object->replaced_program` instead of treating the arbitrary stack top
+  as an object.
+- `replaceable(ob, ({}))` now allocates the built-in ignore entries even for an
+  empty caller ignore list.
+- `compose_mapping()` now frees deleted mapping keys before freeing the node.
+- `sprintf()` now prints integer/float values with bounded `snprintf()` for
+  huge user-supplied precision.
+- The disassembler now treats the direct switch-table `minval` as
+  `sizeof(LPC_INT)` instead of a hardcoded four bytes.
+- Compiler overload warnings and trace lines now pass source-derived text as a
+  `"%s"` argument instead of a printf format string.
+- `strftime()` now uses heap storage rather than a stack VLA sized by
+  `__MAX_STRING_LENGTH__`.
+- `checkmemory` now bounds the configured default fail-message copy.
+- `norm()` now uses the array passed to the helper when measuring length, fixing
+  the shared helper path used by `angle()`.
+- MUD-port input now clamps read length to the local buffer and rejects
+  non-positive length prefixes.
+- Added `/single/tests/crasher/replaceable_empty.c` and extended the existing
+  `allocate` and `sprintf` efun regressions.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/replaceable_empty.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/allocate.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/replaceable.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check`
+
+Notes:
+
+- This is still a partial merge of PR #1247, not a full PR merge.
+- The full testsuite command exited with status 0. Its output was observed in
+  the terminal and was not redirected to a tracked artifact.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `797ca936`:
+These official changes remain intentionally unmerged as of `a8fada24`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -427,12 +476,10 @@ These official changes remain intentionally unmerged as of `797ca936`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the seventh partial parser batch:
-  allocator-initializer leak paths; additional `sprintf` fixes; mapping compose
-  cleanup; MySQL regression coverage; telnet LINEMODE/ZMP handling;
-  trace/compiler/disassembler format-string and table fixes; `replaceable()`
-  empty-ignore handling; `query_replaced_program()` target-object fix; and all
-  `recompile_object()`, FFI, or newer compiler-layout-specific parts.
+- PR #1247, remaining scope after the eighth partial runtime-hardening batch:
+  MySQL regression coverage, any still-unmerged restore/deep-nesting error-path
+  coverage, remaining official-only tests, and all `recompile_object()`, FFI, or
+  newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including CRLF
   string-semantics test updates and any official-only cases tied to file layout
