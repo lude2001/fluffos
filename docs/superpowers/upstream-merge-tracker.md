@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `e4eda115aa6d42adc384920f49be49b435a51d9c`
-  (`merge partial upstream input_to safety fix`)
+- Latest local merge commit: `b6a529611506f9350877d859d1039f6edb424732`
+  (`merge partial upstream external socket cleanup`)
 - Previous local merge commit:
-  `ed01cbc055924f13df67cd4bd62795db2a96defb`
-  (`merge partial upstream async safety fixes`)
+  `e4eda115aa6d42adc384920f49be49b435a51d9c`
+  (`merge partial upstream input_to safety fix`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -318,9 +318,40 @@ Notes:
   the Windows build, the existing `input_to` test, and the full LPC testsuite
   rather than a dedicated live socket regression.
 
+## Merged In `b6a529611506f9350877d859d1039f6edb424732`
+
+The following official PR #1247 external-process socket cleanup was selectively
+merged or manually backported as a fifth partial batch:
+
+- `external_start()` now closes the provisioned efun socket with
+  `socket_close(fd, SC_FORCE | SC_FINAL_CLOSE)` when `posix_spawn()` fails after
+  the socket has been registered, then clears `sv[0]` so the deferred raw-fd
+  cleanup does not double-close it.
+- The `socket_close()` internal flags are exposed through `socket_efuns.h` so
+  the external package can use the same forced-final close path as the socket
+  package.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sockets.c`
+- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-external.log`
+- `git diff --check -- src/packages/external/external.cc src/packages/sockets/socket_efuns.cc src/packages/sockets/socket_efuns.h`
+
+Notes:
+
+- This is still a partial merge of PR #1247, not a full PR merge.
+- The full testsuite command exited with status 0 and wrote its log to
+  `build/lpc-full-test-pr1247-external.log`; that build artifact is not
+  tracked.
+- The affected `posix_spawn()` failure path is in the non-Windows external
+  implementation. The local Windows validation proves the shared socket API
+  exposure and existing socket behavior still build and pass, but it is not a
+  dedicated POSIX runtime reproduction of the spawn-failure cleanup path.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `e4eda115`:
+These official changes remain intentionally unmerged as of `b6a52961`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -332,11 +363,11 @@ These official changes remain intentionally unmerged as of `e4eda115`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the fourth partial input-to batch:
+- PR #1247, remaining scope after the fifth partial external batch:
   parser mid-parse destruct/use-after-free handling; allocator-initializer leak
   paths; additional `sprintf` fixes; `call_other()` type-check bounds;
-  external socket teardown; mapping compose cleanup; MySQL regression coverage;
-  telnet LINEMODE/ZMP handling;
+  mapping compose cleanup; MySQL regression coverage; telnet LINEMODE/ZMP
+  handling;
   trace/compiler/disassembler format-string and table fixes; `replaceable()`
   empty-ignore handling; `query_replaced_program()` target-object fix; and all
   `recompile_object()`, FFI, or newer compiler-layout-specific parts.

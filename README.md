@@ -117,6 +117,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   下的 callback 释放。
 - PR #1247 第四批部分交互输入安全修复：`input_to()` 拒绝指向 `#` 开头的
   内部 apply，并在退出前释放已挂起的输入回调和 carryover 参数。
+- PR #1247 第五批部分 external 安全修复：`external_start()` 在
+  `posix_spawn()` 失败时清理已 provision 的 efun socket，避免留下半开 fd、
+  event listener 和 callback 字符串。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 `recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。
