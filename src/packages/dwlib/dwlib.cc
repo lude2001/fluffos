@@ -825,7 +825,7 @@ void f_replace_dollars() {
           currentnew += len;
           currentold += len;
           currentold += COUNTED_STRLEN(one);
-          if (currentnew + COUNTED_STRLEN(one) - newstr > max_string_length) {
+          if (currentnew + COUNTED_STRLEN(two) - newstr > max_string_length) {
             FREE_MSTR(newstr);
             error("string too long");
           }

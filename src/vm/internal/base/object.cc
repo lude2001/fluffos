@@ -63,6 +63,14 @@ int valid_hide(object_t *obj) {
 int save_svalue_depth = 0, max_depth;
 int *sizes = nullptr;
 
+static void reset_restore_scratch() {
+  save_svalue_depth = max_depth = 0;
+  if (sizes) {
+    FREE(reinterpret_cast<char *>(sizes));
+    sizes = nullptr;
+  }
+}
+
 int svalue_save_size(svalue_t *v) {
   switch (v->type) {
     case T_STRING: {
@@ -654,7 +662,7 @@ static int restore_mapping(char **str, svalue_t *sv) {
   if (save_svalue_depth) {
     size = sizes[save_svalue_depth - 1];
   } else if ((size = restore_size((const char **)str, 1)) < 0) {
-    return 0;
+    return ROB_MAPPING_ERROR;
   }
 
   if (!size) {
@@ -834,6 +842,7 @@ static int restore_mapping(char **str, svalue_t *sv) {
         free_mapping(m);
         free_svalue(&key, "restore_mapping: out of memory");
         free_svalue(&value, "restore_mapping: out of memory");
+        reset_restore_scratch();
         error("Out of memory\n");
       }
     }
@@ -843,6 +852,7 @@ static int restore_mapping(char **str, svalue_t *sv) {
       free_mapping(m);
       free_svalue(&key, "restore_mapping: mapping too large");
       free_svalue(&value, "restore_mapping: mapping too large");
+      reset_restore_scratch();
       mapping_too_large();
     }
 

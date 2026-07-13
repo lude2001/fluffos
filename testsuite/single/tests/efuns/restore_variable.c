@@ -60,4 +60,18 @@ void do_tests() {
 	ASSERT_EQ(500, sizeof(ra));
 	ASSERT_EQ(499, ra[499][0]);
     }
+
+    {
+	string deep_arr = "0";
+	string deep_map = "0";
+
+	for (i = 0; i < 400; i++) {
+	    deep_arr = "({" + deep_arr + ",})";
+	    deep_map = "([0:" + deep_map + ",])";
+	}
+	ASSERT2(catch(restore_variable(deep_arr)),
+		"Deeply-nested array should be rejected, not crash");
+	ASSERT2(catch(restore_variable(deep_map)),
+		"Deeply-nested mapping should be rejected, not crash");
+    }
 }

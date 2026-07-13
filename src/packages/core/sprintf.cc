@@ -167,6 +167,7 @@ using cst = struct ColumnSlashTable {
   unsigned int remainder; /* extra space needed to fill out to width */
   int pres;               /* precision */
   format_info info;       /* formatting data */
+  char *owned;            /* owned copy backing column/table data */
   struct ColumnSlashTable *next;
 }; /* Columns Slash Tables */
 
@@ -201,6 +202,12 @@ static void pop_sprintf_state() {
     cst *next = state->csts->next;
     if (!(state->csts->info & INFO_COLS) && state->csts->d.tab) {
       FREE(state->csts->d.tab);
+    }
+    if (state->csts->pad) {
+      FREE(state->csts->pad);
+    }
+    if (state->csts->owned) {
+      FREE_MSTR(state->csts->owned);
     }
     FREE(state->csts);
     state->csts = next;
@@ -671,6 +678,9 @@ static int add_column(cst **column, int trailing) {
     if (col->pad) {
       FREE(col->pad);
     }
+    if (col->owned) {
+      FREE_MSTR(col->owned);
+    }
     FREE(col);
     *column = temp;
     return ret;
@@ -727,6 +737,9 @@ static int add_table(cst **table) {
     }
     if (tab_d) {
       FREE(tab_d);
+    }
+    if (tab->owned) {
+      FREE_MSTR(tab->owned);
     }
     FREE(tab);
     *table = temp;
@@ -1094,7 +1107,8 @@ char *string_print_formatted(const char *format_str, int argc, svalue_t *argv) {
               *temp =
                   reinterpret_cast<cst *>(DMALLOC(sizeof(cst), TAG_TEMPORARY, "string_print: 3"));
               (*temp)->next = nullptr;
-              (*temp)->d.col = carg->u.string;
+              (*temp)->owned = string_copy(carg->u.string, "string_print: col");
+              (*temp)->d.col = (*temp)->owned;
               (*temp)->pad = make_pad(&pad);
               (*temp)->size = fs;
               (*temp)->pres = (pres) ? pres : fs;
@@ -1112,9 +1126,10 @@ char *string_print_formatted(const char *format_str, int argc, svalue_t *argv) {
               unsigned int n, items_per_column, max_width;
               const char *p1, *p2;
 
-#define TABLE carg->u.string
               (*temp) =
                   reinterpret_cast<cst *>(DMALLOC(sizeof(cst), TAG_TEMPORARY, "string_print: 4"));
+              (*temp)->owned = string_copy(carg->u.string, "string_print: table");
+#define TABLE ((*temp)->owned)
               (*temp)->d.tab = nullptr;
               (*temp)->pad = make_pad(&pad);
               (*temp)->info = finfo;

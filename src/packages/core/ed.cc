@@ -658,6 +658,9 @@ static int prntln(char *str, char *outstr, int vflg, int lineno) {
     *line++ = '$';
   }
 #endif
+  if (line - start > ED_MAXLINE - 1) {
+    line = start + ED_MAXLINE - 1;
+  }
   *line = EOS;
 
   strcpy(outstr, start);
@@ -863,13 +866,18 @@ static char *getfn(int writeflg) {
   if (*inptr == NL) {
     P_NOFNAME = TRUE;
     file[0] = '/';
-    strcpy(file + 1, P_FNAME);
+    size_t fn_len = strlen(P_FNAME);
+    if (fn_len > MAXFNAME - 2) {
+      fn_len = MAXFNAME - 2;
+    }
+    memcpy(file + 1, P_FNAME, fn_len);
+    file[1 + fn_len] = '\0';
   } else {
     P_NOFNAME = FALSE;
     Skip_White_Space;
 
     cp = file;
-    while (*inptr && *inptr != NL && *inptr != SP && *inptr != HT) {
+    while (*inptr && *inptr != NL && *inptr != SP && *inptr != HT && cp < file + MAXFNAME - 1) {
       *cp++ = *inptr++;
     }
     *cp = '\0';
@@ -1045,7 +1053,7 @@ static int getrhs(char *sub) {
     return (EDERR);
   }
   while (*inptr != delim && *inptr != NL) {
-    if (sub > outmax) {
+    if (sub >= outmax - 2) {
       return EDERR;
     }
     if (*inptr == ESCAPE) {
@@ -1253,7 +1261,7 @@ static regexp *optpat() {
     return P_OLDPAT;
   }
   cp = str;
-  while (*inptr != delim && *inptr != NL && *inptr != EOS && cp < str + MAXPAT - 1) {
+  while (*inptr != delim && *inptr != NL && *inptr != EOS && cp < str + MAXPAT - 2) {
     if (*inptr == ESCAPE && inptr[1] != NL) {
       *cp++ = *inptr++;
     }
