@@ -78,6 +78,9 @@ static int found_level = 0;
 static mapping_t *parse_nicks = nullptr;
 static array_t *parse_env = nullptr;
 
+static int parse_active_depth = 0;
+static verb_node_t *deferred_verb_nodes = nullptr;
+
 static int direct_object, indirect_object;
 
 static parser_error_t current_error_info;
@@ -600,6 +603,15 @@ void f_parse_refresh() {
   }
 }
 
+static void free_verb_node(verb_node_t *vn) {
+  if (parse_active_depth > 0) {
+    vn->next = deferred_verb_nodes;
+    deferred_verb_nodes = vn;
+  } else {
+    FREE(vn);
+  }
+}
+
 /* called from free_object() */
 void parse_free(parse_info_t *pinfo) {
   int i;
@@ -613,7 +625,7 @@ void parse_free(parse_info_t *pinfo) {
           if ((*vn)->handler == pinfo->ob) {
             old = *vn;
             *vn = (*vn)->next;
-            FREE(old);
+            free_verb_node(old);
           } else {
             vn = &((*vn)->next);
           }
@@ -676,6 +688,7 @@ static void clear_result(parse_result_t *pr) {
   for (i = 0; i < 4; i++) {
     pr->res[i].func = nullptr;
     pr->res[i].args = nullptr;
+    pr->res[i].num = 0;
   }
 }
 
@@ -699,6 +712,14 @@ static void free_parse_globals() {
       free_object(&loaded_objects[i], "free_parse_globals");
     }
     objects_loaded = 0;
+  }
+
+  if (parse_active_depth > 0 && --parse_active_depth == 0) {
+    while (deferred_verb_nodes) {
+      verb_node_t *n = deferred_verb_nodes;
+      deferred_verb_nodes = n->next;
+      FREE(n);
+    }
   }
 }
 
@@ -2829,6 +2850,9 @@ static void we_are_finished(parse_state_t *state) {
     best_result = (parse_result_t *)DMALLOC(sizeof(parse_result_t), TAG_PARSER, "we_are_finished");
     clear_result(best_result);
     if (parse_vn->handler->flags & O_DESTRUCTED) {
+      free_parse_result(best_result);
+      best_result = nullptr;
+      best_match = 0;
       DEBUG_DEC;
       return;
     }
@@ -3343,6 +3367,7 @@ void f_parse_sentence() {
   STACK_INC;
   sp->type = T_ERROR_HANDLER;
   sp->u.error_handler = free_parse_globals;
+  parse_active_depth++;
 
   parse_user = current_object;
   pi = current_object->pinfo;
@@ -3393,6 +3418,7 @@ void f_parse_my_rules() {
   STACK_INC;
   sp->type = T_ERROR_HANDLER;
   sp->u.error_handler = free_parse_globals;
+  parse_active_depth++;
 
   parse_user = (sp - 2)->u.ob;
   pi = parse_user->pinfo;
@@ -3457,7 +3483,7 @@ void f_parse_remove() {
         if ((*vn)->handler == current_object) {
           old = *vn;
           *vn = (*vn)->next;
-          FREE(old);
+          free_verb_node(old);
         } else {
           vn = &((*vn)->next);
         }
