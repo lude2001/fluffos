@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `1b8c5cc68c32380d80b4f19f81456c09f62239ce`
-  (`merge upstream recompile object regression coverage`)
+- Latest local merge commit: `362f6fefae58197c27baa7243ac494db6882c9dd`
+  (`merge upstream hot reload demo coverage`)
 - Previous local merge commit:
-  `9e2aed146a581a951c7e79bb153c7d583761bca1`
-  (`merge upstream recompile filename lifetime fix`)
+  `1b8c5cc68c32380d80b4f19f81456c09f62239ce`
+  (`merge upstream recompile object regression coverage`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -537,10 +537,9 @@ Notes:
 - This is a core-behavior merge of PR #1230, adapted to this branch's
   `grammar_rules.cc` / `lex.cc` compiler layout rather than importing official
   `grammar_rules.cc` / `lexer_utils.cc` changes wholesale.
-- The official hot-reload daemon/demo from PR #1230 was not recorded here as
-  fully merged. The reusable compile hooks it depends on are present; the demo
-  remains a later integration item, especially after `recompile_object()` from
-  PR #1237 is merged.
+- The official hot-reload daemon/demo from PR #1230 was not part of this
+  commit. It was later adapted into this branch's `.c` testsuite layout in
+  `362f6fefae58197c27baa7243ac494db6882c9dd`.
 - The new master applies preserve existing production behavior when the mudlib
   master returns the original path or does not route to a custom hook.
 
@@ -748,12 +747,52 @@ Notes:
   master executing-frame guard, and the code path rebuilds master applies when
   the master object itself is swapped.
 - The focused `recompile_object2.c` run validates the synchronous portions of
-  that test. The delayed call_out assertions are gated by the full LPC suite,
-  where the test runner continues long enough for them to execute.
+  that test. The local branch does not rely on the official post-run delayed
+  call_out verifier because the local single-test runner shuts down
+  immediately; it instead verifies that name/funptr call_out handles survive
+  recompile and remain removable.
+
+## Merged In `362f6fefae58197c27baa7243ac494db6882c9dd`
+
+The following official PR #1230/#1237 hot-reload demo and coverage was
+selectively adapted as a testsuite-only development example:
+
+- Added `/single/hot_reload.c`, a daemon that registers as the testsuite
+  master's compile hooks, records include/inherit dependency edges, snapshots
+  source file size+mtime, and reloads stale watched programs.
+- The state-keeping reload path uses `recompile_object()` so master copies and
+  live clones receive the new program in place while retaining compatible
+  variables by name.
+- The opt-out reload path uses destruct+load so master copies restart from
+  initializers and existing clones keep their old program until mudlib code
+  chooses to migrate or destruct them.
+- Objects with `hot_reload_state()` / `hot_reload_restore()` use the
+  cooperative destruct+load path and explicitly choose which state survives.
+- Added `/single/tests/applies/hot_reload.c` to cover dependency graph
+  recording, deepest include-of-inherited-program changes, shared dependency
+  stale-set collection, compile-failure self-healing, deepest-first ancestor
+  refresh, currently-executing guard record preservation, state-keeping reloads,
+  clone updates, cooperative restore, and opt-out semantics.
+- Adjusted `recompile_object2.c` so call_out survival coverage is synchronous
+  in this branch's test runner and leaves no generated test files behind.
+
+Validation for this merge:
+
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/applies/hot_reload.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- testsuite/single/hot_reload.c testsuite/single/tests/applies/hot_reload.c testsuite/single/tests/efuns/recompile_object2.c`
+
+Notes:
+
+- This is a testsuite development example, not production-default behavior.
+  It activates only when loaded and enabled by the testsuite.
+- The official documentation-site page for hot reload was not imported
+  wholesale; local project docs summarize the boundary here and in the README.
 
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `1b8c5cc6`:
+These official changes remain intentionally unmerged as of `362f6fef`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -773,17 +812,18 @@ These official changes remain intentionally unmerged as of `1b8c5cc6`:
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including any
   official-only cases tied to file layout or test harness differences.
-- PR #1237, remaining scope: official hot-reload daemon/demo documentation,
-  the official post-run idle-master recompile fixture, and any official-only
-  test harness shape. The core efun, live master/clone program swap, variable
+- PR #1237, remaining scope: official hot-reload documentation-site page, the
+  official post-run idle-master recompile fixture, and any official-only test
+  harness shape. The core efun, live master/clone program swap, variable
   migration, master/simul_efun rebuild, executing-frame guard, clone-target
   rejection, virtual object coverage, call_out/add_action/heart_beat/shadow
   coverage, `replace_program()` guard, self-destruct/erroring `__INIT` coverage,
-  and stale function-pointer protection are merged in local form.
+  stale function-pointer protection, and testsuite hot-reload demo coverage are
+  merged in local form.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
-- PR #1230, remaining scope: official hot-reload daemon/demo documentation and
-  any official-only test/doc shape not represented in this branch's local
-  compiler hook tests.
+- PR #1230, remaining scope: official documentation-site pages and any
+  official-only test/doc shape not represented in this branch's local compiler
+  hook and hot-reload tests.
 - PR #1210: the large LPC platform modernization batch, including Flex-based
   front-end work, clang-style diagnostics, arena compiles, `.lpc` source
   preference, FFI package, decimal library, `tools/lpc-syntax`, official VS Code

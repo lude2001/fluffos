@@ -142,6 +142,10 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1230 的编译期 master applies：`inherit_program()` 和
   `include_file()`，支持 inherit/include 重定向、内联源码和拒绝路径，并补充
   本地 compiler hook 回归测试。
+- PR #1230/#1237 的 hot reload 开发示例：testsuite 中加入
+  `/single/hot_reload` daemon 和 `/single/tests/applies/hot_reload.c`，
+  演示基于 compile hooks、依赖图、`recompile_object()`、保留状态/放弃状态
+  的自动热重载流程；它是开发示例，不是生产默认机制。
 - PR #1237 的热重载能力：对象全局变量块改为独立 `TAG_OBJ_VARS`
   分配，并加入 `prog_generation` 字段；function pointer 记录创建时的
   owner generation，`FP_LOCAL` 按创建时 program 对称持有 `func_ref`，
@@ -155,7 +159,7 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   在异常路径也会关闭。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
-官方 hot-reload daemon/demo、FFI、WebAssembly 目标，以及 CI/release 流程重构。
+官方文档站形态、FFI、WebAssembly 目标，以及 CI/release 流程重构。
 
 ## Windows 构建
 
