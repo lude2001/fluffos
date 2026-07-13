@@ -15,7 +15,9 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Local merge commit: `c20b15e4 merge selected upstream runtime fixes and efuns`
+- Latest local merge commit: `c168e3aa07dcfbd193485a51a7387ce055bf7412`
+  (`merge additional upstream runtime fixes`)
+- Previous local merge commit: `c20b15e4 merge selected upstream runtime fixes and efuns`
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -45,27 +47,60 @@ Note: the SQLite regression in `testsuite/single/tests/efuns/db.c` is present,
 but the Windows build used for this validation skipped the SQLite section
 because `__USE_SQLITE3__` was not enabled.
 
+## Merged In `c168e3aa07dcfbd193485a51a7387ce055bf7412`
+
+The following additional official fixes were selectively merged or manually
+backported:
+
+- PR #1256: `restore_variable()` now bounds true recursive nesting instead of
+  cumulative container count, so wide-but-shallow arrays/mappings restore
+  correctly.
+- PR #1258, partially: compiler local-name allocation now handles identifiers
+  larger than the normal 4096-byte block without overrunning it.
+- PR #1258, partially: `restore_variable()` size-cache growth now detects
+  signed integer overflow and fails the pre-pass cleanly.
+- PR #1244, partially: `call_stack(4)` consistently returns `file:line` for
+  every frame.
+- PR #1244, partially: arithmetic compound assignment now keeps float semantics
+  for declared `float` lvalues and promotes runtime `int op= float` results to
+  float.
+- PR #1238, partially: `unique_mapping()` now releases copied keys and partial
+  mappings when callback or mapping construction paths unwind through `error()`.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- src/compiler/internal/grammar.autogen.cc src/compiler/internal/grammar.y src/compiler/internal/lex.cc src/packages/core/efuns_main.cc src/packages/ops/ops.cc src/vm/internal/base/interpret.cc src/vm/internal/base/mapping.cc src/vm/internal/base/object.cc testsuite/single/tests/efuns/call_stack.c testsuite/single/tests/efuns/restore_variable.c testsuite/single/tests/operators/compound_assign_float.c`
+
+Notes:
+
+- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` from
+  `src/compiler/internal/grammar.y`; the generated line-table changes are
+  expected.
+- `recompile_object()` from PR #1258 was not applicable to this local tree
+  because this branch does not currently contain that efun entry point.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `c20b15e4`:
+These official changes remain intentionally unmerged as of `c168e3aa`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
-- PR #1258: three Coverity fixes for lexer buffer overrun, dangling filename
-  pointer, and infinite loop.
+- PR #1258: the `recompile_object()` dangling filename-pointer fix is not
+  applicable until this branch carries `recompile_object()`; any remaining
+  Coverity items tied to official-only file layout also remain unmerged.
 - PR #1257 and PRs #1253-#1255: official CI/release workflow restructuring and
   automatic release triggers.
-- PR #1256: restore handling for wide collections after the deep-nesting guard.
 - PR #1250: string `foreach`/`ref` fixes, buffer-as-byte-array behavior,
   `to_buffer()`, strict byte range checks, and broader ref tests.
 - PR #1247: the large multi-round memory-safety and correctness audit batch.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
-- PR #1244: remaining issue fixes not covered by this merge, including
-  `call_stack(4)`, float compound assignment, class declaration diagnostics,
-  safe_apply value-stack underflow, and async `this_player()` preservation.
+- PR #1244: remaining issue fixes not covered by this merge, including class
+  declaration diagnostics, safe_apply value-stack underflow, async
+  `this_player()` preservation, and CRLF string-semantics test updates.
 - PR #1238: remaining tier-1 fixes not covered by this merge, including
-  load-count-before-`valid_read`, unique_mapping unwind cleanup, and parser
-  UTF-8 tokenization.
+  load-count-before-`valid_read` and parser UTF-8 tokenization.
 - PR #1237: `recompile_object()` hot-reload efun and related master/simul_efun
   handling.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
