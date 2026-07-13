@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `726e990d17b11614ac9387c4b60cdc7f77bf9d73`
-  (`merge partial upstream audit safety fixes`)
+- Latest local merge commit: `9414cfe9bb775ef10b2c3bfe3188c09aeebf7f86`
+  (`merge partial upstream safety bounds fixes`)
 - Previous local merge commit:
-  `9ddb8d623bfe972f64d7681400ce498b01199932`
-  (`merge upstream buffer byte semantics`)
+  `726e990d17b11614ac9387c4b60cdc7f77bf9d73`
+  (`merge partial upstream audit safety fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -201,9 +201,69 @@ Notes:
   require adopting official-only compiler layout, hot-reload, or larger package
   restructuring.
 
+## Merged In `9414cfe9bb775ef10b2c3bfe3188c09aeebf7f86`
+
+The following official PR #1247 fixes were selectively merged or manually
+backported as a second partial safety/bounds batch:
+
+- `random_number()` and `secure_random_number()` now return `0` for non-positive
+  bounds before constructing a random distribution.
+- Shared-string hash table sizing now caps the power-of-two growth loop before
+  signed integer overflow.
+- `pcre_replace()` now uses the same non-overlapping capture-group selection in
+  its sizing and copy passes, avoiding heap overwrite on nested captures.
+- `uncompress()` now releases partial output data on inflate failure.
+- `terminal_colour()` now uses `safe_apply()` for
+  `terminal_colour_replace()` so callback errors do not leak local buffers.
+- `repeat_string()` now clamps before multiplying string length by repeat count.
+- `replace_string()` now bounds and accounts for the Boyer-Moore skip-copy fast
+  path.
+- `get_dir()` now bounds directory/file path concatenation before `stat()`.
+- `add_action()` missing-function error construction now uses bounded formatting
+  and does not pass user-controlled text as the format string.
+- `call_out()` now handles null function-pointer owners during reclaim and
+  saturates seconds-to-milliseconds conversion.
+- Matrix transforms now reject arrays shorter than the required 16 elements.
+- Mudlib stats author/domain and stat-file restore paths now bound fixed-buffer
+  copies/scans.
+- Macro parameter parsing now stops on malformed parameter names instead of
+  continuing with an unconsumed character.
+- Constant-folded `INT_MIN / -1` and `% -1` cases now avoid C++ undefined
+  behavior in `#if`, expression division, and integer modulo folding.
+- Added focused regressions for pcre replacement, random/secure_random bounds,
+  matrix short arrays, large call_out delays, macro parameter errors,
+  terminal_colour callback errors, uncompress failure cleanup, and 64-bit
+  integer division/modulo folding.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/pcre.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/random.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/secure_random.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/matrix.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/call_out.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/64bit.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/bad_macro_params.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/terminal_colour_error_replace.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/uncompress_invalid.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/replace_string.c`
+- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-second-batch.log`
+- `git diff --check`
+
+Notes:
+
+- This is still a partial merge of PR #1247, not a full PR merge.
+- The full testsuite command exited with status 0 and wrote its log to
+  `build/lpc-full-test-pr1247-second-batch.log`; that build artifact is not
+  tracked.
+- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` from
+  `src/compiler/internal/grammar.y`; the generated parser table changes are
+  expected.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `726e990d`:
+These official changes remain intentionally unmerged as of `9414cfe9`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -215,16 +275,15 @@ These official changes remain intentionally unmerged as of `726e990d`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the first partial safety batch: parser
-  mid-parse destruct/use-after-free handling; allocator-initializer leak paths;
-  additional `sprintf` fixes; `pcre_replace()` heap overflow work; async
-  in-flight set/getdir path handling; `call_other()` type-check bounds;
-  macro-parameter hang fixes; `random_number(0)` handling; string allocation
-  hash-overflow protection; `uncompress()` and `terminal_colour()` leak fixes;
-  `INT_MIN` division/modulo cases; `input_to` `#` apply handling; external
-  socket teardown; matrix, mudlib stats, `get_dir()`, `add_action()`, and
-  `call_out()` bounds; MySQL regression coverage; telnet LINEMODE/ZMP handling;
-  and all `recompile_object()`, FFI, or newer compiler-layout-specific parts.
+- PR #1247, remaining scope after the second partial safety/bounds batch:
+  parser mid-parse destruct/use-after-free handling; allocator-initializer leak
+  paths; additional `sprintf` fixes; async in-flight set/getdir path handling;
+  `call_other()` type-check bounds; `input_to` `#` apply handling; external
+  socket teardown; mapping compose cleanup; MySQL regression coverage; telnet
+  LINEMODE/ZMP handling; trace/compiler/disassembler format-string and table
+  fixes; `replaceable()` empty-ignore handling; `query_replaced_program()`
+  target-object fix; and all `recompile_object()`, FFI, or newer
+  compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including CRLF
   string-semantics test updates and any official-only cases tied to file layout
