@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `9e2aed146a581a951c7e79bb153c7d583761bca1`
-  (`merge upstream recompile filename lifetime fix`)
+- Latest local merge commit: `1b8c5cc68c32380d80b4f19f81456c09f62239ce`
+  (`merge upstream recompile object regression coverage`)
 - Previous local merge commit:
-  `721fa0e65938b5b60fcb71fe6b8b82078ee5d552`
-  (`merge upstream recompile object efun`)
+  `9e2aed146a581a951c7e79bb153c7d583761bca1`
+  (`merge upstream recompile filename lifetime fix`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -682,19 +682,14 @@ selectively merged:
   program is currently executing on the VM stack, nested `recompile_object()`
   calls, and objects that already have pending `replace_program()` state before
   the recompile begins.
-- Expanded local regression coverage for master-and-clone updates, variable
-  migration by name, new variable initializers, stale local function pointers,
-  clone-target rejection, vanished source files, virtual object backing-source
-  recompilation, `replace_program()` state during a swap, self-destructing and
-  erroring `__INIT`, live simul_efun table rebuild, master executing-frame
-  rejection, catch_tell routing, shadow chains, name-based and stale-funptr
-  call_outs, add_action sentences, and heart_beat registration.
+- Added focused local regression coverage for master-and-clone updates,
+  variable migration by name, new variable initializers, stale local function
+  pointers, and clone-target rejection.
 
 Validation for this merge:
 
 - `.\build.cmd`
 - `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
 - `..\build\dist\driver.exe etc\config.test -ftest`
 - `git diff --check`
 
@@ -703,11 +698,6 @@ Notes:
 - This is a local-layout merge of the core efun and swap machinery from PR
   #1237. It is not a wholesale import of every official hot-reload demo,
   documentation page, or broad official regression fixture.
-- The official post-run idle-master recompile fixture is not represented in the
-  local testsuite because this branch's single-test harness shuts down
-  immediately after the focused test. The local coverage still verifies the
-  master executing-frame guard, and the code path rebuilds master applies when
-  the master object itself is swapped.
 - Existing production mudlibs do not need changes unless they deliberately call
   `recompile_object()` or depend on the new hot-reload behavior.
 
@@ -728,9 +718,42 @@ Validation for this merge:
 - `..\build\dist\driver.exe etc\config.test -ftest`
 - `git diff --check -- src/vm/internal/simulate.cc`
 
+## Merged In `1b8c5cc68c32380d80b4f19f81456c09f62239ce`
+
+The following official PR #1237 regression coverage was selectively adapted to
+this branch's `.c` testsuite layout:
+
+- Expanded `recompile_object.c` coverage for vanished source files, virtual
+  object backing-source recompilation, `replace_program()` state during a swap,
+  self-destructing and erroring `__INIT`, live simul_efun table rebuild, and
+  master executing-frame rejection.
+- Added `recompile_object2.c` coverage for catch_tell routing, shadow chains,
+  name-based call_outs running the new program, stale function-pointer call_outs
+  failing cleanly, add_action sentences, and heart_beat registration.
+- Added a testsuite master `compile_object()` fixture for the
+  `/data/recompile_object/virt` virtual-object case.
+
+Validation for this merge:
+
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --cached --check`
+
+Notes:
+
+- The official post-run idle-master recompile fixture is not represented in the
+  local testsuite because this branch's single-test harness shuts down
+  immediately after the focused test. The local coverage still verifies the
+  master executing-frame guard, and the code path rebuilds master applies when
+  the master object itself is swapped.
+- The focused `recompile_object2.c` run validates the synchronous portions of
+  that test. The delayed call_out assertions are gated by the full LPC suite,
+  where the test runner continues long enough for them to execute.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `9e2aed14`:
+These official changes remain intentionally unmerged as of `1b8c5cc6`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
