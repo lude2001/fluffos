@@ -37,6 +37,7 @@
  * and the original object must be loaded again.
  */
 char *inherit_file;
+std::string inherit_file_source;
 
 // FIXME: this is defined in vm/internal/simul_efun.cc
 extern object_t *simul_efun_ob;

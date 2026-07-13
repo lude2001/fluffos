@@ -1,0 +1,3 @@
+int real2() {
+  return 7;
+}

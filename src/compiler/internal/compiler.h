@@ -3,6 +3,7 @@
 
 class LexStream;
 
+#include <string>
 #include <vector>
 
 #include "vm/internal/base/function.h"  // for function_t
@@ -288,5 +289,6 @@ void set_compile_service_diagnostics_collector(
 
 // FIXME: 'inherit_file' is used as a flag.
 extern char *inherit_file;
+extern std::string inherit_file_source;
 
 #endif

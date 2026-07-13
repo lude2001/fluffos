@@ -293,6 +293,30 @@ staticf void error_handler(mapping map, int flag) {
   if (!flag && ob) tell_object(ob, str);
 }
 
+object compile_hooks;
+
+void set_compile_hooks(object hook) {
+  compile_hooks = hook;
+}
+
+object query_compile_hooks() {
+  return compile_hooks;
+}
+
+mixed inherit_program(string from, string path, int priv) {
+  if (objectp(compile_hooks)) {
+    return compile_hooks->inherit_program(from, path, priv);
+  }
+  return path;
+}
+
+mixed include_file(string compiled, string from, string path) {
+  if (objectp(compile_hooks)) {
+    return compile_hooks->include_file(compiled, from, path);
+  }
+  return path;
+}
+
 mixed get_include_path(string file)
 {
   switch(file)

@@ -505,6 +505,8 @@ object_t *load_object(const char *lname, int callcreate) {
   if (inherit_file) {
     object_t *inh_obj;
     char inhbuf[MAX_OBJECT_NAME_SIZE];
+    std::string inh_source = std::move(inherit_file_source);
+    inherit_file_source.clear();
 
     if (!filename_to_obname(inherit_file, inhbuf, sizeof inhbuf)) {
       strcpy(inhbuf, inherit_file);
@@ -525,7 +527,11 @@ object_t *load_object(const char *lname, int callcreate) {
       fatal("Inherited object is already loaded!");
 #endif
     } else {
-      inh_obj = load_object(inhbuf, 1);
+      if (!inh_source.empty()) {
+        inh_obj = load_object_from_source(inh_source, inhbuf, 1);
+      } else {
+        inh_obj = load_object(inhbuf, 1);
+      }
     }
     if (!inh_obj) error("Inherited file '/%s' does not exist!\n", inhbuf);
 
@@ -560,6 +566,140 @@ object_t *load_object(const char *lname, int callcreate) {
   }
   obj_list = ob;
   ObjectTable::instance().insert(ob->obname, ob); /* add name to fast object lookup table */
+  save_command_giver(command_giver);
+  push_object(ob);
+  mret = apply_master_ob(APPLY_VALID_OBJECT, 1);
+  if (mret && !MASTER_APPROVED(mret)) {
+    destruct_object(ob);
+    error("master object: %s() denied permission to load '/%s'.\n",
+          applies_table[APPLY_VALID_OBJECT], name);
+  }
+
+  if (init_object(ob) && callcreate) {
+    call_create(ob, 0);
+  }
+  if (!(ob->flags & O_DESTRUCTED) && function_exists(APPLY_CLEAN_UP, ob, 1)) {
+    ob->flags |= O_WILL_CLEAN_UP;
+  }
+  restore_command_giver();
+
+  if (ob) {
+    debug(d_flag, "--/%s loaded.\n", ob->obname);
+  }
+
+  ob->load_time = get_current_time();
+  num_objects_this_thread--;
+
+  return ob;
+}
+
+object_t *load_object_from_source(const std::string &source, const char *virtual_name,
+                                  int callcreate) {
+  ScopedTracer _tracer("LPC Load Object From Source", EventCategory::VM_LOAD_OBJECT,
+                       [=] { return json{virtual_name}; });
+
+  auto inherit_chain_size = CONFIG_INT(__INHERIT_CHAIN_SIZE__);
+  program_t *prog = nullptr;
+  object_t *ob;
+  svalue_t *mret;
+  char name[400], obname[sizeof(name) + 2];
+
+  if (++num_objects_this_thread > inherit_chain_size) {
+    error("Inherit chain too deep: > %d when trying to load in-memory source for '%s'.\n",
+          inherit_chain_size, virtual_name);
+  }
+
+  if (!filename_to_obname(virtual_name, name, sizeof name)) {
+    error("Filenames with consecutive /'s in them aren't allowed (%s).\n", virtual_name);
+  }
+  if (strrchr(name, '#')) {
+    error("Cannot load a clone.\n");
+  }
+  if ((ob = ObjectTable::instance().find(name))) {
+    num_objects_this_thread--;
+    return ob;
+  }
+
+  (void)strcpy(obname, name);
+  (void)strcat(obname, ".c");
+
+  for (int rounds = 0;; rounds++) {
+    save_command_giver(command_giver);
+    prog = compile_file(std::make_unique<StringLexStream>(source), obname);
+    restore_command_giver();
+    update_compile_av(total_lines);
+    total_lines = 0;
+
+    if (!inherit_file) {
+      break;
+    }
+
+    object_t *inh_obj;
+    object_t *existing;
+    char inhbuf[MAX_OBJECT_NAME_SIZE];
+    std::string inh_source = std::move(inherit_file_source);
+    inherit_file_source.clear();
+
+    if (!filename_to_obname(inherit_file, inhbuf, sizeof inhbuf)) {
+      strcpy(inhbuf, inherit_file);
+    }
+    FREE(inherit_file);
+    inherit_file = nullptr;
+
+    if (prog) {
+      free_prog(&prog);
+      prog = nullptr;
+    }
+    if (strcmp(inhbuf, name) == 0) {
+      error("Illegal to inherit self.\n");
+    }
+    if (rounds >= inherit_chain_size) {
+      error("Inherit chain too deep: > %d when compiling in-memory source for '/%s'.\n",
+            inherit_chain_size, name);
+    }
+
+    if ((inh_obj = ObjectTable::instance().find(inhbuf))) {
+#ifdef DEBUG
+      fatal("Inherited object is already loaded!");
+#endif
+    } else {
+      if (!inh_source.empty()) {
+        inh_obj = load_object_from_source(inh_source, inhbuf, 1);
+      } else {
+        inh_obj = load_object(inhbuf, 1);
+      }
+    }
+    if (!inh_obj) {
+      error("Inherited file '/%s' does not exist!\n", inhbuf);
+    }
+    if ((existing = ObjectTable::instance().find(name))) {
+      num_objects_this_thread--;
+      return existing;
+    }
+  }
+
+  if (inherit_file == nullptr && (num_parse_error > 0 || prog == nullptr)) {
+    if (num_parse_error == 0 && prog == nullptr) {
+      error("No program in object '/%s'!\n", name);
+    }
+    if (prog) {
+      free_prog(&prog);
+    }
+    error("Error in loading object '/%s'\n", name);
+  }
+
+  ob = get_empty_object(prog->num_variables_total);
+  SETOBNAME(ob, alloc_cstring(name, "load_object_from_source"));
+  SET_TAG(ob->obname, TAG_OBJ_NAME);
+  ob->prog = prog;
+  ob->flags |= O_WILL_RESET;
+  ob->next_all = obj_list;
+  ob->prev_all = nullptr;
+  if (obj_list) {
+    obj_list->prev_all = ob;
+  }
+  obj_list = ob;
+  ObjectTable::instance().insert(ob->obname, ob);
   save_command_giver(command_giver);
   push_object(ob);
   mret = apply_master_ob(APPLY_VALID_OBJECT, 1);

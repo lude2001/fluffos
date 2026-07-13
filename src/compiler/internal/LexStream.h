@@ -6,9 +6,12 @@
 #include <cinttypes>
 #include <cstddef>
 #include <cstdlib>
+#include <algorithm>
+#include <cstring>
 #include <unistd.h>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 class LexStream {
  public:
@@ -44,6 +47,28 @@ class IStreamLexStream : public LexStream {
 
  private:
   std::istream& is_;
+};
+
+class StringLexStream : public LexStream {
+ public:
+  explicit StringLexStream(std::string data) : data_(std::move(data)) {}
+  ~StringLexStream() override {}
+
+  size_t read(char* buffer, size_t size) override {
+    size_t available = data_.size() - pos_;
+    size_t count = std::min(size, available);
+    if (count > 0) {
+      std::memcpy(buffer, data_.data() + pos_, count);
+      pos_ += count;
+    }
+    return count;
+  }
+
+  void close() override { pos_ = data_.size(); }
+
+ private:
+  std::string data_;
+  size_t pos_ = 0;
 };
 
 #endif /* end of include guard: LEX_STREAM_H */

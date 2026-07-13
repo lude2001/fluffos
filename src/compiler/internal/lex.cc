@@ -30,6 +30,7 @@
 #include "vm/vm.h"
 #include "include/function.h"
 #include "include/opcodes_extra.h"
+#include "applies_table.autogen.h"
 #include "efuns.autogen.h"
 #include "options.autogen.h"
 #include "vm/internal/base/program.h"
@@ -993,7 +994,7 @@ static void handle_include(char *name, int global) {
   char *p;
   static char buf[MAXLINE];
   incstate_t *is;
-  int delim, f;
+  int delim, f, check_local;
 
   symbol_record(OP_SYMBOL_INC, current_file, current_line, name);
 
@@ -1024,15 +1025,75 @@ static void handle_include(char *name, int global) {
     include_error("Missing trailing \" or > in #include", global);
     return;
   }
-  if (strlen(name) > sizeof(buf) - 100) {
+  *p = 0;
+  std::string include_name(name);
+  if (include_name.size() > sizeof(buf) - 100) {
     pop_stack();
     include_error("Include name too long.", global);
     return;
   }
-  *p = 0;
+
+  check_local = delim == '"';
+  std::string inline_source;
+  bool have_inline_source = false;
+  push_malloced_string(add_slash(main_file_name()));
+  push_malloced_string(add_slash(current_file));
+  push_malloced_string(string_copy(include_name.c_str(), "include_file"));
+  svalue_t *ret = safe_apply_master_ob(APPLY_INCLUDE_FILE, 3);
+  if (ret && ret != reinterpret_cast<svalue_t *>(-1)) {
+    if (ret->type == T_STRING) {
+      if (include_name != ret->u.string) {
+        include_name = ret->u.string;
+        check_local = 1;
+      }
+    } else if (ret->type == T_ARRAY) {
+      array_t *arr = ret->u.arr;
+      for (int i = 0; i < arr->size; i++) {
+        if (arr->item[i].type != T_STRING) {
+          pop_stack();
+          include_error("master::include_file source must be an array of strings", global);
+          return;
+        }
+        inline_source += arr->item[i].u.string;
+        inline_source += '\n';
+      }
+      have_inline_source = true;
+    } else {
+      pop_stack();
+      include_error("Include denied by master::include_file", global);
+      return;
+    }
+  }
+  if (include_name.size() > sizeof(buf) - 100) {
+    pop_stack();
+    include_error("Include name too long.", global);
+    return;
+  }
+
   if (++incnum == MAX_INCLUDE_DEPTH) {
     include_error("Maximum include depth exceeded.", global);
-  } else if ((f = inc_open(buf, name, delim == '"')) != -1) {
+  } else if (have_inline_source) {
+    merge(const_cast<char *>(include_name.c_str()), buf);
+    is = reinterpret_cast<incstate_t *>(
+        DMALLOC(sizeof(incstate_t), TAG_COMPILER, "handle_include: inline"));
+    is->stream = current_stream.release();
+    is->line = current_line;
+    is->file = current_file;
+    is->file_id = current_file_id;
+    is->last_nl = last_nl;
+    is->next = inctop;
+    is->outp = outp;
+    inctop = is;
+    current_line--;
+    save_file_info(current_file_id, current_line - current_line_saved);
+    current_line_base += current_line;
+    current_line_saved = 0;
+    current_line = 1;
+    current_file = make_shared_string(buf);
+    current_file_id = add_program_file(buf, 0);
+    current_stream = std::make_unique<StringLexStream>(std::move(inline_source));
+    refill_buffer();
+  } else if ((f = inc_open(buf, const_cast<char *>(include_name.c_str()), check_local)) != -1) {
     is = reinterpret_cast<incstate_t *>(
         DMALLOC(sizeof(incstate_t), TAG_COMPILER, "handle_include: 1"));
     is->stream = current_stream.release();
@@ -1053,7 +1114,7 @@ static void handle_include(char *name, int global) {
     current_stream = std::make_unique<FileLexStream>(f);
     refill_buffer();
   } else {
-    sprintf(buf, "Cannot #include %s", name);
+    snprintf(buf, sizeof(buf), "Cannot #include %s", include_name.c_str());
     include_error(buf, global);
   }
   pop_stack();
