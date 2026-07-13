@@ -80,6 +80,7 @@ struct object_t {
   int64_t next_reset; /* Time of next reset of this object */
 #endif
   uint64_t time_of_ref; /* Time when last referenced. Used by clean_uo */
+  int64_t next_cleanup; /* Explicit clean_up deadline. 0 uses the idle-time rule. */
   program_t *prog;
   struct object_t *next_all;
   struct object_t *prev_all;

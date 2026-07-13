@@ -11,7 +11,8 @@ title: arrays / member_array
 
 ### SYNOPSIS
 
-    int member_array( mixed item, mixed * | string arr, void | int start );
+    int member_array( mixed item, mixed * | string arr,
+                      void | int start, void | int flags );
 
 ### DESCRIPTION
 
@@ -21,6 +22,12 @@ title: arrays / member_array
 
     Note, if the second argument is a string, the first parameter must be an int
     representing the character you are looking for in the provided string.
+
+    The optional 'flags' argument is a bit field:
+
+    1 - 'item' is a string prefix.
+    2 - search backwards from the end of the array and return the last match.
+    4 - 'item' is a function predicate called with each element.
 
 ### EXAMPLE
 
@@ -41,6 +48,9 @@ title: arrays / member_array
 
     member_array('Z', "Drink the FluffOS Kool-Aid!") ;
     // -1
+
+    member_array( (: $1 > 10 :), ({ 1, 5, 42, 77 }), 0, 4 ) ;
+    // 2
 
 
 

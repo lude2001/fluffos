@@ -1,7 +1,27 @@
+int probe(int handle) {
+    return find_call_out(handle);
+}
+
 void do_tests() {
+    int h, i;
+    object clone;
+
     ASSERT(find_call_out("foo") == -1);
     call_out("foo", 10);
     ASSERT_EQ(10, find_call_out("foo"));
     ASSERT_EQ(-1, find_call_out("bar"));
     remove_call_out("foo");
+
+    h = call_out("foo", 10);
+    for (i = 0; i < 150; i++) {
+        remove_call_out(call_out("foo", 10));
+    }
+    ASSERT_EQ(10, find_call_out(h));
+    ASSERT_EQ(-1, find_call_out(0));
+
+    clone = clone_object(__FILE__);
+    ASSERT_EQ(-1, clone->probe(h));
+    destruct(clone);
+
+    remove_call_out(h);
 }

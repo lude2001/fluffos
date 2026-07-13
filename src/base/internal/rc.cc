@@ -275,6 +275,12 @@ void read_config(const char *filename) {
   scan_config_line("mud ip : %[^\n]", tmp, 0);
   CONFIG_STR(__MUD_IP__) = alloc_cstring(tmp, "config file: mi");
 
+  scan_config_line("allowed os environment variables : %[^\n]", tmp, kOptional);
+  CONFIG_STR(__OS_ENV_READABLE__) = alloc_cstring(tmp, "config file: aoev");
+
+  scan_config_line("writable os environment variables : %[^\n]", tmp, kOptional);
+  CONFIG_STR(__OS_ENV_WRITABLE__) = alloc_cstring(tmp, "config file: woev");
+
   /* Process ports */
   {
     int i, port, port_start = 0;

@@ -137,6 +137,8 @@ Specifies the directory containing the web client HTML/JS files.
 |---------|-------------|---------|
 | `valid bind` | Check valid_bind() apply | `valid bind : 1` |
 | `valid override` | Check valid_override() apply | `valid override : 1` |
+| `allowed os environment variables` | Colon-separated names readable via get_os_env() | `allowed os environment variables : PATH:FLUFFOS_STATE` |
+| `writable os environment variables` | Colon-separated names writable via set_os_env(); also readable | `writable os environment variables : FLUFFOS_STATE` |
 
 ## Example Configuration
 
@@ -185,6 +187,10 @@ compress protocol : 1
 maximum array size : 15000
 maximum string length : 200000
 maximum mapping size : 150000
+
+# OS environment efun allow-lists
+allowed os environment variables : PATH
+writable os environment variables : FLUFFOS_STATE
 ```
 
 ## Tips

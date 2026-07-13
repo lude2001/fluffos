@@ -291,10 +291,16 @@ void look_for_objects_to_swap() {
       next_ob = ob->next_all;
 
       /*
-       * Check reference time before reset() is called.
+       * Check reference time before reset() is called. An explicit
+       * set_clean_up() deadline overrides the idle-time rule once.
        */
-      if (gametick_to_time(g_current_gametick - ob->time_of_ref) >=
-          std::chrono::seconds(time_to_clean_up)) {
+      if (ob->next_cleanup > 0) {
+        if (g_current_gametick >= ob->next_cleanup) {
+          ready_for_clean_up = 1;
+          ob->next_cleanup = 0;
+        }
+      } else if (gametick_to_time(g_current_gametick - ob->time_of_ref) >=
+                 std::chrono::seconds(time_to_clean_up)) {
         ready_for_clean_up = 1;
       }
       if (!CONFIG_INT(__RC_NO_RESETS__) && !CONFIG_INT(__RC_LAZY_RESETS__)) {

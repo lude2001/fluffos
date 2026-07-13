@@ -1051,7 +1051,16 @@ void f_member_array() {
       if (flag & 2) {
         tmp = size - tmp - 1;
       }
-      switch (find->type | (sv = v->item + tmp)->type) {
+      sv = v->item + tmp;
+      if ((flag & 4) && find->type == T_FUNCTION) {
+        push_svalue(sv);
+        svalue_t *ret = call_function_pointer(find->u.fp, 1);
+        if (ret && !(ret->type == T_NUMBER && ret->u.number == 0)) {
+          break;
+        }
+        continue;
+      }
+      switch (find->type | sv->type) {
         case T_STRING:
           if (flag & 1) {
             if (flen && (sv->subtype & STRING_COUNTED) && flen > MSTR_SIZE(sv->u.string)) {
@@ -1132,7 +1141,7 @@ void f_member_array() {
     free_svalue(find, "f_member_array");
     sp--;
   }
-  if (flag & 2) {
+  if (i != -1 && (flag & 2)) {
     i = size - i - 1;
   }
   put_number(i);
@@ -3203,6 +3212,48 @@ void f_query_shadowing() {
   } else {
     free_svalue(sp, "f_query_shadowing");
     *sp = const0;
+  }
+}
+#endif
+
+#ifdef F_REQUEST_CLEAN_UP
+void f_request_clean_up() {
+  object_t *ob = sp->u.ob;
+  int success = 0;
+
+  // Same condition as at load/clone time: only objects that actually
+  // define clean_up() are put back on the sweep's query list (issue #917).
+  if (!(ob->flags & O_DESTRUCTED) && function_exists(APPLY_CLEAN_UP, ob, 1)) {
+    ob->flags |= O_WILL_CLEAN_UP;
+    success = 1;
+  }
+  free_object(&sp->u.ob, "f_request_clean_up");
+  put_number(success);
+}
+#endif
+
+#ifdef F_SET_CLEAN_UP
+void f_set_clean_up() {
+  object_t *ob;
+
+  if (st_num_arg == 2) {
+    ob = (sp - 1)->u.ob;
+    ob->next_cleanup =
+        g_current_gametick + time_to_next_gametick(std::chrono::seconds(sp->u.number));
+  } else {
+    ob = sp->u.ob;
+    ob->next_cleanup = 0;
+  }
+
+  if (!(ob->flags & O_DESTRUCTED) && function_exists(APPLY_CLEAN_UP, ob, 1)) {
+    ob->flags |= O_WILL_CLEAN_UP;
+  }
+
+  if (st_num_arg == 2) {
+    free_object(&(--sp)->u.ob, "f_set_clean_up:1");
+    sp--;
+  } else {
+    free_object(&(sp--)->u.ob, "f_set_clean_up:2");
   }
 }
 #endif

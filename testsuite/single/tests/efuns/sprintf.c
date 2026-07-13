@@ -257,6 +257,11 @@ void do_tests() {
     // Historical regression: issue 595.
     ASSERT_EQ("   Mit indent sieht das so aus", sprintf("%30=s","Mit indent sieht das so aus"));
 
+    // Historical regression: issue 605.
+    ASSERT_EQ(" Mit indentsi\n tfddkdfkdfkdfskdfks\nll\n dffs\n dddeee",
+              sprintf("%-*=s", 20, " Mit indentsi\n tfddkdfkdfkdfskdfksll\n dffs\n dddeee"));
+    ASSERT_EQ("aaaaaabbb", sprintf("%-=6s", "aaaaaabbb"));
+
     // Historical regression: issue 696.
   shouldbe = @TEXT
 one        line1

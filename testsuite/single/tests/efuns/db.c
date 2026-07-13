@@ -53,6 +53,17 @@ void do_tests() {
     rows = db_exec(conn, "drop table tbl1;");
     ASSERT_EQ(0, rows);
 
+    rows = db_exec(conn, "create table IF NOT EXISTS tbl2(one varchar(10) UNIQUE);");
+    ASSERT_EQ(0, rows);
+    rows = db_exec(conn, "insert into tbl2 values('dup');");
+    ASSERT_EQ(0, rows);
+    db_exec(conn, "insert into tbl2 values('dup');");
+    rows = db_exec(conn, "select * from tbl2;");
+    ASSERT_EQ(1, rows);
+    ASSERT_EQ(({ "dup" }), db_fetch(conn, 1));
+    rows = db_exec(conn, "drop table tbl2;");
+    ASSERT_EQ(0, rows);
+
     db_close(conn);
 
 #ifndef __PACKAGE_ASYNC__

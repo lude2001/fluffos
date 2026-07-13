@@ -499,8 +499,21 @@ auto pcre_match_all(const char *subject, size_t subject_len, const char *pattern
 
   int rc = 0;
   int offset = 0;
-  while (offset < run->s_length && (rc = pcre_exec(run->re, nullptr, run->subject, run->s_length,
-                                                   offset, run->exec_flags, run->ovector, run->ovecsize)) >= 0) {
+  int retry_flags = 0;
+  while (offset < run->s_length) {
+    rc = pcre_exec(run->re, nullptr, run->subject, run->s_length, offset,
+                   run->exec_flags | retry_flags, run->ovector, run->ovecsize);
+    if (rc < 0) {
+      if (retry_flags == 0) {
+        break;
+      }
+      offset++;
+      while (offset < run->s_length && (run->subject[offset] & 0xC0) == 0x80) {
+        offset++;
+      }
+      retry_flags = 0;
+      continue;
+    }
     std::vector<svalue_t> match;
     for (int i = 0; i < rc; ++i) {
       unsigned int start, length;
@@ -517,6 +530,8 @@ auto pcre_match_all(const char *subject, size_t subject_len, const char *pattern
       match.push_back(item);
     }
     matches.push_back(match);
+    retry_flags =
+        (run->ovector[1] == run->ovector[0]) ? (PCRE_NOTEMPTY_ATSTART | PCRE_ANCHORED) : 0;
     offset = run->ovector[1];
   }
 
