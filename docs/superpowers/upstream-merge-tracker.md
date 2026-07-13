@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `ed01cbc055924f13df67cd4bd62795db2a96defb`
-  (`merge partial upstream async safety fixes`)
+- Latest local merge commit: `e4eda115aa6d42adc384920f49be49b435a51d9c`
+  (`merge partial upstream input_to safety fix`)
 - Previous local merge commit:
-  `9414cfe9bb775ef10b2c3bfe3188c09aeebf7f86`
-  (`merge partial upstream safety bounds fixes`)
+  `ed01cbc055924f13df67cd4bd62795db2a96defb`
+  (`merge partial upstream async safety fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -290,9 +290,37 @@ Notes:
   `Checks succeeded` but did not exit before the command timeout in this
   harness, so it was not used as a clean gating signal for this commit.
 
+## Merged In `e4eda115aa6d42adc384920f49be49b435a51d9c`
+
+The following official PR #1247 interactive-input fix was selectively merged or
+manually backported as a fourth partial batch:
+
+- `input_to()` now rejects string callbacks whose function name starts with the
+  internal apply marker `#` before preparing the VM call frame. The rejection
+  path releases the pending input sentence, referenced object, and carryover
+  arguments instead of returning from the later stack-setup path.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/input_to.c`
+- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-input-to.log`
+- `git diff --check -- src/comm.cc`
+
+Notes:
+
+- This is still a partial merge of PR #1247, not a full PR merge.
+- The full testsuite command exited with status 0 and wrote its log to
+  `build/lpc-full-test-pr1247-input-to.log`; that build artifact is not
+  tracked.
+- The focused `input_to` test covers the existing non-interactive setup path.
+  The `#` apply branch is an interactive safety path, so this merge is gated by
+  the Windows build, the existing `input_to` test, and the full LPC testsuite
+  rather than a dedicated live socket regression.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `ed01cbc0`:
+These official changes remain intentionally unmerged as of `e4eda115`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -304,11 +332,11 @@ These official changes remain intentionally unmerged as of `ed01cbc0`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the third partial async batch:
+- PR #1247, remaining scope after the fourth partial input-to batch:
   parser mid-parse destruct/use-after-free handling; allocator-initializer leak
   paths; additional `sprintf` fixes; `call_other()` type-check bounds;
-  `input_to` `#` apply handling; external socket teardown; mapping compose
-  cleanup; MySQL regression coverage; telnet LINEMODE/ZMP handling;
+  external socket teardown; mapping compose cleanup; MySQL regression coverage;
+  telnet LINEMODE/ZMP handling;
   trace/compiler/disassembler format-string and table fixes; `replaceable()`
   empty-ignore handling; `query_replaced_program()` target-object fix; and all
   `recompile_object()`, FFI, or newer compiler-layout-specific parts.
