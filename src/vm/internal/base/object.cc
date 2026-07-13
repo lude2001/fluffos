@@ -1857,6 +1857,10 @@ void dealloc_object(object_t *ob, const char *from) {
     free_prog(&ob->prog);
     ob->prog = nullptr;
   }
+  if (ob->variables) {
+    FREE(ob->variables);
+    ob->variables = nullptr;
+  }
   if (ob->replaced_program) {
     FREE_MSTR(ob->replaced_program);
     ob->replaced_program = nullptr;
@@ -1917,21 +1921,27 @@ void free_object(object_t **ob, const char *const from) {
   *ob = (object_t *)1;
 }
 
+svalue_t *allocate_object_variables(int num_var) {
+  int n = num_var ? num_var : 1;
+  auto *vars =
+      reinterpret_cast<svalue_t *>(DMALLOC(n * sizeof(svalue_t), TAG_OBJ_VARS, "object variables"));
+
+  for (int i = 0; i < n; i++) {
+    vars[i] = const0u;
+  }
+  return vars;
+}
+
 /*
- * Allocate an empty object, and set all variables to 0. Note that a
- * 'object_t' already has space for one variable. So, if no variables
- * are needed, we waste one svalue worth of memory (or we'd write too
- * much memory in copying the NULL_object over.
+ * Allocate an empty object, and set all variables to 0.
  */
 object_t *get_empty_object(int num_var) {
-  // static object_t NULL_object;
   object_t *ob;
   int size = sizeof(object_t) + (num_var - !!num_var) * sizeof(svalue_t);
-  int i;
 
   tot_alloc_object++;
   tot_alloc_object_size += size;
-  ob = reinterpret_cast<object_t *>(DMALLOC(size, TAG_OBJECT, "get_empty_object"));
+  ob = reinterpret_cast<object_t *>(DMALLOC(sizeof(object_t), TAG_OBJECT, "get_empty_object"));
   /*
    * marion Don't initialize via memset, this is incorrect. E.g. the bull
    * machines have a (char *)0 which is not zero. We have structure
@@ -1942,9 +1952,7 @@ object_t *get_empty_object(int num_var) {
   // screw the "bull machines" we're in the 21st century now
   memset(ob, 0, sizeof(object_t));
   ob->ref = 1;
-  for (i = 0; i < num_var; i++) {
-    ob->variables[i] = const0u;
-  }
+  ob->variables = allocate_object_variables(num_var);
   return ob;
 }
 

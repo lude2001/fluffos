@@ -153,6 +153,10 @@ static void mark_object(object_t *ob) {
     DO_MARK(ob->obname, TAG_OBJ_NAME);
   }
 
+  if (ob->variables) {
+    DO_MARK(ob->variables, TAG_OBJ_VARS);
+  }
+
   if (ob->replaced_program) {
     EXTRA_REF(BLOCK(ob->replaced_program))++;
   }
@@ -939,6 +943,10 @@ void check_all_blocks(int flag) {
           case TAG_OBJ_NAME:
             outbuf_addv(&out, "WARNING: Found orphan object name: %s %04x\n", entry->desc,
                         entry->tag);
+            break;
+          case TAG_OBJ_VARS:
+            outbuf_addv(&out, "WARNING: Found orphan object variable block: %s %04x\n",
+                        entry->desc, entry->tag);
             break;
           case TAG_INTERACTIVE:
             outbuf_addv(&out, "WARNING: Found orphan interactive: %s %04x\n", entry->desc,

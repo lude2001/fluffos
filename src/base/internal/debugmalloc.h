@@ -71,6 +71,7 @@ static const int TAG_PARSER = (TAG_PERMANENT + 37);
 #endif
 static const int TAG_INPUT_TO = (TAG_PERMANENT + 38);
 static const int TAG_SOCKETS = (TAG_PERMANENT + 39);
+static const int TAG_OBJ_VARS = (TAG_PERMANENT + 40);
 static const int TAG_STRING = (TAG_DATA + 40);
 static const int TAG_MALLOC_STRING = (TAG_DATA + 41);
 static const int TAG_SHARED_STRING = (TAG_DATA + 42);

@@ -82,6 +82,7 @@ struct object_t {
   uint64_t time_of_ref; /* Time when last referenced. Used by clean_uo */
   int64_t next_cleanup; /* Explicit clean_up deadline. 0 uses the idle-time rule. */
   program_t *prog;
+  uint32_t prog_generation; /* Bumped by recompile_object() when prog is swapped. */
   struct object_t *next_all;
   struct object_t *prev_all;
 #ifndef NO_ENVIRONMENT
@@ -116,8 +117,7 @@ struct object_t {
 #ifdef PACKAGE_PARSER
   struct parse_info_s *pinfo;
 #endif
-  svalue_t variables[1]; /* All variables to this program */
-                         /* The variables MUST come last in the struct */
+  svalue_t *variables; /* All variables to this program. */
 };
 
 typedef int (*get_objectsfn_t)(object_t *, void *);
@@ -155,6 +155,7 @@ int save_object_str(object_t *, int, char *, int);
 int restore_object(object_t *, const char *, int);
 void restore_variable(svalue_t *, char *);
 object_t *get_empty_object(int);
+svalue_t *allocate_object_variables(int);
 void reset_object(object_t *);
 void call_create(object_t *, int);
 void reload_object(object_t *);
