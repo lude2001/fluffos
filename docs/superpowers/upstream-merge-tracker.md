@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `b6a529611506f9350877d859d1039f6edb424732`
-  (`merge partial upstream external socket cleanup`)
+- Latest local merge commit: `94c3029bee39d9528c9243debc1757c85c8f429f`
+  (`merge partial upstream call_other type-check fix`)
 - Previous local merge commit:
-  `e4eda115aa6d42adc384920f49be49b435a51d9c`
-  (`merge partial upstream input_to safety fix`)
+  `b6a529611506f9350877d859d1039f6edb424732`
+  (`merge partial upstream external socket cleanup`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -349,9 +349,37 @@ Notes:
   exposure and existing socket behavior still build and pass, but it is not a
   dedicated POSIX runtime reproduction of the spawn-failure cleanup path.
 
+## Merged In `94c3029bee39d9528c9243debc1757c85c8f429f`
+
+The following official PR #1247 `call_other()` type-checking fix was selectively
+merged or manually backported as a sixth partial batch:
+
+- `check_co_args()` now passes the bounded declared-argument count to
+  `check_co_args2()` when reading `prog->argument_types`, while keeping the full
+  pushed argument count for stack indexing. Extra actual arguments no longer
+  make the type checker read beyond the declared argument type table.
+- `call_other()` type-check error strings are now emitted with `error("%s",
+  buf)` instead of treating object-derived text as a printf format string.
+- The existing `call_other` efun regression now temporarily enables runtime
+  call-other type checking and exercises the extra-argument error path.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/call_other.c`
+- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-call-other.log`
+- `git diff --check -- src/vm/internal/apply.cc testsuite/single/tests/efuns/call_other.c`
+
+Notes:
+
+- This is still a partial merge of PR #1247, not a full PR merge.
+- The full testsuite command exited with status 0 and wrote its log to
+  `build/lpc-full-test-pr1247-call-other.log`; that build artifact is not
+  tracked.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `b6a52961`:
+These official changes remain intentionally unmerged as of `94c3029b`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -363,11 +391,10 @@ These official changes remain intentionally unmerged as of `b6a52961`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the fifth partial external batch:
+- PR #1247, remaining scope after the sixth partial `call_other` batch:
   parser mid-parse destruct/use-after-free handling; allocator-initializer leak
-  paths; additional `sprintf` fixes; `call_other()` type-check bounds;
-  mapping compose cleanup; MySQL regression coverage; telnet LINEMODE/ZMP
-  handling;
+  paths; additional `sprintf` fixes; mapping compose cleanup; MySQL regression
+  coverage; telnet LINEMODE/ZMP handling;
   trace/compiler/disassembler format-string and table fixes; `replaceable()`
   empty-ignore handling; `query_replaced_program()` target-object fix; and all
   `recompile_object()`, FFI, or newer compiler-layout-specific parts.

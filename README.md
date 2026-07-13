@@ -120,6 +120,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1247 第五批部分 external 安全修复：`external_start()` 在
   `posix_spawn()` 失败时清理已 provision 的 efun socket，避免留下半开 fd、
   event listener 和 callback 字符串。
+- PR #1247 第六批部分 `call_other()` 安全修复：type-check 只按声明参数
+  数量扫描 `argument_types`，并避免把对象路径/函数名拼出的错误信息当作
+  printf format 使用。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 `recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。
