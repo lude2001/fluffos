@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `b7e294247ee027115fb9333701b2d3ff29a245b0`
-  (`merge upstream reclaim safety fixes`)
+- Latest local merge commit: `ae8a687fa34a442c0891c6109ba342e734e84277`
+  (`test: cover buffer range assignment backport`)
 - Previous local merge commit:
-  `af6ccca5849049377135f204b70d775c301dcf72`
-  (`merge remaining upstream safety fixes`)
+  `b7e294247ee027115fb9333701b2d3ff29a245b0`
+  (`merge upstream reclaim safety fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -849,9 +849,24 @@ Validation for this merge:
 - `..\build\dist\driver.exe etc\config.test -ftest`
 - `git diff --check -- src/packages/core/reclaim.cc testsuite/clone/reclaim_fp_helper.c testsuite/single/tests/crasher/reclaim_funptr_owner.c`
 
+## Merged In `ae8a687fa34a442c0891c6109ba342e734e84277`
+
+The following official PR #1247 buffer range regression coverage was adapted:
+
+- Expanded `/single/tests/operators/buffer_range_assign.c` to cover
+  size-changing range assignment from a buffer RHS in both grow and shrink
+  directions. This pins the previously merged runtime fix that copies from
+  `buffer_t::item` rather than the `buffer_t` header during reallocation.
+
+Validation for this merge:
+
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/buffer_range_assign.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- testsuite/single/tests/operators/buffer_range_assign.c`
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `b7e29424`:
+These official changes remain intentionally unmerged as of `ae8a687f`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
