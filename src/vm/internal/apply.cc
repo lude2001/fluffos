@@ -89,7 +89,7 @@ void check_co_args2(unsigned short *types, int num_arg, const char *name, const 
           smart_log("driver", 0, buf, 1);
         }
       } else {
-        error(buf);
+        error("%s", buf);
       }
     }
   } while (i < num_arg);
@@ -116,12 +116,12 @@ void check_co_args(int num_arg, const program_t *prog, function_t *fun, int find
           smart_log("driver", 0, buf, 1);
         }
       } else {
-        error(buf);
+        error("%s", buf);
       }
     }
     int num_arg_check = std::min((unsigned char)num_arg, fun->num_arg);
     if (num_arg_check && prog->type_start && prog->type_start[findex] != INDEX_START_NONE)
-      check_co_args2(&prog->argument_types[prog->type_start[findex]], num_arg, fun->funcname,
+      check_co_args2(&prog->argument_types[prog->type_start[findex]], num_arg_check, fun->funcname,
                      prog->filename, num_arg);
   }
 }
