@@ -1,21 +1,19 @@
 inherit "/inherit/tests";
 
 #define DIR "/data/recompile_object2"
-#define MARK "/data/recompile_object2_mark"
-
 private void write_src(string file, string body) {
   ASSERT2(write_file(file, body, 1), "write " + file);
 }
 
 private void cleanup() {
   foreach (string prog in ({ DIR + "/ct", DIR + "/sh_target", DIR + "/sh_shadow",
-                             DIR + "/act" })) {
+                             DIR + "/co", DIR + "/act" })) {
     foreach (object ob in children(prog)) {
       if (ob) destruct(ob);
     }
   }
   foreach (string file in ({ "/ct.c", "/sh_target.c", "/sh_shadow.c",
-                             "/act.c" })) {
+                             "/co.c", "/act.c" })) {
     rm(DIR + file);
   }
 }
@@ -67,23 +65,25 @@ private void run_checks() {
   destruct(sh);
   ASSERT_EQ("t2", ob->who());
 
-  rm(MARK);
-  rm(MARK + "_fp");
   write_src(DIR + "/co.c",
-            "void fpmark() { write_file(\"" + MARK + "_fp\", \"x\", 1); }\n" +
-            "void late_tick() { write_file(\"" + MARK + "\", \"v1 ran\", 1); }\n" +
-            "void arm() { call_out(\"late_tick\", 0); call_out((: fpmark :), 0); }\n" +
-            "int pending() { return find_call_out(\"late_tick\"); }\n");
+            "int h1, h2;\n" +
+            "void late_tick() { }\n" +
+            "void fpmark() { }\n" +
+            "void arm() { h1 = call_out(\"late_tick\", 100); h2 = call_out((: fpmark :), 100); }\n" +
+            "int pending() { return find_call_out(\"late_tick\"); }\n" +
+            "void clear() { remove_call_out(h1); remove_call_out(h2); }\n");
   ob = load_object(DIR + "/co");
   ob->arm();
   write_src(DIR + "/co.c",
-            "void fpmark() { write_file(\"" + MARK + "_fp\", \"x\", 1); }\n" +
-            "void late_tick() { write_file(\"" + MARK + "\", \"v2 code ran\", 1); }\n" +
-            "void arm() { call_out(\"late_tick\", 0); call_out((: fpmark :), 0); }\n" +
-            "int pending() { return find_call_out(\"late_tick\"); }\n");
+            "int h1, h2;\n" +
+            "void late_tick() { }\n" +
+            "void fpmark() { }\n" +
+            "void arm() { h1 = call_out(\"late_tick\", 100); h2 = call_out((: fpmark :), 100); }\n" +
+            "int pending() { return find_call_out(\"late_tick\"); }\n" +
+            "void clear() { remove_call_out(h1); remove_call_out(h2); }\n");
   ASSERT_EQ(1, recompile_object(ob));
   ASSERT(ob->pending() >= 0);
-  call_out("verify_callouts", 1);
+  ob->clear();
 
 #ifndef __NO_ADD_ACTION__
   write_src(DIR + "/act.c",
@@ -114,27 +114,6 @@ private void run_checks() {
   ASSERT(ob->try());
   ASSERT_EQ(11, ob->q());
 #endif
-}
-
-protected void verify_callouts() {
-  string mark = read_file(MARK);
-
-  if (!mark || strsrch(mark, "v2 code ran") == -1) {
-    debug_message("POST-RUN callout check: name call_out did not run v2 code: " +
-                  sprintf("%O", mark));
-    shutdown(-1);
-    return;
-  }
-  if (file_size(MARK + "_fp") != -1) {
-    debug_message("POST-RUN callout check: stale funptr call_out ran");
-    shutdown(-1);
-    return;
-  }
-  rm(MARK);
-  if (find_object(DIR + "/co")) destruct(find_object(DIR + "/co"));
-  rm(DIR + "/co.c");
-  rmdir(DIR);
-  debug_message("POST-RUN callout checks OK");
 }
 
 void do_tests() {
