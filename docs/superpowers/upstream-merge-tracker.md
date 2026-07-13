@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `c98193933a4abfafd2b65ef2386973cef4630228`
-  (`merge upstream living parse safety coverage`)
+- Latest local merge commit: `58a4be68929a97ead0b37834866766f6b60b5e71`
+  (`merge upstream varargs parameter guard`)
 - Previous local merge commit:
-  `bab352bad1679d7f838e72cd9c121faf8008a483`
-  (`test: cover optional mysql binary row lengths`)
+  `c98193933a4abfafd2b65ef2386973cef4630228`
+  (`merge upstream living parse safety coverage`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -921,9 +921,35 @@ Validation for this merge:
 - `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/socket_long_host.c`
 - `git diff --check -- src/packages/ops/parse.cc testsuite/single/tests/crasher/living_parse_nonobject.c testsuite/single/tests/crasher/socket_long_host.c`
 
+## Merged In `58a4be68929a97ead0b37834866766f6b60b5e71`
+
+The following remaining official PR #1247 compiler safety fix was adapted to
+this branch's older `grammar.y` layout:
+
+- A varargs argument declaration now checks that a preceding local parameter
+  exists before reading `type_of_locals_ptr[max_num_locals - 1]`.
+- Malformed declarations such as `void probe(void ...)` now report a compiler
+  error instead of reading `type_of_locals_ptr[-1]`.
+- Added `/clone/bad_varargs_void.c` and
+  `/single/tests/compiler/bad_varargs_void.c` as local regression coverage.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/bad_varargs_void.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/bad_macro_params.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/function.c`
+- `git diff --check -- src/compiler/internal/grammar.y src/compiler/internal/grammar.autogen.cc testsuite/clone/bad_varargs_void.c testsuite/single/tests/compiler/bad_varargs_void.c`
+
+Notes:
+
+- `src/compiler/internal/grammar.autogen.cc` was regenerated from
+  `src/compiler/internal/grammar.y`; the generated line-table churn is
+  expected.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `c9819393`:
+These official changes remain intentionally unmerged as of `58a4be68`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -936,7 +962,7 @@ These official changes remain intentionally unmerged as of `c9819393`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the parser/socket coverage batch: remaining
+- PR #1247, remaining scope after the varargs guard batch: remaining
   official-only tests, optional-package live coverage not enabled by the
   current Windows build, and any FFI or newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
