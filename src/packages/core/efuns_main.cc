@@ -3210,6 +3210,14 @@ void f_reload_object() {
 }
 #endif
 
+#ifdef F_RECOMPILE_OBJECT
+void f_recompile_object() {
+  int count = recompile_object(sp->u.ob);
+  free_svalue(sp, "f_recompile_object");
+  put_number(count);
+}
+#endif
+
 #ifdef F_QUERY_SHADOWING
 void f_query_shadowing() {
   object_t *ob;

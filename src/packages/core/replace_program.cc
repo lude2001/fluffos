@@ -26,6 +26,19 @@ int replace_program_pending(object_t *ob) {
   return 0;
 }
 
+void cancel_pending_replace_program(object_t *ob) {
+  replace_ob_t **prev = &obj_list_replace, *r;
+
+  while ((r = *prev)) {
+    if (r->ob == ob) {
+      *prev = r->next;
+      FREE((char *)r);
+    } else {
+      prev = &r->next;
+    }
+  }
+}
+
 void replace_programs() {
   replace_ob_t *r_ob, *r_next;
   int i, num_fewer, offset;

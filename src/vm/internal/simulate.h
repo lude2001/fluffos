@@ -38,6 +38,7 @@ char *check_name(char *);
 int filename_to_obname(const char *, char *, int);
 object_t *load_object(const char *, int);
 object_t *load_object_from_source(const std::string &, const char *, int);
+int recompile_object(object_t *);
 object_t *clone_object(const char *, int);
 object_t *environment(svalue_t *);
 object_t *first_inventory(svalue_t *);

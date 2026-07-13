@@ -7,6 +7,7 @@
 #include <sys/stat.h>  // for load_object struct stat
 #include <stdarg.h>    // for va_start
 #include <unistd.h>    // for open()
+#include <vector>
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>  // for signal*
 #include <net/telnet.h>
@@ -34,6 +35,7 @@
 #include "packages/core/ed.h"
 #include "packages/core/file.h"
 #include "packages/core/heartbeat.h"
+#include "packages/core/replace_program.h"
 #ifdef PACKAGE_ASYNC
 #include "packages/async/async.h"
 #endif
@@ -725,6 +727,220 @@ object_t *load_object_from_source(const std::string &source, const char *virtual
   num_objects_this_thread--;
 
   return ob;
+}
+
+static void recompile_variable_names(program_t *prog, std::vector<const char *> &out) {
+  for (int i = 0; i < prog->num_inherited; i++) {
+    recompile_variable_names(prog->inherit[i].prog, out);
+  }
+  for (int i = 0; i < prog->num_variables_defined; i++) {
+    out.push_back(prog->variable_table[i]);
+  }
+}
+
+int recompile_object(object_t *target) {
+  static bool in_recompile_object = false;
+
+  program_t *old_prog = target->prog;
+  if (!old_prog) {
+    error("recompile_object: object has no program.\n");
+  }
+  if (in_recompile_object) {
+    error("recompile_object: already updating; nested recompile_object is not allowed.\n");
+  }
+  if (strrchr(target->obname, '#')) {
+    error("recompile_object: pass the master copy, not a clone.\n");
+  }
+
+  if ((current_object && current_object->prog == old_prog) || current_prog == old_prog) {
+    error("recompile_object: '/%s' is currently executing.\n", target->obname);
+  }
+  for (control_stack_t *f = control_stack; f <= csp; f++) {
+    if ((f->ob && f->ob->prog == old_prog) || f->prog == old_prog) {
+      error("recompile_object: '/%s' is currently executing.\n", target->obname);
+    }
+  }
+  for (object_t *ob = obj_list; ob; ob = ob->next_all) {
+    if (ob->prog == old_prog && replace_program_pending(ob)) {
+      error("recompile_object: '/%s' has a pending replace_program().\n", ob->obname);
+    }
+  }
+
+  std::string obname(old_prog->filename);
+  char obbase[MAX_OBJECT_NAME_SIZE];
+  if (!filename_to_obname(obname.c_str(), obbase, sizeof obbase)) {
+    strncpy(obbase, obname.c_str(), sizeof obbase - 1);
+    obbase[sizeof obbase - 1] = 0;
+  }
+
+  const char *pname = check_valid_path(obname.c_str(), target, "recompile_object", 0);
+  if (!pname) {
+    error("recompile_object: read access denied for '/%s'.\n", obname.c_str());
+  }
+  std::string source_path(pname);
+
+  in_recompile_object = true;
+  DEFER { in_recompile_object = false; };
+
+  auto inherit_chain_size = CONFIG_INT(__INHERIT_CHAIN_SIZE__);
+  program_t *new_prog = nullptr;
+  for (int rounds = 0;; rounds++) {
+    int f = open(source_path.c_str(), O_RDONLY);
+    if (f == -1) {
+      error("recompile_object: could not read the file '/%s'.\n", source_path.c_str());
+    }
+#ifdef _WIN32
+    _setmode(f, _O_BINARY);
+#endif
+    save_command_giver(command_giver);
+    new_prog = compile_file(std::make_unique<FileLexStream>(f), obname.c_str());
+    restore_command_giver();
+    close(f);
+    update_compile_av(total_lines);
+    total_lines = 0;
+
+    if (!inherit_file) {
+      break;
+    }
+
+    char inhbuf[MAX_OBJECT_NAME_SIZE];
+    char inhraw[MAX_OBJECT_NAME_SIZE];
+    std::string inh_source = std::move(inherit_file_source);
+    inherit_file_source.clear();
+
+    if (!filename_to_obname(inherit_file, inhbuf, sizeof inhbuf)) {
+      strcpy(inhbuf, inherit_file);
+    }
+    strncpy(inhraw, inherit_file, sizeof inhraw - 1);
+    inhraw[sizeof inhraw - 1] = 0;
+    FREE(inherit_file);
+    inherit_file = nullptr;
+
+    if (new_prog) {
+      free_prog(&new_prog);
+      new_prog = nullptr;
+    }
+    if (strcmp(inhbuf, obbase) == 0) {
+      error("Illegal to inherit self.\n");
+    }
+    if (rounds >= inherit_chain_size) {
+      error("Inherit chain too deep: > %d in recompile_object of '/%s'.\n", inherit_chain_size,
+            obbase);
+    }
+    if (!ObjectTable::instance().find(inhbuf)) {
+      object_t *inh_obj;
+      if (!inh_source.empty()) {
+        inh_obj = load_object_from_source(inh_source, inhbuf, 1);
+      } else {
+        inh_obj = load_object(inhraw, 1);
+      }
+      if (!inh_obj) {
+        error("Inherited file '/%s' does not exist!\n", inhbuf);
+      }
+    }
+  }
+
+  if (num_parse_error > 0 || new_prog == nullptr) {
+    if (new_prog) {
+      free_prog(&new_prog);
+    }
+    error("recompile_object: error compiling '/%s'.\n", obname.c_str());
+  }
+
+  int old_n = old_prog->num_variables_total;
+  int new_n = new_prog->num_variables_total;
+  std::vector<const char *> names;
+  names.reserve(new_n);
+  recompile_variable_names(new_prog, names);
+  std::vector<int> old_index(new_n, -1);
+  for (int i = 0; i < new_n; i++) {
+    unsigned short vtype;
+    old_index[i] = find_global_variable(old_prog, names[i], &vtype, 0);
+  }
+
+  std::vector<object_t *> targets;
+  for (object_t *ob = obj_list; ob; ob = ob->next_all) {
+    if (ob->prog == old_prog && !(ob->flags & O_DESTRUCTED)) {
+      add_ref(ob, "recompile_object");
+      targets.push_back(ob);
+    }
+  }
+
+  int count = 0;
+  for (object_t *ob : targets) {
+    if (ob->flags & O_DESTRUCTED) {
+      object_t *tmp = ob;
+      free_object(&tmp, "recompile_object");
+      continue;
+    }
+
+    svalue_t *old_vars = ob->variables;
+    program_t *prev_prog = ob->prog;
+
+    cancel_pending_replace_program(ob);
+
+    reference_prog(new_prog, "recompile_object");
+    ob->prog = new_prog;
+    ob->prog_generation++;
+    ob->variables = allocate_object_variables(new_n);
+    tot_alloc_object_size +=
+        ((new_n ? new_n : 1) - (old_n ? old_n : 1)) * static_cast<int>(sizeof(svalue_t));
+
+    if (ob == master_ob) {
+      rebuild_master_applies();
+    }
+    if (ob == simul_efun_ob) {
+      rebuild_simul_efuns();
+    }
+
+    bool init_ok = true;
+    {
+      error_context_t econ;
+      save_context(&econ);
+      try {
+        call___INIT(ob);
+      } catch (const char *) {
+        restore_context(&econ);
+        init_ok = false;
+      }
+      pop_context(&econ);
+    }
+    if (init_ok && !(ob->flags & O_DESTRUCTED)) {
+      for (int i = 0; i < new_n; i++) {
+        if (old_index[i] >= 0) {
+          assign_svalue(&ob->variables[i], &old_vars[old_index[i]]);
+        }
+      }
+    }
+    for (int i = 0; i < old_n; i++) {
+      free_svalue(&old_vars[i], "recompile_object");
+    }
+    FREE(old_vars);
+    free_prog(&prev_prog);
+
+    if (init_ok && !(ob->flags & O_DESTRUCTED)) {
+      if (function_exists(APPLY_CLEAN_UP, ob, 1)) {
+        ob->flags |= O_WILL_CLEAN_UP;
+      } else {
+        ob->flags &= ~O_WILL_CLEAN_UP;
+      }
+#ifdef NO_ADD_ACTION
+      if (function_exists(APPLY_CATCH_TELL, ob, 1) ||
+          function_exists(APPLY_RECEIVE_MESSAGE, ob, 1)) {
+        ob->flags |= O_LISTENER;
+      } else {
+        ob->flags &= ~O_LISTENER;
+      }
+#endif
+      count++;
+    }
+    object_t *tmp = ob;
+    free_object(&tmp, "recompile_object");
+  }
+
+  free_prog(&new_prog);
+
+  return count;
 }
 
 static char *make_new_name(const char *str) {

@@ -194,3 +194,9 @@ void set_master(object_t *ob) {
   }
 #endif
 }
+
+void rebuild_master_applies() {
+  if (master_ob) {
+    get_master_applies(master_ob);
+  }
+}

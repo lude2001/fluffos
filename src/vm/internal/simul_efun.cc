@@ -103,11 +103,7 @@ static void get_simul_efuns(program_t *prog) {
 
   if (num_simul_efun) {
     remove_simuls();
-    if (!num_new) {
-      FREE(simul_names);
-      FREE(simuls);
-      num_simul_efun = 0;
-    } else {
+    if (num_new) {
       /* will be resized later */
       simul_names =
           RESIZE(simul_names, num_simul_efun + num_new, simul_entry, TAG_SIMULS, "get_simul_efuns");
@@ -181,8 +177,16 @@ static void find_or_add_simul_efun(function_t *funp, int runtime_index) {
 void set_simul_efun(object_t *ob) {
   get_simul_efuns(ob->prog);
 
-  simul_efun_ob = ob;
-  add_ref(simul_efun_ob, "set_simul_efun");
+  if (simul_efun_ob != ob) {
+    simul_efun_ob = ob;
+    add_ref(simul_efun_ob, "set_simul_efun");
+  }
+}
+
+void rebuild_simul_efuns() {
+  if (simul_efun_ob) {
+    get_simul_efuns(simul_efun_ob->prog);
+  }
 }
 
 void call_simul_efun(unsigned short index, int num_arg) {
