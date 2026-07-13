@@ -977,6 +977,52 @@ Notes:
   guard coverage from PR #1247 across constant folding, VM execution, and
   compound assignment.
 
+## Completion Audit On `2026-07-14`
+
+After commit `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`, the target PRs were
+re-queried read-only from `fluffos/fluffos` and compared against this branch's
+current old-layout source tree:
+
+- PR #1247: the locally applicable low-risk safety/correctness fixes in the
+  requested scope are merged in local form. This includes allocator/error-path
+  cleanup, `sprintf()` ownership and bounds fixes, mapping compose cleanup,
+  MySQL row-length coverage, telnet LINEMODE/ZMP guards, trace/compiler/
+  disassembler hardening, `replaceable()` empty-ignore handling,
+  `query_replaced_program()` target-object handling, MUD-port input bounds,
+  parser/socket/reclaim coverage, varargs guard, and integer edge guards.
+- PR #1258: the three applicable Coverity fixes are merged in local form:
+  lexer local-name overrun protection, restore-size overflow protection, and
+  the `recompile_object()` stable filename / fd cleanup fix after PR #1237 made
+  that code path applicable.
+- PR #1239/#1241: directive payload comment stripping and directive-line block
+  comments spanning physical lines are merged in this branch's old lexer
+  layout, with local preprocessor regression coverage.
+- PR #1244: the source-behavior fixes in the requested scope are merged in
+  local form, including `set_clean_up()`, `call_stack(4)`, class combined-decl
+  diagnostics, compound float assignment, async/DNS `this_player()` preservation,
+  safe callback unwind behavior, and CRLF/string-index coverage.
+- PR #1230/#1237: compile-time master applies, testsuite hot-reload demo,
+  `recompile_object()`, live master/clone program swap, name-based variable
+  migration, master/simul_efun rebuild, stale function-pointer checks, unsafe
+  target guards, virtual object coverage, call_out/add_action/heart_beat/shadow
+  coverage, and focused hot-reload tests are merged in local form.
+
+Focused validation for this audit:
+
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/inherit_program.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/include_file.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/applies/hot_reload.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/restore_variable.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf_column_object.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/replaceable_empty.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/async_this_player.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/call_stack.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/class_combined_decl.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/int_min_div_mod.c`
+
 ## Not Merged From The Reviewed Snapshot
 
 These official changes remain intentionally unmerged as of `00cf1f21`:
@@ -986,21 +1032,23 @@ These official changes remain intentionally unmerged as of `00cf1f21`:
   nlohmann/json, utfcpp, libwebsockets, and related sample/test tree cleanup.
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
-- PR #1258, remaining scope: any remaining Coverity items tied to
-  official-only file layout remain unmerged. The lexer local-name, restore
-  overflow, and `recompile_object()` dangling filename-pointer fixes are merged
-  in local form.
+- PR #1258, remaining scope: no requested source-behavior fix remains known
+  unmerged. Only official-only file-layout or harness shape remains outside
+  this branch; the lexer local-name, restore overflow, and `recompile_object()`
+  dangling filename-pointer fixes are merged in local form.
 - PR #1257 and PRs #1253-#1255: official CI/release workflow restructuring and
   automatic release triggers.
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the integer edge-guard batch: remaining
-  official-only tests, optional-package live coverage not enabled by the
-  current Windows build, and any FFI or newer compiler-layout-specific parts.
+- PR #1247, remaining scope after the integer edge-guard batch: no requested
+  low-risk source fix remains known unmerged. Remaining official material is
+  limited to official-only tests, optional-package live coverage not enabled by
+  the current Windows build, FFI, or newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
-- PR #1244: remaining issue fixes not covered by this merge, including any
-  official-only cases tied to file layout or test harness differences.
+- PR #1244: no requested source-behavior fix remains known unmerged. Remaining
+  material is limited to official docs, official-only cases tied to file layout,
+  or test harness differences.
 - PR #1237, remaining scope: official hot-reload documentation-site page, the
   official post-run idle-master recompile fixture, and any official-only test
   harness shape. The core efun, live master/clone program swap, variable
