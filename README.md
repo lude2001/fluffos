@@ -136,6 +136,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1247 第九批剩余低风险安全修复：`ed` 静态缓冲边界、`sprintf()`
   column/table 生命周期、`restore_variable()` 深层/异常路径 scratch 清理，以及
   `replace_dollars()` 替换长度检查。
+- PR #1247 第十批 reclaim 安全修复：`reclaim_objects()` 超过递归上限时
+  保持 `nested` 计数平衡，并避免提前释放 destructed owner 的 `FP_LOCAL`
+  `func_ref`，防止后续 funptr 释放时双重递减。
 - PR #1247/#1258 的 compiler hardening 增量：本地旧 compiler 额外的
   `yywarn()` 格式串保护、local-name 缓冲复制路径对齐，以及本地
   `MAXLINE` 边界下的长局部名回归测试。

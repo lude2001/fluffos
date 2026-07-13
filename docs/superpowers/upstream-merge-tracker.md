@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `af6ccca5849049377135f204b70d775c301dcf72`
-  (`merge remaining upstream safety fixes`)
+- Latest local merge commit: `b7e294247ee027115fb9333701b2d3ff29a245b0`
+  (`merge upstream reclaim safety fixes`)
 - Previous local merge commit:
-  `362f6fefae58197c27baa7243ac494db6882c9dd`
-  (`merge upstream hot reload demo coverage`)
+  `af6ccca5849049377135f204b70d775c301dcf72`
+  (`merge remaining upstream safety fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -827,9 +827,31 @@ Notes:
   exact optional package path is therefore code-review/build-layout coverage,
   not a live LPC package test in this run.
 
+## Merged In `b7e294247ee027115fb9333701b2d3ff29a245b0`
+
+The following official PR #1247 reclaim safety fixes were selectively adapted:
+
+- `reclaim_objects()` now keeps the internal `nested` recursion counter
+  balanced when `check_svalue()` exceeds `MAX_RECURSION` and returns early.
+- Reclaiming a destructed owner from an `FP_LOCAL` function pointer no longer
+  decrements the program's `func_ref` immediately. The function pointer remains
+  alive and later `dealloc_funp()` releases the stored creation program exactly
+  once.
+- Added `/clone/reclaim_fp_helper.c` and
+  `/single/tests/crasher/reclaim_funptr_owner.c` to cover a destructed owner
+  whose function pointer is retained, scheduled in a call_out, and then visited
+  by `reclaim_objects()` again.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/reclaim_funptr_owner.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- src/packages/core/reclaim.cc testsuite/clone/reclaim_fp_helper.c testsuite/single/tests/crasher/reclaim_funptr_owner.c`
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `af6ccca5`:
+These official changes remain intentionally unmerged as of `b7e29424`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -842,7 +864,7 @@ These official changes remain intentionally unmerged as of `af6ccca5`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the ninth partial runtime-hardening batch:
+- PR #1247, remaining scope after the tenth partial runtime-hardening batch:
   MySQL regression coverage, remaining official-only tests, optional-package
   live coverage not enabled by the current Windows build, and any FFI or newer
   compiler-layout-specific parts.
