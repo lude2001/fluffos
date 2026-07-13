@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `1b03c79fa98733e8b7265f56eb4d27bb5003b017`
-  (`merge partial upstream preprocessor comment fixes`)
+- Latest local merge commit: `56c00880b40692bbc12a803026dd739e042859f2`
+  (`merge partial upstream compile-time master applies`)
 - Previous local merge commit:
-  `a8fada2406154b2ab0942b85d00388114d29d730`
-  (`merge partial upstream runtime hardening fixes`)
+  `1b03c79fa98733e8b7265f56eb4d27bb5003b017`
+  (`merge partial upstream preprocessor comment fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -497,9 +497,56 @@ Notes:
   dist binary still tokenized `1 -/* comment */-1` as `1--1`; after rebuilding,
   the focused test passed.
 
+## Merged In `56c00880b40692bbc12a803026dd739e042859f2`
+
+The following official PR #1230 compile-time master apply behavior was
+selectively merged or manually backported into this branch's older compiler and
+lexer layout:
+
+- Added `inherit_program(string from, string path, int priv)` as a master apply
+  consulted for each LPC `inherit` statement.
+- `inherit_program()` can keep the default path, redirect to another program,
+  supply inline source as an array of strings, or deny the inheritance.
+- Added `include_file(string compiled, string from, string path)` as a master
+  apply consulted for each `#include` directive.
+- `include_file()` can keep the default path, redirect to another include file,
+  supply inline include text as an array of strings, or deny the include.
+- Added `StringLexStream` so master-supplied inline include/inherit text can be
+  compiled through the same lexer stream abstraction as disk files.
+- Added `load_object_from_source()` for synthesized inherited programs and made
+  it support the normal inherited-parent retry flow, including inline source
+  that itself inherits unloaded disk or synthesized parents.
+- Added testsuite master hook forwarding through `set_compile_hooks()` for
+  focused compiler tests.
+- Added focused tests and fixtures for inherit redirects, inline inherited
+  programs, denied inherits, private-inherit flags, include redirects, inline
+  includes, nested include call shapes, and nested inline inherit source.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/inherit_program.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/include_file.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/get_include_path.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check`
+
+Notes:
+
+- This is a core-behavior merge of PR #1230, adapted to this branch's
+  `grammar_rules.cc` / `lex.cc` compiler layout rather than importing official
+  `grammar_rules.cc` / `lexer_utils.cc` changes wholesale.
+- The official hot-reload daemon/demo from PR #1230 was not recorded here as
+  fully merged. The reusable compile hooks it depends on are present; the demo
+  remains a later integration item, especially after `recompile_object()` from
+  PR #1237 is merged.
+- The new master applies preserve existing production behavior when the mudlib
+  master returns the original path or does not route to a custom hook.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `1b03c79f`:
+These official changes remain intentionally unmerged as of `56c00880`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -522,8 +569,9 @@ These official changes remain intentionally unmerged as of `1b03c79f`:
 - PR #1237: `recompile_object()` hot-reload efun and related master/simul_efun
   handling.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
-- PR #1230: `inherit_program` and `include_file` master applies plus the auto
-  hot-reload demo.
+- PR #1230, remaining scope: official hot-reload daemon/demo documentation and
+  any official-only test/doc shape not represented in this branch's local
+  compiler hook tests.
 - PR #1210: the large LPC platform modernization batch, including Flex-based
   front-end work, clang-style diagnostics, arena compiles, `.lpc` source
   preference, FFI package, decimal library, `tools/lpc-syntax`, official VS Code

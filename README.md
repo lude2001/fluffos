@@ -135,6 +135,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1239/#1241 的预处理 directive 注释修复：directive 行内 `/*...*/`
   按空白处理、跨物理行 block comment 不泄漏为代码，并补充 `#define`、
   `#ifdef`、`#undef`、`#if` 的本地回归测试。
+- PR #1230 的编译期 master applies：`inherit_program()` 和
+  `include_file()`，支持 inherit/include 重定向、内联源码和拒绝路径，并补充
+  本地 compiler hook 回归测试。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 `recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。
