@@ -6,6 +6,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 
@@ -64,6 +65,7 @@ struct Work {
 
 std::deque<struct Work *> reqs;
 std::mutex reqs_lock;
+std::set<struct Work *> current_works;
 
 std::deque<struct Request *> finished_reqs;
 std::mutex finished_reqs_lock;
@@ -89,6 +91,7 @@ void thread_func() {
       }
       w = reqs.front();
       reqs.pop_front();
+      current_works.insert(w);
     }
 
     if (w) {
@@ -101,12 +104,15 @@ void thread_func() {
       }
       if (w->data->status == DONE) {
         {
-          std::lock_guard<std::mutex> const lock(finished_reqs_lock);
+          std::lock_guard<std::mutex> const rlock(reqs_lock);
+          std::lock_guard<std::mutex> const flock(finished_reqs_lock);
+          current_works.erase(w);
           finished_reqs.push_back(w->data);
         }
         delete w;
       } else {
         std::lock_guard<std::mutex> const lock(reqs_lock);
+        current_works.erase(w);
         reqs.push_back(w);
       }
 
@@ -255,7 +261,7 @@ void *getdirthread(struct Request *req) {
   int i = 0;
   for (auto *de = readdir(dirp); de; de = readdir(dirp)) {
     if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) continue;
-    req->data.resize(req->data.size() + sizeof(dirent *));
+    req->data.resize(static_cast<size_t>(i + 1) * sizeof(struct dirent));
     memcpy(&((dirent *)(req->data.data()))[i], de, sizeof(*de));
     i++;
   }
@@ -288,6 +294,8 @@ int add_read(const char *fname, function_to_call_t *fun) {
     req->path = std::string(fname);
     return aio_gzread(req);
   }
+  free_funp(fun->f.fp);
+  delete fun;
   error("permission denied\n");
 
   return 1;
@@ -307,6 +315,8 @@ int add_getdir(const char *fname, function_to_call_t *fun) {
     req->path = fname;
     return aio_getdir(req);
   }
+  free_funp(fun->f.fp);
+  delete fun;
   error("permission denied\n");
 
   return 1;
@@ -315,6 +325,8 @@ int add_getdir(const char *fname, function_to_call_t *fun) {
 
 int add_write(const char *fname, const char *buf, int size, char flags, function_to_call_t *fun) {
   if (!fname) {
+    free_funp(fun->f.fp);
+    delete fun;
     error("permission denied\n");
   }
 
@@ -557,6 +569,16 @@ void async_mark_request() {
   }
 
   for (auto &req : finished_reqs) {
+    if (req->fun != nullptr) {
+      req->fun->f.fp->hdr.extra_ref++;
+    }
+    if (req->command_giver != nullptr) {
+      req->command_giver->extra_ref++;
+    }
+  }
+
+  for (auto *work : current_works) {
+    auto *req = work->data;
     if (req->fun != nullptr) {
       req->fun->f.fp->hdr.extra_ref++;
     }
