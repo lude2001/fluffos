@@ -306,6 +306,7 @@ apk add --no-cache linux-headers gcc g++ clang-dev make cmake bash \
 - 严禁新增、恢复或依赖名为 `upstream` 的 Git 远程或远程跟踪分支；需要对外部仓库做调研时，只允许只读查询，并且不得把查询结果写入 Git 远程配置。
 - 当代理使用 `gh`、`git push`、`gh pr create`、`gh pr edit`、`gh pr reopen`、`gh release` 等命令时，必须显式检查目标仓库是否为 `lude2001/fluffos`；如果不是，必须停止并报错，而不是继续执行。
 - 默认工作流是不创建远程 Pull Request；除非用户明确要求，否则代理只应在本地分支完成开发、在本地合并回 `master`，然后仅把 `master` 推送到 `origin`。
+- 每次从官方 `fluffos/fluffos` 只读调研并合并功能或修复时，必须同步更新 [`docs/superpowers/upstream-merge-tracker.md`](docs/superpowers/upstream-merge-tracker.md)，记录官方最新快照、本地合并内容、仍未合并的功能和验证结果。
 
 ### 代码生成
 
