@@ -149,6 +149,9 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
   `yywarn()` 格式串保护、local-name 缓冲复制路径对齐，以及本地
   `MAXLINE` 边界下的长局部名回归测试；同时补入 `void ...` / 缺少承接
   参数的 varargs 声明保护，避免读取 `type_of_locals_ptr[-1]`。
+- PR #1247 的 `INT_MIN` 除法/取模运行时边界保护：VM 普通 `/`、`%`、
+  `/=`、`%=` 以及编译期常量折叠在 `-1` divisor 下统一避免 C/C++ 未定义行为，
+  并补充 focused 回归测试。
 - PR #1239/#1241 的预处理 directive 注释修复：directive 行内 `/*...*/`
   按空白处理、跨物理行 block comment 不泄漏为代码，并补充 `#define`、
   `#ifdef`、`#undef`、`#if` 的本地回归测试。

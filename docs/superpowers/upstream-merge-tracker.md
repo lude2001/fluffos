@@ -12,15 +12,15 @@ official repository access stays read-only.
 
 - Official repository: `fluffos/fluffos`
 - Official branch reviewed: `master`
-- Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
-- Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
-- Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `58a4be68929a97ead0b37834866766f6b60b5e71`
-  (`merge upstream varargs parameter guard`)
+- Latest official commit reviewed: `c74ccc8523f3f04d6247d561da6643852e891539`
+- Latest official commit title: `wasm: add crash/error debug modal to the default page (#1261)`
+- Official commit date: `2026-07-13T21:29:52Z`
+- Latest local merge commit: `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`
+  (`merge upstream int division edge guards`)
 - Previous local merge commit:
-  `c98193933a4abfafd2b65ef2386973cef4630228`
-  (`merge upstream living parse safety coverage`)
-- Review date: `2026-07-13`
+  `58a4be68929a97ead0b37834866766f6b60b5e71`
+  (`merge upstream varargs parameter guard`)
+- Review date: `2026-07-14`
 
 ## Merged In `c20b15e4`
 
@@ -947,10 +947,43 @@ Notes:
   `src/compiler/internal/grammar.y`; the generated line-table churn is
   expected.
 
+## Merged In `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`
+
+The following remaining official PR #1247 integer edge-case guards were adapted
+to this branch's older compiler and VM layout:
+
+- Constant-folded `constant / constant` and `constant % constant` now handle a
+  `-1` divisor without invoking C/C++ undefined behavior for `INT_MIN / -1`.
+- VM integer `/` and `%` now use the same guarded behavior at runtime:
+  `INT_MIN / -1` keeps the two's-complement wrapped LPC result, while
+  `INT_MIN % -1` returns `0`.
+- Compound assignment `/=` and `%=` now apply the same guard, so lvalue updates
+  cannot crash or trigger undefined behavior on the same edge case.
+- Added `/single/tests/operators/int_min_div_mod.c` to cover runtime `/`, `%`,
+  `/=`, and `%=` behavior for the 64-bit minimum integer.
+
+Validation for this merge:
+
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/int_min_div_mod.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/compound_assign_float.c`
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/64bit.c`
+- `git diff --check -- src/compiler/internal/grammar.y src/compiler/internal/grammar.autogen.cc src/packages/ops/ops.cc src/vm/internal/base/interpret.cc testsuite/single/tests/operators/int_min_div_mod.c`
+
+Notes:
+
+- `src/compiler/internal/grammar.autogen.cc` was regenerated from
+  `src/compiler/internal/grammar.y`.
+- This completes the locally applicable low-risk `INT_MIN / -1` and `% -1`
+  guard coverage from PR #1247 across constant folding, VM execution, and
+  compound assignment.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `58a4be68`:
+These official changes remain intentionally unmerged as of `00cf1f21`:
 
+- PR #1261: WebAssembly default-page crash/error debug modal.
+- Recent official thirdparty updates/pruning after #1259, including fmt,
+  nlohmann/json, utfcpp, libwebsockets, and related sample/test tree cleanup.
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
 - PR #1258, remaining scope: any remaining Coverity items tied to
@@ -962,7 +995,7 @@ These official changes remain intentionally unmerged as of `58a4be68`:
 - PR #1250, remaining scope: official docs/sidebar updates and any
   official-only string/ref test cases tied to the newer split compiler/test
   layout.
-- PR #1247, remaining scope after the varargs guard batch: remaining
+- PR #1247, remaining scope after the integer edge-guard batch: remaining
   official-only tests, optional-package live coverage not enabled by the
   current Windows build, and any FFI or newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
