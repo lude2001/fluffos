@@ -142,9 +142,13 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - PR #1230 的编译期 master applies：`inherit_program()` 和
   `include_file()`，支持 inherit/include 重定向、内联源码和拒绝路径，并补充
   本地 compiler hook 回归测试。
+- PR #1237 的热重载基础层：对象全局变量块改为独立 `TAG_OBJ_VARS`
+  分配，并加入 `prog_generation` 字段，为后续 `recompile_object()` 的按名称
+  迁移和 stale function pointer 检查做准备；当前尚未暴露新的热重载 efun。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
-`recompile_object()`、FFI、WebAssembly 目标，以及 CI/release 流程重构。
+完整 `recompile_object()` 热重载主体、FFI、WebAssembly 目标，以及 CI/release
+流程重构。
 
 ## Windows 构建
 

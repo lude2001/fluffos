@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `fa228dce2b4ca9eb7f7219474dac2b4014d2d13d`
-  (`merge partial upstream crlf string semantics tests`)
+- Latest local merge commit: `06719fab6466eed700d3bc6474b23dd02c27adca`
+  (`merge partial upstream object variable blocks`)
 - Previous local merge commit:
-  `99aa8be9e5db99f26d503bec7beae6ff32856921`
-  (`merge partial upstream compiler hardening fixes`)
+  `fa228dce2b4ca9eb7f7219474dac2b4014d2d13d`
+  (`merge partial upstream crlf string semantics tests`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -601,16 +601,46 @@ Notes:
   already present in this branch; the merge pins it so future string changes do
   not accidentally reinterpret CRLF as two searchable/indexable clusters.
 
+## Merged In `06719fab6466eed700d3bc6474b23dd02c27adca`
+
+The following official PR #1237 hot-reload foundation was selectively merged:
+
+- Object global variables now live in a separate `TAG_OBJ_VARS` allocation
+  instead of the tail of `object_t`. The block is always at least one `svalue_t`
+  and is allocated through `allocate_object_variables()`.
+- `object_t` now carries `prog_generation`, the field later used by
+  `recompile_object()` to invalidate stale function pointers after a program
+  swap.
+- Debug-memory checking now marks object variable blocks from their owning
+  object and reports orphan `TAG_OBJ_VARS` blocks explicitly.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- src/base/internal/debugmalloc.h src/vm/internal/base/object.h src/vm/internal/base/object.cc src/packages/develop/checkmemory.cc`
+
+Notes:
+
+- This is a partial merge of PR #1237, not the full `recompile_object()` efun.
+- No public LPC API is exposed by this commit. Existing production mudlibs keep
+  using the same object variables through `ob->variables`; the allocation shape
+  changes only inside the driver.
+- The remaining PR #1237 work includes the actual efun, live program swap,
+  variable migration by name, master/simul_efun handling, function-pointer
+  generation checks, executing-frame guards, clone/virtual/call_out/heart_beat
+  safety handling, and focused regression tests.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `fa228dce`:
+These official changes remain intentionally unmerged as of `06719fab`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
 - PR #1258, remaining scope: the `recompile_object()` dangling filename-pointer
-  fix is not applicable until this branch carries `recompile_object()`; any
-  remaining Coverity items tied to official-only file layout also remain
-  unmerged.
+  fix remains pending until this branch carries the `recompile_object()` efun
+  body; any remaining Coverity items tied to official-only file layout also
+  remain unmerged.
 - PR #1257 and PRs #1253-#1255: official CI/release workflow restructuring and
   automatic release triggers.
 - PR #1250, remaining scope: official docs/sidebar updates and any
@@ -623,8 +653,11 @@ These official changes remain intentionally unmerged as of `fa228dce`:
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
 - PR #1244: remaining issue fixes not covered by this merge, including any
   official-only cases tied to file layout or test harness differences.
-- PR #1237: `recompile_object()` hot-reload efun and related master/simul_efun
-  handling.
+- PR #1237, remaining scope: the `recompile_object()` hot-reload efun body,
+  live program swap, variable migration, master/simul_efun handling, stale
+  function-pointer detection, executing-frame guard, clone/virtual/call_out/
+  heart_beat safety handling, and focused regression tests. The object variable
+  block allocation foundation is already merged in `06719fab`.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
 - PR #1230, remaining scope: official hot-reload daemon/demo documentation and
   any official-only test/doc shape not represented in this branch's local
