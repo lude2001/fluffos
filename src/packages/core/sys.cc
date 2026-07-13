@@ -54,7 +54,8 @@ void f_sys_reload_tls() {
   auto port_index = port_index_display - 1;
 
   DEFER { pop_stack(); };
-  if (port_index < 0 || port_index > sizeof(external_port)) {
+  if (port_index < 0 ||
+      port_index >= static_cast<int>(sizeof(external_port) / sizeof(external_port[0]))) {
     error("Invalid port index: %d\n", port_index_display);
   }
   auto *port = &external_port[port_index];

@@ -443,6 +443,9 @@ char *read_file(const char *file, int start, int lines) {
   if (ptr_end > ptr_start + read_file_max_size) {
     ptr_end = (char *)ptr_start + read_file_max_size;
   }
+  if (ptr_end > the_buff + total_bytes_read) {
+    ptr_end = the_buff + total_bytes_read;
+  }
 
   *ptr_end = '\0';
 

@@ -7,6 +7,9 @@ void do_tests_real() {
 
   // valid tls
   ASSERT_EQ(0, sys_reload_tls(4));
+
+  ASSERT_NE(0, catch(sys_reload_tls(8)));
+  ASSERT_NE(0, catch(sys_reload_tls(-1)));
 }
 void after_boot() {
   mixed err;

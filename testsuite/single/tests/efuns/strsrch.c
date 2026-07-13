@@ -24,6 +24,8 @@ void do_tests() {
 
   // non ascii string
   ASSERT_EQ(86, strsrch(txt, "，没有一"));
+  ASSERT_EQ(3, strsrch("abcabc", "ab", -1));
+  ASSERT_EQ(-1, strsrch("abcabc", "xy", -1));
 
   txt = @TEXT
 HTTP/1.1 200 OK

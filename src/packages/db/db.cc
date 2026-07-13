@@ -664,12 +664,14 @@ static array_t *MySQL_fetch(dbconn_t *c, int row) {
     return &the_null_array;
   }
 
+  unsigned long *target_lengths = nullptr;
   if (row > 0) {
     mysql_data_seek(c->mysql.results, row - 1);
     target_row = mysql_fetch_row(c->mysql.results);
     if (!target_row) {
       return &the_null_array;
     }
+    target_lengths = mysql_fetch_lengths(c->mysql.results);
   }
 
   v = allocate_empty_array(num_fields);
@@ -718,9 +720,10 @@ static array_t *MySQL_fetch(dbconn_t *c, int row) {
         case FIELD_TYPE_STRING:
         case FIELD_TYPE_VAR_STRING:
           if (field->flags & BINARY_FLAG) {
+            unsigned long const blen = target_lengths ? target_lengths[i] : 0;
             v->item[i].type = T_BUFFER;
-            v->item[i].u.buf = allocate_buffer(field->max_length);
-            write_buffer(v->item[i].u.buf, 0, target_row[i], field->max_length);
+            v->item[i].u.buf = allocate_buffer(blen);
+            write_buffer(v->item[i].u.buf, 0, target_row[i], blen);
           } else {
             v->item[i].type = T_STRING;
             if (target_row[i]) {

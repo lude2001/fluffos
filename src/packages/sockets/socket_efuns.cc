@@ -182,7 +182,12 @@ static bool lpcaddr_to_sockaddr(const char *name, struct sockaddr *addr, ev_sock
   memset(host, 0, sizeof(host));
   memset(service, 0, sizeof(service));
 
-  memcpy(host, name, cp - name);
+  auto hlen = static_cast<size_t>(cp - name);
+  if (hlen >= sizeof(host)) {
+    debug(sockets, "lpcaddr_to_sockaddr: host too long: %s", name);
+    return false;
+  }
+  memcpy(host, name, hlen);
   strncpy(service, cp + 1, sizeof(service) - 1);
 
   struct addrinfo hints = {0}, *res;
@@ -716,10 +721,9 @@ int socket_accept(int fd, svalue_t *read_callback, svalue_t *write_callback) {
     return EENONBLOCK;
   }
 
-  if (evutil_make_socket_closeonexec(fd) == -1) {
+  if (evutil_make_socket_closeonexec(accept_fd) == -1) {
     debug(sockets, "socket_accept: make_socket_closeonexec error: %s.\n",
-          evutil_socket_error_to_string(evutil_socket_geterror(fd)));
-    evutil_closesocket(fd);
+          evutil_socket_error_to_string(evutil_socket_geterror(accept_fd)));
     evutil_closesocket(accept_fd);
     return EESETSOCKOPT;
   }

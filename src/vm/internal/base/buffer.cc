@@ -44,11 +44,13 @@ buffer_t *allocate_buffer(int size) {
 }
 
 int write_buffer(buffer_t *buf, int start, const char *str, int theLength) {
-  int size;
+  size_t size = buf->size;
 
-  size = buf->size;
+  if (theLength < 0) {
+    return 0;
+  }
   if (start < 0) {
-    start = size + start;
+    start = static_cast<int>(size) + start;
     if (start < 0) {
       return 0;
     }
@@ -57,7 +59,9 @@ int write_buffer(buffer_t *buf, int start, const char *str, int theLength) {
    * can't write past the end of the buffer since we can't reallocate the
    * buffer here (no easy way to propagate back the changes to the caller
    */
-  if ((start + theLength) > size) {
+  auto offset = static_cast<size_t>(start);
+  auto length = static_cast<size_t>(theLength);
+  if (offset > size || length > size - offset) {
     return 0;
   }
   memcpy(buf->item + start, str, theLength);
