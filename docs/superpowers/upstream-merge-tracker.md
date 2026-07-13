@@ -15,11 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `99aa8be9e5db99f26d503bec7beae6ff32856921`
-  (`merge partial upstream compiler hardening fixes`)
+- Latest local merge commit: `fa228dce2b4ca9eb7f7219474dac2b4014d2d13d`
+  (`merge partial upstream crlf string semantics tests`)
 - Previous local merge commit:
-  `56c00880b40692bbc12a803026dd739e042859f2`
-  (`merge partial upstream compile-time master applies`)
+  `99aa8be9e5db99f26d503bec7beae6ff32856921`
+  (`merge partial upstream compiler hardening fixes`)
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -579,9 +579,31 @@ Notes:
   the added test therefore pins the largest local source-level case this branch
   can compile without changing lexer line-length semantics.
 
+## Merged In `fa228dce2b4ca9eb7f7219474dac2b4014d2d13d`
+
+The following official PR #1244 string-semantics coverage was selectively
+merged into this branch's existing `string_index.c` regression suite:
+
+- Documented the intentional virtual-NUL result when indexing a string at
+  `strlen(s)`.
+- Added CRLF extended-grapheme-cluster coverage: `strlen("\r\n") == 1`,
+  indexing `"\r\n"` returns the CR codepoint at cluster 0 and virtual NUL at
+  cluster 1, and `strsrch()` only matches on cluster boundaries.
+
+Validation for this merge:
+
+- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/string_index.c`
+- `git diff --check -- src\base\internal\strutils.cc testsuite\single\tests\operators\string_index.c`
+
+Notes:
+
+- This is a test/comment merge of PR #1244 behavior. The runtime behavior was
+  already present in this branch; the merge pins it so future string changes do
+  not accidentally reinterpret CRLF as two searchable/indexable clusters.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `99aa8be9`:
+These official changes remain intentionally unmerged as of `fa228dce`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -599,9 +621,8 @@ These official changes remain intentionally unmerged as of `99aa8be9`:
   coverage, remaining official-only tests, and all `recompile_object()`, FFI, or
   newer compiler-layout-specific parts.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
-- PR #1244: remaining issue fixes not covered by this merge, including CRLF
-  string-semantics test updates and any official-only cases tied to file layout
-  or test harness differences.
+- PR #1244: remaining issue fixes not covered by this merge, including any
+  official-only cases tied to file layout or test harness differences.
 - PR #1237: `recompile_object()` hot-reload efun and related master/simul_efun
   handling.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.

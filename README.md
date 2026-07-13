@@ -96,6 +96,7 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - `call_stack(4)` 统一返回 `file:line`。
 - `int op= float` 和声明为 `float` 的复合赋值语义修复。
 - `unique_mapping()` 在 callback 或映射构造异常路径上的释放修复。
+- CRLF 作为单个扩展字素簇的字符串索引和 `strsrch()` 语义回归测试。
 - 对象加载深度计数提前到 `valid_read` 之前，避免递归加载绕过深度保护。
 - parser package 保留 UTF-8 多字节 token，修复非 ASCII `STR`/`OBJ` 匹配。
 - class body 后直接跟变量名时给出更明确的编译诊断。
