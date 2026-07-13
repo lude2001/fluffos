@@ -96,6 +96,12 @@ driver 语义，又能在编辑器里得到高质量的开发反馈。
 - `call_stack(4)` 统一返回 `file:line`。
 - `int op= float` 和声明为 `float` 的复合赋值语义修复。
 - `unique_mapping()` 在 callback 或映射构造异常路径上的释放修复。
+- 对象加载深度计数提前到 `valid_read` 之前，避免递归加载绕过深度保护。
+- parser package 保留 UTF-8 多字节 token，修复非 ASCII `STR`/`OBJ` 匹配。
+- class body 后直接跟变量名时给出更明确的编译诊断。
+- `safe_apply()` 和函数指针回调异常路径的 value stack 回滚修复。
+- async 文件/数据库回调与 DNS resolve 回调在配置允许时保留
+  `this_player()`。
 
 更大的官方工作不会自动合并，例如编译器前端现代化、官方 VS Code 扩展、
 `recompile_object()`、buffer 字节数组/ref 行为重构、FFI、WebAssembly

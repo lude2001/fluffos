@@ -15,9 +15,11 @@ official repository access stays read-only.
 - Latest official commit reviewed: `6b6f1699525c8c6b3b7c8d50c02003d85f33f217`
 - Latest official commit title: `lpc-syntax: wire formatter into vscode extension, fix tokenizer/formatter bugs (#1259)`
 - Official commit date: `2026-07-12T19:42:14Z`
-- Latest local merge commit: `c168e3aa07dcfbd193485a51a7387ce055bf7412`
+- Latest local merge commit: `09ec81cbf4775ca1972c514f35f075611cec25a7`
+  (`merge additional upstream issue fixes`)
+- Previous local merge commit:
+  `c168e3aa07dcfbd193485a51a7387ce055bf7412`
   (`merge additional upstream runtime fixes`)
-- Previous local merge commit: `c20b15e4 merge selected upstream runtime fixes and efuns`
 - Review date: `2026-07-13`
 
 ## Merged In `c20b15e4`
@@ -81,9 +83,45 @@ Notes:
 - `recompile_object()` from PR #1258 was not applicable to this local tree
   because this branch does not currently contain that efun entry point.
 
+## Merged In `09ec81cbf4775ca1972c514f35f075611cec25a7`
+
+The following additional official issue fixes were selectively merged or
+manually backported:
+
+- PR #1238, remaining runtime scope: object load-count/depth accounting now
+  happens before `valid_read`, preventing recursive `valid_read` load paths from
+  bypassing the protection.
+- PR #1238, remaining runtime scope: parser package tokenization now preserves
+  UTF-8 multibyte bytes for word, `STR`, and `OBJ` matching.
+- PR #1244, partially: a class body followed directly by a variable name now
+  produces a targeted diagnostic instead of a confusing generic parse failure.
+- PR #1244, partially: `safe_apply()` and function-pointer callback exception
+  paths now unwind the value stack from the saved call base instead of popping
+  arguments twice.
+- PR #1244, partially: async file/database callbacks and DNS resolve callbacks
+  preserve `this_player()` when `this_player in call_out` compatibility is
+  enabled.
+
+Validation for this merge:
+
+- `.\build.cmd`
+- `..\build\dist\driver.exe etc\config.test -ftest`
+- `git diff --check -- src/compiler/internal/grammar.autogen.cc src/compiler/internal/grammar.autogen.h src/compiler/internal/grammar.y src/packages/async/async.cc src/packages/core/dns.cc src/packages/parser/parser.cc src/vm/internal/apply.cc src/vm/internal/base/function.cc src/vm/internal/simulate.cc testsuite/clone/class788_ok.c testsuite/clone/class788_repro.c testsuite/single/tests/compiler/class_combined_decl.c testsuite/single/tests/crasher/1014.c testsuite/single/tests/efuns/async_this_player.c testsuite/single/tests/efuns/parse_utf8.c`
+
+Notes:
+
+- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` and
+  `src/compiler/internal/grammar.autogen.h` from
+  `src/compiler/internal/grammar.y`; the generated parser table changes are
+  expected.
+- The new async `this_player()` regression is intentionally side-effect-free.
+  The local testsuite compiles and schedules those callback paths, while the
+  broader async callback execution coverage still comes from the existing async
+  tests.
+
 ## Not Merged From The Reviewed Snapshot
 
-These official changes remain intentionally unmerged as of `c168e3aa`:
+These official changes remain intentionally unmerged as of `09ec81cb`:
 
 - PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
   highlighter fixes, generated grammar-contract updates, and extension tests.
@@ -96,11 +134,9 @@ These official changes remain intentionally unmerged as of `c168e3aa`:
   `to_buffer()`, strict byte range checks, and broader ref tests.
 - PR #1247: the large multi-round memory-safety and correctness audit batch.
 - PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
-- PR #1244: remaining issue fixes not covered by this merge, including class
-  declaration diagnostics, safe_apply value-stack underflow, async
-  `this_player()` preservation, and CRLF string-semantics test updates.
-- PR #1238: remaining tier-1 fixes not covered by this merge, including
-  load-count-before-`valid_read` and parser UTF-8 tokenization.
+- PR #1244: remaining issue fixes not covered by this merge, including CRLF
+  string-semantics test updates and any official-only cases tied to file layout
+  or test harness differences.
 - PR #1237: `recompile_object()` hot-reload efun and related master/simul_efun
   handling.
 - PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
