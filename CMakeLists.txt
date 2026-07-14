@@ -36,13 +36,8 @@ find_program (BASH_EXECUTABLE bash REQUIRED)
 if(NOT WIN32)
   find_package(Git)
 else()
-  execute_process(
-          COMMAND ${BASH_EXECUTABLE} -c "git status"
-          RESULT_VARIABLE STATUS
-          OUTPUT_VARIABLE OUTPUT2
-          ERROR_QUIET )
-  if(STATUS AND NOT STATUS EQUAL 0)
-  else()
+  find_program(FLUFFOS_GIT_EXECUTABLE git)
+  if(FLUFFOS_GIT_EXECUTABLE)
     set(GIT_EXECUTABLE "git")
   endif()
 endif()
