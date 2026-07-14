@@ -21,6 +21,7 @@ if not defined DETECTED_MSYS2_ROOT (
 )
 
 set "MSYS2_ROOT=%DETECTED_MSYS2_ROOT%"
+if "%MSYS2_ROOT:~-1%"=="\" set "MSYS2_ROOT=%MSYS2_ROOT:~0,-1%"
 set "BASH_EXE=%MSYS2_ROOT%\usr\bin\bash.exe"
 set "POWERSHELL_EXE=powershell.exe"
 set "JOBS=%NUMBER_OF_PROCESSORS%"
