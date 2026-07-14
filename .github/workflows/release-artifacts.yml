@@ -1,0 +1,202 @@
+name: Release Artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+
+jobs:
+  windows-artifacts:
+    name: Windows installer and runtime
+    runs-on: windows-latest
+
+    steps:
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-zstd
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-pcre
+            mingw-w64-x86_64-icu
+            mingw-w64-x86_64-sqlite3
+            mingw-w64-x86_64-jemalloc
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-libmariadbclient
+            bison
+            make
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --no-progress -y
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Windows distribution and installer
+        shell: cmd
+        env:
+          MSYS2_ROOT: C:\msys64
+        run: build.cmd
+
+      - name: Resolve artifact version
+        id: version
+        shell: powershell
+        run: |
+          $version = .\scripts\get-project-version-from-config.ps1 -ConfigHeaderPath .\build\work\src\config.h
+          "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Package Windows runtime
+        shell: powershell
+        run: |
+          $version = '${{ steps.version.outputs.value }}'
+          $runtimeZip = "build\fluffos-$version-windows-x86_64-runtime.zip"
+          if (Test-Path -LiteralPath $runtimeZip) {
+            Remove-Item -LiteralPath $runtimeZip -Force
+          }
+          Compress-Archive -Path build\install-image\* -DestinationPath $runtimeZip -Force
+
+      - name: Verify Windows installer configuration
+        shell: powershell
+        run: .\scripts\test-windows-installer-config.ps1 -InstallerScriptPath .\packaging\windows\fluffos.iss
+
+      - name: Verify Windows install image layout
+        shell: powershell
+        run: .\scripts\test-install-image-layout.ps1 -InstallImageDir .\build\install-image
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluffos-windows-artifacts
+          path: |
+            build/fluffos-*-windows-x86_64-installer.exe
+            build/fluffos-*-windows-x86_64-runtime.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  linux-production:
+    name: Linux production runtime
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential autoconf automake bison expect \
+            libmysqlclient-dev libpcre3-dev libpq-dev libsqlite3-dev \
+            libssl-dev libtool libz-dev telnet libgtest-dev libjemalloc-dev \
+            libicu-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMARCH_NATIVE=OFF \
+            -DPACKAGE_DB_SQLITE=2 \
+            -DCMAKE_INSTALL_PREFIX="$PWD/package/fluffos"
+
+      - name: Build and install
+        run: cmake --build build/release --target install -j"$(nproc)"
+
+      - name: Package Linux runtime
+        run: |
+          version="$(sed -n 's/^#define PROJECT_VERSION "fluffos \(.*\)"$/\1/p' build/release/src/config.h)"
+          arch="$(uname -m)"
+          tar -C package -czf "fluffos-${version}-linux-${arch}.tar.gz" fluffos
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluffos-linux-production
+          path: fluffos-*-linux-*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  macos-production:
+    name: macOS production runtime
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        env:
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+        run: |
+          brew install cmake pkg-config pcre libgcrypt openssl jemalloc icu4c \
+            mysql sqlite3 googletest
+
+      - name: Configure
+        env:
+          OPENSSL_ROOT_DIR: /opt/homebrew/opt/openssl@3
+          ICU_ROOT: /opt/homebrew/opt/icu4c
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMARCH_NATIVE=OFF \
+            -DPACKAGE_DB_SQLITE=2 \
+            -DCMAKE_INSTALL_PREFIX="$PWD/package/fluffos"
+
+      - name: Build and install
+        env:
+          OPENSSL_ROOT_DIR: /opt/homebrew/opt/openssl@3
+          ICU_ROOT: /opt/homebrew/opt/icu4c
+        run: cmake --build build/release --target install -j"$(sysctl -n hw.ncpu)"
+
+      - name: Package macOS runtime
+        run: |
+          version="$(sed -n 's/^#define PROJECT_VERSION "fluffos \(.*\)"$/\1/p' build/release/src/config.h)"
+          arch="$(uname -m)"
+          tar -C package -czf "fluffos-${version}-macos-${arch}.tar.gz" fluffos
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluffos-macos-production
+          path: fluffos-*-macos-*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-release:
+    name: Publish GitHub Release assets
+    runs-on: ubuntu-24.04
+    needs:
+      - windows-artifacts
+      - linux-production
+      - macos-production
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --title "$RELEASE_TAG" \
+              --notes "Automated FluffOS release artifacts for $GITHUB_SHA"
+          fi

@@ -204,6 +204,31 @@ build/dist
 - `std/`
 - `www/`
 
+## CI/CD 与发布产物
+
+现有三平台 CI workflow 负责验证构建和测试：
+
+- `.github/workflows/ci-windows.yml`
+- `.github/workflows/ci-macos.yml`
+- `.github/workflows/ci-ubuntu.yml`
+
+发布产物由 `.github/workflows/release-artifacts.yml` 负责。它不会在每次
+`master` 推送时运行，只在以下场景运行：
+
+- 手动触发 `workflow_dispatch`：生成 GitHub Actions artifacts，用于检查产物。
+- 推送 `v*` tag：生成 artifacts，并创建或更新同名 GitHub Release 资产。
+
+当前 release workflow 目标产物包括：
+
+- `fluffos-<version>-windows-x86_64-installer.exe`：Windows 开发环境安装包。
+- `fluffos-<version>-windows-x86_64-runtime.zip`：Windows 生产运行时包。
+- `fluffos-<version>-macos-<arch>.tar.gz`：macOS 生产运行时包。
+- `fluffos-<version>-linux-<arch>.tar.gz`：Linux 生产运行时包。
+
+Windows 安装包和 runtime 包复用本仓库规范入口 `build.cmd`。Linux/macOS
+生产包使用 `Release`、`MARCH_NATIVE=OFF` 和独立安装前缀生成，以便产物
+来源清晰、可重复。
+
 ## 运行
 
 直接运行驱动：
