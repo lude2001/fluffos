@@ -10,16 +10,17 @@ set "INSTALL_IMAGE_DIR=%BUILD_ROOT%\install-image"
 set "CONFIG_HEADER=%BUILD_DIR%\src\config.h"
 set "INSTALLER_VERSION_FILE=%BUILD_ROOT%\installer-version.txt"
 
-set "MSYS2_ROOT="
-if defined MSYS2_ROOT if exist "%MSYS2_ROOT%\usr\bin\bash.exe" set "MSYS2_ROOT=%MSYS2_ROOT%"
-if not defined MSYS2_ROOT if exist "D:\software\msys2\usr\bin\bash.exe" set "MSYS2_ROOT=D:\software\msys2"
-if not defined MSYS2_ROOT if exist "C:\msys64\usr\bin\bash.exe" set "MSYS2_ROOT=C:\msys64"
+set "DETECTED_MSYS2_ROOT="
+if defined MSYS2_ROOT if exist "%MSYS2_ROOT%\usr\bin\bash.exe" set "DETECTED_MSYS2_ROOT=%MSYS2_ROOT%"
+if not defined DETECTED_MSYS2_ROOT if exist "D:\software\msys2\usr\bin\bash.exe" set "DETECTED_MSYS2_ROOT=D:\software\msys2"
+if not defined DETECTED_MSYS2_ROOT if exist "C:\msys64\usr\bin\bash.exe" set "DETECTED_MSYS2_ROOT=C:\msys64"
 
-if not defined MSYS2_ROOT (
+if not defined DETECTED_MSYS2_ROOT (
   echo Could not find MSYS2. Set MSYS2_ROOT to your MSYS2 install directory.
   exit /b 1
 )
 
+set "MSYS2_ROOT=%DETECTED_MSYS2_ROOT%"
 set "BASH_EXE=%MSYS2_ROOT%\usr\bin\bash.exe"
 set "POWERSHELL_EXE=powershell.exe"
 set "JOBS=%NUMBER_OF_PROCESSORS%"
