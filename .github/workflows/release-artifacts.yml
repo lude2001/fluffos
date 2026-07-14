@@ -35,6 +35,7 @@ jobs:
             mingw-w64-x86_64-openssl
             mingw-w64-x86_64-libmariadbclient
             bison
+            git
             make
 
       - name: Install Inno Setup
