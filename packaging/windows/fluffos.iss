@@ -24,9 +24,19 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequiredOverridesAllowed=dialog
+LanguageDetectionMethod=uilanguage
+ShowLanguageDialog=auto
 UsePreviousAppDir=no
 UsePreviousPrivileges=no
 UninstallDisplayIcon={app}\bin\lpcprj.exe
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
+
+[CustomMessages]
+english.AddToPathCaption=Add FluffOS commands to your user PATH
+chinesesimplified.AddToPathCaption=将 FluffOS 命令添加到当前用户 PATH
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -98,7 +108,7 @@ begin
   AddToPathCheckBox.Left := WizardForm.RunList.Left;
   AddToPathCheckBox.Top := WizardForm.RunList.Top;
   AddToPathCheckBox.Width := WizardForm.RunList.Width;
-  AddToPathCheckBox.Caption := 'Add FluffOS commands to your user PATH';
+  AddToPathCheckBox.Caption := ExpandConstant('{cm:AddToPathCaption}');
   AddToPathCheckBox.Checked := False;
   AddToPathCheckBox.Visible := False;
 end;
