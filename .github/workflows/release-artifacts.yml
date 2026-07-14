@@ -44,10 +44,17 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Resolve MSYS2 root
         shell: msys2 {0}
-        run: echo "MSYS2_ROOT=$(cygpath -w /)" >> "$GITHUB_ENV"
+        run: |
+          msys2_root="$(cygpath -w /)"
+          echo "MSYS2_ROOT=${msys2_root%\\}" >> "$GITHUB_ENV"
+          repo_root="$(cygpath -m "$GITHUB_WORKSPACE")"
+          git config --global --add safe.directory "$repo_root"
+          git -C "$repo_root" status --short
 
       - name: Build Windows distribution and installer
         shell: cmd
@@ -95,6 +102,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install dependencies
         run: |
@@ -136,6 +145,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install dependencies
         env:
