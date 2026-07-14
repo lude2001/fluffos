@@ -13,7 +13,7 @@ $requiredPatterns = @(
     'Name: "english"; MessagesFile: "compiler:Default.isl"',
     'Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"',
     'english.AddToPathCaption=Add FluffOS commands to your user PATH',
-    'chinesesimplified.AddToPathCaption=将 FluffOS 命令添加到当前用户 PATH',
+    'chinesesimplified.AddToPathCaption=',
     "ExpandConstant('{cm:AddToPathCaption}')",
     'UsePreviousAppDir=no',
     'UsePreviousPrivileges=no'
