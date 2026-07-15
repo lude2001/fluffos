@@ -141,6 +141,18 @@ jobs:
       - name: Package Linux runtime
         run: |
           version="$(sed -n 's/^#define PROJECT_VERSION "fluffos \(.*\)"$/\1/p' build/release/src/config.h)"
+          if [ -z "$version" ] || [ "$version" = "-uncommited" ] || [ "$version" = "unknown" ]; then
+            date_part="$(git log -1 --date=format:%Y%m%d --format=%cd)"
+            upstream_part="$(git log --committer='Yucong Sun' -1 --format=%h || true)"
+            head_part="$(git rev-parse --short HEAD)"
+            version="$date_part"
+            if [ -n "$upstream_part" ]; then
+              version="$version-$upstream_part"
+            fi
+            if [ "$head_part" != "$upstream_part" ]; then
+              version="$version-$head_part"
+            fi
+          fi
           arch="$(uname -m)"
           tar -C package -czf "fluffos-${version}-linux-${arch}.tar.gz" fluffos
 
@@ -293,6 +305,18 @@ jobs:
       - name: Package Linux static runtime
         run: |
           version="$(sed -n 's/^#define PROJECT_VERSION "fluffos \(.*\)"$/\1/p' build/linux-static/src/config.h)"
+          if [ -z "$version" ] || [ "$version" = "-uncommited" ] || [ "$version" = "unknown" ]; then
+            date_part="$(git log -1 --date=format:%Y%m%d --format=%cd)"
+            upstream_part="$(git log --committer='Yucong Sun' -1 --format=%h || true)"
+            head_part="$(git rev-parse --short HEAD)"
+            version="$date_part"
+            if [ -n "$upstream_part" ]; then
+              version="$version-$upstream_part"
+            fi
+            if [ "$head_part" != "$upstream_part" ]; then
+              version="$version-$head_part"
+            fi
+          fi
           tarball="fluffos-${version}-linux-x86_64-static.tar.gz"
           tar -C package -czf "$tarball" fluffos
           sha256sum "$tarball" > "$tarball.sha256"
@@ -346,6 +370,18 @@ jobs:
       - name: Package macOS runtime
         run: |
           version="$(sed -n 's/^#define PROJECT_VERSION "fluffos \(.*\)"$/\1/p' build/release/src/config.h)"
+          if [ -z "$version" ] || [ "$version" = "-uncommited" ] || [ "$version" = "unknown" ]; then
+            date_part="$(git log -1 --date=format:%Y%m%d --format=%cd)"
+            upstream_part="$(git log --committer='Yucong Sun' -1 --format=%h || true)"
+            head_part="$(git rev-parse --short HEAD)"
+            version="$date_part"
+            if [ -n "$upstream_part" ]; then
+              version="$version-$upstream_part"
+            fi
+            if [ "$head_part" != "$upstream_part" ]; then
+              version="$version-$head_part"
+            fi
+          fi
           arch="$(uname -m)"
           tar -C package -czf "fluffos-${version}-macos-${arch}.tar.gz" fluffos
 
