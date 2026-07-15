@@ -138,6 +138,154 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  linux-static-production:
+    name: Linux static production runtime
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:22.04
+
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            binutils \
+            bison \
+            build-essential \
+            ca-certificates \
+            cmake \
+            expect \
+            file \
+            git \
+            libgtest-dev \
+            libicu-dev \
+            libjemalloc-dev \
+            libmysqlclient-dev \
+            libpcre3-dev \
+            libsqlite3-dev \
+            libssl-dev \
+            libtool \
+            libzstd-dev \
+            pkg-config \
+            telnet \
+            zlib1g-dev
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify static dependency archives
+        run: |
+          required_static_libs=(
+            /usr/lib/x86_64-linux-gnu/libmysqlclient.a
+            /usr/lib/x86_64-linux-gnu/libsqlite3.a
+            /usr/lib/x86_64-linux-gnu/libssl.a
+            /usr/lib/x86_64-linux-gnu/libcrypto.a
+            /usr/lib/x86_64-linux-gnu/libz.a
+            /usr/lib/x86_64-linux-gnu/libzstd.a
+            /usr/lib/x86_64-linux-gnu/libjemalloc.a
+            /usr/lib/x86_64-linux-gnu/libpcre.a
+            /usr/lib/x86_64-linux-gnu/libicuuc.a
+            /usr/lib/x86_64-linux-gnu/libicudata.a
+          )
+          missing=0
+          for lib in "${required_static_libs[@]}"; do
+            if [ -f "$lib" ]; then
+              echo "found static archive: $lib"
+            else
+              echo "missing static archive: $lib" >&2
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Configure static runtime
+        run: |
+          cmake -S . -B build/linux-static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSTATIC=ON \
+            -DMARCH_NATIVE=OFF \
+            -DPACKAGE_DB=ON \
+            -DPACKAGE_DB_MYSQL=1 \
+            -DPACKAGE_DB_SQLITE=2 \
+            -DPACKAGE_DB_DEFAULT_DB=1 \
+            -DMYSQL_EXTRA_LIBRARIES="ssl;crypto;z;zstd;resolv;dl;m;pthread" \
+            -DCMAKE_INSTALL_PREFIX="$PWD/package/fluffos"
+
+      - name: Build and install static runtime
+        run: cmake --build build/linux-static --target install -j"$(nproc)"
+
+      - name: Run static build tests
+        run: |
+          cd build/linux-static
+          ctest --output-on-failure -E "PrototypePlaceholder|CapturesRuntimeError"
+
+      - name: Run static LPC testsuite
+        run: |
+          cd testsuite
+          ../package/fluffos/bin/driver etc/config.test -ftest
+
+      - name: Run static startup smoke
+        run: |
+          set +e
+          timeout 10s package/fluffos/bin/driver testsuite/etc/config.test > build/linux-static/startup-smoke.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 124 ]; then
+            cat build/linux-static/startup-smoke.log
+            echo "Expected the driver to stay running until timeout; exit code was $status" >&2
+            exit 1
+          fi
+          cat build/linux-static/startup-smoke.log
+
+      - name: Verify static linkage
+        run: |
+          driver="$PWD/package/fluffos/bin/driver"
+          file "$driver" | tee build/linux-static/file-driver.txt
+          if ! grep -q "statically linked" build/linux-static/file-driver.txt; then
+            echo "driver is not reported as statically linked" >&2
+            exit 1
+          fi
+
+          readelf -d "$driver" > build/linux-static/readelf-d-driver.txt 2>&1 || true
+          cat build/linux-static/readelf-d-driver.txt
+          if grep -q "NEEDED" build/linux-static/readelf-d-driver.txt; then
+            echo "static driver must not contain dynamic NEEDED entries" >&2
+            exit 1
+          fi
+
+          set +e
+          ldd "$driver" > build/linux-static/ldd-driver.txt 2>&1
+          set -e
+          cat build/linux-static/ldd-driver.txt
+          if ! grep -Eq "not a dynamic executable|statically linked" build/linux-static/ldd-driver.txt; then
+            echo "ldd did not report a static executable" >&2
+            exit 1
+          fi
+
+      - name: Package Linux static runtime
+        run: |
+          version="$(sed -n 's/^#define PROJECT_VERSION "fluffos \(.*\)"$/\1/p' build/linux-static/src/config.h)"
+          tarball="fluffos-${version}-linux-x86_64-static.tar.gz"
+          tar -C package -czf "$tarball" fluffos
+          sha256sum "$tarball" > "$tarball.sha256"
+          cat "$tarball.sha256"
+
+      - name: Upload Linux static artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluffos-linux-static-production
+          path: |
+            fluffos-*-linux-x86_64-static.tar.gz
+            fluffos-*-linux-x86_64-static.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
+
   macos-production:
     name: macOS production runtime
     runs-on: macos-14
@@ -192,6 +340,7 @@ jobs:
     needs:
       - windows-artifacts
       - linux-production
+      - linux-static-production
       - macos-production
     if: startsWith(github.ref, 'refs/tags/v')
 

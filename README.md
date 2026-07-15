@@ -224,10 +224,17 @@ build/dist
 - `fluffos-<version>-windows-x86_64-runtime.zip`：Windows 生产运行时包。
 - `fluffos-<version>-macos-<arch>.tar.gz`：macOS 生产运行时包。
 - `fluffos-<version>-linux-<arch>.tar.gz`：Linux 生产运行时包。
+- `fluffos-<version>-linux-x86_64-static.tar.gz`：面向 Ubuntu 22.04
+  x86_64 生产环境的静态 Linux 运行时包，并同时发布 `.sha256`。
 
 Windows 安装包和 runtime 包复用本仓库规范入口 `build.cmd`。Linux/macOS
 生产包使用 `Release`、`MARCH_NATIVE=OFF` 和独立安装前缀生成，以便产物
 来源清晰、可重复。
+
+Linux 静态生产包在 `ubuntu:22.04` 容器中构建，启用 `STATIC=ON`，保留
+MySQL、SQLite、TLS/OpenSSL、ICU、HTTP/WebSocket 等生产能力。流水线会强制
+检查 `file` 输出包含 `statically linked`、`readelf -d` 不包含 `NEEDED`，
+且 `ldd` 报告不是动态可执行文件；任一条件不满足都会失败。
 
 ## 运行
 
