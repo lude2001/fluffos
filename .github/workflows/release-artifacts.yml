@@ -119,6 +119,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Trust workspace for Git metadata
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -211,6 +214,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Trust workspace for Git metadata
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Verify static dependency archives
         run: |
@@ -342,6 +348,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Trust workspace for Git metadata
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install dependencies
         env:
