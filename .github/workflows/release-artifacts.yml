@@ -2,6 +2,18 @@ name: Release Artifacts
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: Artifact set to build for manual validation
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - windows
+          - linux
+          - linux-static
+          - macos
   push:
     tags:
       - 'v*'
@@ -15,6 +27,7 @@ env:
 jobs:
   windows-artifacts:
     name: Windows installer and runtime
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'windows'
     runs-on: windows-latest
 
     steps:
@@ -97,6 +110,7 @@ jobs:
 
   linux-production:
     name: Linux production runtime
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'linux'
     runs-on: ubuntu-24.04
 
     steps:
@@ -140,9 +154,13 @@ jobs:
 
   linux-static-production:
     name: Linux static production runtime
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'linux-static'
     runs-on: ubuntu-24.04
     container:
       image: ubuntu:22.04
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
     defaults:
       run:
         shell: bash
@@ -235,16 +253,17 @@ jobs:
 
       - name: Run static startup smoke
         run: |
+          cd testsuite
           set +e
-          timeout 10s package/fluffos/bin/driver testsuite/etc/config.test > build/linux-static/startup-smoke.log 2>&1
+          timeout 10s ../package/fluffos/bin/driver etc/config.test > ../build/linux-static/startup-smoke.log 2>&1
           status=$?
           set -e
           if [ "$status" -ne 124 ]; then
-            cat build/linux-static/startup-smoke.log
+            cat ../build/linux-static/startup-smoke.log
             echo "Expected the driver to stay running until timeout; exit code was $status" >&2
             exit 1
           fi
-          cat build/linux-static/startup-smoke.log
+          cat ../build/linux-static/startup-smoke.log
 
       - name: Verify static linkage
         run: |
@@ -291,6 +310,7 @@ jobs:
 
   macos-production:
     name: macOS production runtime
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'macos'
     runs-on: macos-14
 
     steps:
