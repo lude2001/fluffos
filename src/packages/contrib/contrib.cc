@@ -1959,6 +1959,14 @@ void f_repeat_string() {
 #ifdef F_MEMORY_SUMMARY
 static int memory_share(svalue_t * /*sv*/);
 
+// A counted string with ref == 0 is intentionally immortal after its reference
+// count reaches USHRT_MAX. Other ref-counted values should not normally reach
+// zero while an svalue still refers to them, but memory_summary() must remain a
+// diagnostic tool rather than crashing the driver when it encounters one.
+static int shared_memory_share(int bytes, uint32_t ref) {
+  return ref ? bytes / ref : 0;
+}
+
 static int node_share(mapping_t * /*m*/, mapping_node_t *elt, void *tp) {
   int *t = reinterpret_cast<int *>(tp);
 
@@ -1978,11 +1986,12 @@ static int memory_share(svalue_t *sv) {
     case T_STRING:
       switch (sv->subtype) {
         case STRING_MALLOC:
-          return total + (1 + COUNTED_STRLEN(sv->u.string) + sizeof(malloc_block_t)) /
-                             (COUNTED_REF(sv->u.string));
+          return total + shared_memory_share(
+                             1 + COUNTED_STRLEN(sv->u.string) + sizeof(malloc_block_t),
+                             COUNTED_REF(sv->u.string));
         case STRING_SHARED:
-          return total +
-                 (1 + COUNTED_STRLEN(sv->u.string) + sizeof(block_t)) / (COUNTED_REF(sv->u.string));
+          return total + shared_memory_share(1 + COUNTED_STRLEN(sv->u.string) + sizeof(block_t),
+                                             COUNTED_REF(sv->u.string));
       }
       break;
     case T_ARRAY:
@@ -1999,7 +2008,7 @@ static int memory_share(svalue_t *sv) {
         subtotal += memory_share(&sv->u.arr->item[i]);
       }
       calldepth--;
-      return total + subtotal / sv->u.arr->ref;
+      return total + shared_memory_share(subtotal, sv->u.arr->ref);
     case T_MAPPING:
       if (1 + calldepth > 100) {
         return 0;
@@ -2008,7 +2017,7 @@ static int memory_share(svalue_t *sv) {
       subtotal = sizeof(mapping_t);
       mapTraverse(sv->u.map, node_share, &subtotal);
       calldepth--;
-      return total + subtotal / sv->u.map->ref;
+      return total + shared_memory_share(subtotal, sv->u.map->ref);
     case T_FUNCTION: {
       svalue_t tmp;
       tmp.type = T_ARRAY;
@@ -2039,11 +2048,12 @@ static int memory_share(svalue_t *sv) {
           break;
       }
       calldepth--;
-      return total + subtotal / sv->u.fp->hdr.ref;
+      return total + shared_memory_share(subtotal, sv->u.fp->hdr.ref);
     }
     case T_BUFFER:
       /* first byte is stored inside the buffer struct */
-      return total + (sizeof(buffer_t) + sv->u.buf->size - 1) / sv->u.buf->ref;
+      return total + shared_memory_share(sizeof(buffer_t) + sv->u.buf->size - 1,
+                                         sv->u.buf->ref);
   }
   return total;
 }
