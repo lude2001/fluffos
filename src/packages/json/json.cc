@@ -223,6 +223,7 @@ void f_json_encode() {
   try {
     std::unordered_set<visit_key_t, visit_key_hash_t> seen;
     auto dumped = svalue_to_json_compat(sp, seen).dump();
+    free_svalue(sp, "f_json_encode");
     put_malloced_string(string_copy(dumped.c_str(), "f_json_encode"));
   } catch (const std::exception &e) {
     error("json_encode error: %s\n", e.what());

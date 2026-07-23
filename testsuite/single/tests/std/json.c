@@ -54,6 +54,11 @@ void do_tests() {
   m["self"] = m;
   ASSERT_EQ(([ "ok" : 1, "self" : 0 ]), json_decode(json_encode(m)));
 
+  m = ([ "ok" : 1 ]);
+  ASSERT_EQ(1, refs(m));
+  json_encode(m);
+  ASSERT_EQ(1, refs(m));
+
   // Formatting
   ASSERT_EQ("{\n  \"a\": 1,\n  \"b\": [\n    2,\n    3\n  ]\n}",
             json_format("{\"a\":1,\"b\":[2,3]}"));
