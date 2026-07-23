@@ -129,6 +129,7 @@ void dealloc_mapping(mapping_t *m) {
     total_mapping_nodes -= c;
 #ifdef PACKAGE_MUDLIB_STATS
     add_array_size(&m->stats, -(c << 1));
+    add_mapping_count(&m->stats, -1);
 #endif
     do {
       for (elt = a[j]; elt; elt = nelt) {
@@ -294,6 +295,7 @@ mapping_t *allocate_mapping(int n) {
   if (current_object) {
     assign_stats(&newmap->stats, current_object);
     add_array_size(&newmap->stats, n << 1);
+    add_mapping_count(&newmap->stats, 1);
   } else {
     null_stats(&newmap->stats);
   }
@@ -376,6 +378,7 @@ static mapping_t *copyMapping(mapping_t *m) {
   if (current_object) {
     assign_stats(&newmap->stats, current_object);
     add_array_size(&newmap->stats, MAP_COUNT(m) << 1);
+    add_mapping_count(&newmap->stats, 1);
   } else {
     null_stats(&newmap->stats);
   }

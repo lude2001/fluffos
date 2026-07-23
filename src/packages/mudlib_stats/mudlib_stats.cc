@@ -145,6 +145,7 @@ static mudlib_stats_t *add_stat_entry(const char *str, mudlib_stats_t **list) {
   entry->objects = 0;
   entry->next = nullptr;
   entry->size_array = 0;
+  entry->mapping_count = 0;
   insert_stat_entry(entry, list);
   return entry;
 }
@@ -351,6 +352,17 @@ static const char *author_for_file(const char *file) {
   return buff;
 }
 
+void add_mapping_count(statgroup_t *st, int count) {
+  if (st) {
+    if (st->domain) {
+      st->domain->mapping_count += count;
+    }
+    if (st->author) {
+      st->author->mapping_count += count;
+    }
+  }
+}
+
 /*************************
  Domain specific functions
  *************************/
@@ -542,6 +554,7 @@ static mapping_t *get_info(mudlib_stats_t *dl) {
   add_mapping_pair(ret, "errors", dl->errors);
   add_mapping_pair(ret, "heart_beats", dl->heart_beats);
   add_mapping_pair(ret, "array_size", dl->size_array);
+  add_mapping_pair(ret, "mapping_count", dl->mapping_count);
   add_mapping_pair(ret, "objects", dl->objects);
   return ret;
 }

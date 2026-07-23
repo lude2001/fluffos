@@ -19,6 +19,7 @@ typedef struct _mstats {
   int moves;
   int heart_beats;
   int size_array;
+  int64_t mapping_count;
   int errors;
   int objects;
 } mudlib_stats_t;
@@ -38,6 +39,7 @@ void init_stats_for_object(struct object_t *);
 void add_moves(statgroup_t *, int);
 void add_heart_beats(statgroup_t *, int);
 void add_array_size(statgroup_t *, int);
+void add_mapping_count(statgroup_t *, int);
 void add_errors(statgroup_t *, int);
 void add_errors_for_file(const char *, int);
 void add_objects(statgroup_t *, int);
