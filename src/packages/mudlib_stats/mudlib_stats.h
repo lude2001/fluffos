@@ -24,9 +24,17 @@ typedef struct _mstats {
   int objects;
 } mudlib_stats_t;
 
+typedef struct mapping_origin_stats_t {
+  const char *name;
+  int length;
+  int64_t mapping_count;
+  struct mapping_origin_stats_t *next;
+} mapping_origin_stats_t;
+
 struct statgroup_t {
   mudlib_stats_t *domain;
   mudlib_stats_t *author;
+  mapping_origin_stats_t *mapping_origin;
 };
 
 #define DOMAIN_STATS_FILE_NAME "domain_stats"
@@ -45,6 +53,7 @@ void add_errors_for_file(const char *, int);
 void add_objects(statgroup_t *, int);
 struct mapping_t *get_domain_stats(const char *);
 struct mapping_t *get_author_stats(const char *);
+struct mapping_t *get_mapping_origin_stats();
 void mudlib_stats_decay(void);
 void save_stat_files(void);
 void restore_stat_files(void);

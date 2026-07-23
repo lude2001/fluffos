@@ -11,6 +11,8 @@
 
 #include <sys/param.h>
 
+#include <string>
+
 #include "packages/mudlib_stats/mudlib_stats.h"
 
 #ifdef F_DOMAIN_STATS
@@ -58,11 +60,25 @@ void f_author_stats() {
 }
 #endif
 
+#ifdef F_MAPPING_ORIGIN_STATS
+void f_mapping_origin_stats() {
+  auto *m = get_mapping_origin_stats();
+
+  if (!m) {
+    push_number(0);
+  } else {
+    push_mapping(m);
+  }
+}
+#endif
+
 /* Support functions */
 static mudlib_stats_t *domains = nullptr;
 static mudlib_stats_t *backbone_domain = nullptr;
 static mudlib_stats_t *authors = nullptr;
 static mudlib_stats_t *master_author = nullptr;
+static mapping_origin_stats_t *mapping_origins = nullptr;
+static int64_t unattributed_mapping_count = 0;
 
 static mudlib_stats_t *find_stat_entry(const char * /*name*/, mudlib_stats_t * /*list*/);
 static mudlib_stats_t *add_stat_entry(const char * /*str*/, mudlib_stats_t ** /*list*/);
@@ -75,6 +91,9 @@ static void restore_stat_list(const char * /*file*/, mudlib_stats_t ** /*list*/)
 static mapping_t *get_info(mudlib_stats_t * /*dl*/);
 static mapping_t *get_stats(const char * /*str*/, mudlib_stats_t * /*list*/);
 static mudlib_stats_t *insert_stat_entry(mudlib_stats_t * /*entry*/, mudlib_stats_t ** /*list*/);
+static mapping_origin_stats_t *find_mapping_origin(const char * /*name*/);
+static mapping_origin_stats_t *add_mapping_origin(const char * /*name*/);
+static void init_mapping_origin_for_ob(object_t * /*ob*/);
 
 #ifdef DEBUGMALLOC_EXTENSIONS
 /* debugging */
@@ -126,6 +145,45 @@ static mudlib_stats_t *find_stat_entry(const char *name, mudlib_stats_t *list) {
   return nullptr;
 }
 
+static mapping_origin_stats_t *find_mapping_origin(const char *name) {
+  int length = strlen(name);
+
+  for (auto *entry = mapping_origins; entry; entry = entry->next) {
+    if (entry->length == length && strcmp(entry->name, name) == 0) {
+      return entry;
+    }
+  }
+  return nullptr;
+}
+
+static mapping_origin_stats_t *add_mapping_origin(const char *name) {
+  if (auto *entry = find_mapping_origin(name)) {
+    return entry;
+  }
+
+  auto *entry = reinterpret_cast<mapping_origin_stats_t *>(
+      DMALLOC(sizeof(mapping_origin_stats_t), TAG_MUDLIB_STATS, "add_mapping_origin"));
+  entry->name = make_shared_string(name);
+  entry->length = strlen(name);
+  entry->mapping_count = 0;
+  entry->next = mapping_origins;
+  mapping_origins = entry;
+  return entry;
+}
+
+static void init_mapping_origin_for_ob(object_t *ob) {
+  std::string name = ob->obname ? ob->obname : "<driver>";
+  auto clone_marker = name.find('#');
+
+  if (clone_marker != std::string::npos) {
+    name.resize(clone_marker);
+  }
+  if (name != "<driver>" && !name.empty() && name[0] != '/') {
+    name.insert(0, "/");
+  }
+  ob->stats.mapping_origin = add_mapping_origin(name.c_str());
+}
+
 /*
  * add a new domain to the domain list.  If it exists, do nothing.
  */
@@ -157,18 +215,21 @@ static mudlib_stats_t *add_stat_entry(const char *str, mudlib_stats_t **list) {
 void assign_stats(statgroup_t *st, object_t *ob) {
   st->domain = ob->stats.domain;
   st->author = ob->stats.author;
+  st->mapping_origin = ob->stats.mapping_origin;
 }
 
 void null_stats(statgroup_t *st) {
   if (st) {
     st->domain = nullptr;
     st->author = nullptr;
+    st->mapping_origin = nullptr;
   }
 }
 
 void init_stats_for_object(object_t *ob) {
   init_domain_for_ob(ob);
   init_author_for_ob(ob);
+  init_mapping_origin_for_ob(ob);
 }
 
 /*
@@ -359,6 +420,11 @@ void add_mapping_count(statgroup_t *st, int count) {
     }
     if (st->author) {
       st->author->mapping_count += count;
+    }
+    if (st->mapping_origin) {
+      st->mapping_origin->mapping_count += count;
+    } else {
+      unattributed_mapping_count += count;
     }
   }
 }
@@ -596,3 +662,16 @@ static mapping_t *get_stats(const char *str, mudlib_stats_t *list) {
 mapping_t *get_domain_stats(const char *str) { return get_stats(str, domains); }
 
 mapping_t *get_author_stats(const char *str) { return get_stats(str, authors); }
+
+mapping_t *get_mapping_origin_stats() {
+  mapping_t *result = allocate_mapping(8);
+
+  for (auto *entry = mapping_origins; entry; entry = entry->next) {
+    add_mapping_pair(result, entry->name, entry->mapping_count);
+  }
+  if (unattributed_mapping_count) {
+    add_mapping_pair(result, "<driver>", unattributed_mapping_count);
+  }
+  result->ref--;
+  return result;
+}
