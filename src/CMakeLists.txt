@@ -364,11 +364,8 @@ endif()
 set(SRC
   "backend.cc"
   "comm.cc"
-  "compile_service.cc"
   "mainlib.cc"
   "user.cc"
-  "runtime_compile_request.cc"
-  "runtime_dev_test_request.cc"
   "symbol.cc"
   "ofile.cc"
   "net/msp.cc"
@@ -443,6 +440,10 @@ add_library(libdriver
 add_dependencies(libdriver autogen)
 
 list(APPEND FLUFFOS_LIBRARIES libdriver)
+
+add_subdirectory(extensions/compile_service)
+add_dependencies(fluffos_compile_service autogen)
+list(APPEND FLUFFOS_LIBRARIES fluffos_compile_service)
 
 # JEMALLOC must be the first!
 if (CYGWIN)
@@ -532,8 +533,10 @@ add_executable(lpcprj "main_lpcprj.cc")
 add_executable(lpcc "main_lpcc.cc")
 target_link_libraries(lpcc PUBLIC ${FLUFFOS_LINK})
 
-add_executable(lpccp "main_lpccp.cc")
-target_link_libraries(lpccp PUBLIC ${FLUFFOS_LINK})
+add_executable(lpccp "extensions/compile_service/main_lpccp.cc")
+if(NOT WIN32)
+  target_link_libraries(lpccp PRIVATE Threads::Threads)
+endif()
 
 add_executable(symbol "main_symbol.cc")
 target_link_libraries(symbol PUBLIC ${FLUFFOS_LINK})

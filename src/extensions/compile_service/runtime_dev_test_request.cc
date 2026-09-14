@@ -1,5 +1,5 @@
 #include "base/std.h"
-#include "runtime_dev_test_request.h"
+#include "extensions/compile_service/runtime_dev_test_request.h"
 
 #include <algorithm>
 #include <string>

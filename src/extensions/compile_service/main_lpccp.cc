@@ -1,5 +1,3 @@
-#include "base/std.h"
-
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -8,8 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "compile_service_client.h"
-#include "compile_service_protocol.h"
+#include "extensions/compile_service/compile_service_client.h"
+#include "extensions/compile_service/compile_service_protocol.h"
 
 #ifdef _WIN32
 #include <windows.h>

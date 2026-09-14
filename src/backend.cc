@@ -26,7 +26,7 @@
 #include <utility>      // for pair, make_pair
 #include <algorithm>
 
-#include "compile_service.h"
+#include "extensions/compile_service/compile_service.h"
 #include "vm/vm.h"
 
 #include "packages/core/heartbeat.h"

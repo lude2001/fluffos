@@ -1,5 +1,5 @@
 #include "base/std.h"
-#include "compile_service.h"
+#include "extensions/compile_service/compile_service.h"
 
 #include <atomic>
 #include <chrono>
@@ -17,8 +17,8 @@
 #include <nlohmann/json.hpp>
 
 #include "backend.h"
-#include "compile_service_protocol.h"
-#include "runtime_compile_request.h"
+#include "extensions/compile_service/compile_service_protocol.h"
+#include "extensions/compile_service/runtime_compile_request.h"
 
 namespace {
 

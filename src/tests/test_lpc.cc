@@ -3,8 +3,8 @@
 
 #include "mainlib.h"
 
-#include "compile_service_protocol.h"
-#include "runtime_compile_request.h"
+#include "extensions/compile_service/compile_service_protocol.h"
+#include "extensions/compile_service/runtime_compile_request.h"
 #include "compiler/internal/compiler.h"
 #include "vm/internal/apply.h"
 #include "vm/internal/simulate.h"

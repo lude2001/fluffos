@@ -35,7 +35,7 @@
 #include "vm/vm.h"                               // for push_constant_string, etc
 #include "comm.h"                                // for init_user_conn
 #include "backend.h"                             // for backend();
-#include "compile_service.h"
+#include "extensions/compile_service/compile_service.h"
 #include "thirdparty/backward-cpp/backward.hpp"  // for backtracing
 
 // from lex.cc

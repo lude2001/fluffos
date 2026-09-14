@@ -137,15 +137,16 @@ Task 3 固定的迁移覆盖清单如下；旧基线不改 workflow，重放到�
 
 ## 5. runtime compile service 与 `lpccp`
 
-### 当前独有文件
+### 旧基线抽离后的独有文件
 
-- `src/compile_service.cc/.h`
-- `src/compile_service_client.h`
-- `src/compile_service_protocol.h`
-- `src/runtime_compile_request.cc/.h`
-- `src/runtime_dev_test_request.cc/.h`
-- `src/main_lpccp.cc`
-- `src/tests/test_compile_service.cc`
+- `src/extensions/compile_service/compile_service.cc/.h`
+- `src/extensions/compile_service/compile_service_client.h`
+- `src/extensions/compile_service/compile_service_protocol.h`
+- `src/extensions/compile_service/runtime_compile_request.cc/.h`
+- `src/extensions/compile_service/runtime_dev_test_request.cc/.h`
+- `src/extensions/compile_service/main_lpccp.cc`
+- `src/extensions/compile_service/test_compile_service.cc`
+- `src/extensions/compile_service/CMakeLists.txt`
 
 官方新版 `lpcc` 已拥有 `--batch`、`--json`、tokens、AST 和 bytecode 输出，应直接保留并用于离线分析；它仍然不能替代本地服务连接运行中 VM 后进行 compile/reload 的能力。
 
@@ -157,6 +158,8 @@ Task 3 固定的迁移覆盖清单如下；旧基线不改 workflow，重放到�
 4. 一个稳定 adapter：把官方 compiler/VM 内部诊断转换成 extension 自己的协议结构。
 
 Task 3 先做行为保持的目录和 adapter 抽离，不同时改变启用方式。迁到官方基线后再增加显式 build/runtime 开关，使生产 driver 不默认开放 named pipe。本地现有协议、排队、CLI 输出和失败结构先保持兼容。
+
+Task 3 结果：服务、transport、协议和 runtime 请求实现已经形成 `fluffos_compile_service` 静态扩展库；`lpccp` 是不链接 driver 的独立客户端。Windows 规范构建通过，相关测试 27 项通过。CI 既有排除项 `ConcurrentPipeClients` 仍可复现首个客户端 `ERROR_FILE_NOT_FOUND`，必须作为后续独立修复，不能算作本次抽离回归通过。
 
 ## 6. mapping 可观测性
 

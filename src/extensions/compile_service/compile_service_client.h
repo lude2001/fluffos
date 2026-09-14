@@ -1,5 +1,5 @@
-#ifndef COMPILE_SERVICE_CLIENT_H
-#define COMPILE_SERVICE_CLIENT_H
+#ifndef EXTENSIONS_COMPILE_SERVICE_COMPILE_SERVICE_CLIENT_H_
+#define EXTENSIONS_COMPILE_SERVICE_COMPILE_SERVICE_CLIENT_H_
 
 #include <string>
 #include <string_view>
@@ -8,7 +8,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "compile_service_protocol.h"
+#include "extensions/compile_service/compile_service_protocol.h"
 
 namespace compile_service {
 
@@ -118,4 +118,4 @@ inline nlohmann::json build_compile_service_stub_response(
 
 }  // namespace compile_service
 
-#endif  // COMPILE_SERVICE_CLIENT_H
+#endif  // EXTENSIONS_COMPILE_SERVICE_COMPILE_SERVICE_CLIENT_H_

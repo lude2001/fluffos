@@ -55,7 +55,7 @@ void db_cleanup(void);  // FIXME
 #include "comm.h"  // FIXME
 
 #include "vm/internal/trace.h"  // for dump_trace && get_svalue_trace
-#include "compile_service.h"
+#include "extensions/compile_service/compile_service.h"
 /*
  * This one is called from HUP.
  */

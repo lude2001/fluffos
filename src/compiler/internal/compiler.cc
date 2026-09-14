@@ -1,7 +1,7 @@
 #include "base/std.h"
 
 #include "compiler.h"
-#include "compile_service_protocol.h"
+#include "extensions/compile_service/compile_service_protocol.h"
 
 #include <cstdlib>  // for qsort
 #include <cstdio>   // for sprintf

@@ -1,5 +1,5 @@
-#ifndef COMPILE_SERVICE_PROTOCOL_H
-#define COMPILE_SERVICE_PROTOCOL_H
+#ifndef EXTENSIONS_COMPILE_SERVICE_COMPILE_SERVICE_PROTOCOL_H_
+#define EXTENSIONS_COMPILE_SERVICE_COMPILE_SERVICE_PROTOCOL_H_
 
 #include <algorithm>
 #include <cctype>
@@ -309,4 +309,4 @@ inline void from_json(const nlohmann::json &j, CompileServiceResponse &value) {
 
 }  // namespace compile_service
 
-#endif  // COMPILE_SERVICE_PROTOCOL_H
+#endif  // EXTENSIONS_COMPILE_SERVICE_COMPILE_SERVICE_PROTOCOL_H_

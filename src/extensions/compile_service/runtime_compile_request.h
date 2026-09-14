@@ -1,7 +1,7 @@
 #ifndef RUNTIME_COMPILE_REQUEST_H
 #define RUNTIME_COMPILE_REQUEST_H
 
-#include "compile_service_protocol.h"
+#include "extensions/compile_service/compile_service_protocol.h"
 
 namespace compile_service {
 

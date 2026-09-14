@@ -77,13 +77,15 @@
 
 - [ ] 将其归为开发工具能力，不作为生产 driver 的默认必启服务。
 - [ ] 先冻结当前 CLI、JSON 响应和 canonical fixture；保留 `dev_test` 只是兼容已有工具协议，不代表本次迁移要改动 mudlib 测试体系。
-- [ ] 复核官方新版 `lpcc` 的 JSON/batch 和诊断接口，避免重复实现官方已有能力。
+- [x] 已复核官方新版 `lpcc` 的 JSON/batch 和诊断接口；新基线保留官方离线工具，本地扩展只承担运行中 VM 请求。
 - [ ] 保留运行中 VM reload、目录编译和 `dev_test()` 等官方 `lpcc` 无法替代的能力。
-- [ ] 把 named-pipe 接入、协议、排队和客户端代码放入独立扩展目录。
+- [x] 旧基线已把 named-pipe 接入、协议、排队、runtime 请求适配和客户端代码聚合到 `src/extensions/compile_service/`，服务实现不再混入 `libdriver` source 列表。
 - [ ] 核心 driver 只保留 VM started、tick、shutdown 三个扩展钩子。
 - [ ] 编译诊断通过适配层连接官方新版编译器，不让协议层直接依赖编译器内部布局。
 - [ ] 编译服务必须显式启用或限制到本机当前用户；不得继续默认授予 Everyone 全权限。
 - [ ] 在隔离实例修复并验证“目录重载错误导致响应 JSON 为空并终止 driver”的已知缺陷；修复前禁止用目录重载作为迁移验收或生产操作。
+
+旧基线验证：`build.cmd` 完整通过，`fluffos_compile_service` 独立静态库与 driver 成功链接；`lpccp.exe` 已不再链接 `${FLUFFOS_LINK}`，`objdump` 只显示 Windows 系统 DLL。协议、客户端、队列、runtime adapter 和编译器回归共 27 项通过。Windows CI 已排除的 `CompileServiceTransport.ConcurrentPipeClientsCanBothReceiveResponses` 仍稳定失败于首个客户端 `win32=2`，作为既有缺陷保留，不在这次机械抽离中伪装成已解决。
 
 #### 2. 原生 JSON efun
 

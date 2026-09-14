@@ -15,10 +15,10 @@
 #endif
 
 #include "comm.h"
-#include "compile_service.h"
-#include "compile_service_client.h"
-#include "compile_service_protocol.h"
-#include "runtime_compile_request.h"
+#include "extensions/compile_service/compile_service.h"
+#include "extensions/compile_service/compile_service_client.h"
+#include "extensions/compile_service/compile_service_protocol.h"
+#include "extensions/compile_service/runtime_compile_request.h"
 
 namespace {
 using compile_service::CompileServiceDiagnostic;
