@@ -4,6 +4,8 @@ option(STATIC "Build static version of driver" OFF)
 option(USE_JEMALLOC "Build driver with jemalloc support" ON)
 option(ENABLE_SANITIZER "Build driver with sanitizer support" OFF)
 option(BUILD_FUZZERS "Build AFL++/libFuzzer investigation harnesses (not shipped functionality)" OFF)
+option(ENABLE_LUDE_COMPILE_SERVICE
+  "Build the local Windows runtime compile-service extension into driver" OFF)
 # Packages
 option(PACKAGE_ASYNC "async package" ON)
 option(PACKAGE_COMPRESS "compress package" ON)
@@ -686,11 +688,14 @@ add_dependencies(libdriver autogen)
 
 list(APPEND FLUFFOS_LIBRARIES libdriver)
 
-# Local runtime compile service. Its implementation stays in one extension
-# library so upstream integration remains limited to lifecycle/tick hooks.
-add_subdirectory(extensions/compile_service)
-add_dependencies(fluffos_compile_service autogen)
-list(APPEND FLUFFOS_LIBRARIES fluffos_compile_service)
+# Local runtime compile service. Production/default builds do not include it;
+# the Windows development distribution enables it explicitly.
+if (ENABLE_LUDE_COMPILE_SERVICE)
+  add_subdirectory(extensions/compile_service)
+  add_dependencies(fluffos_compile_service autogen)
+  target_compile_definitions(libdriver PUBLIC FLUFFOS_ENABLE_COMPILE_SERVICE=1)
+  list(APPEND FLUFFOS_LIBRARIES fluffos_compile_service)
+endif ()
 
 # JEMALLOC must be the first!
 if (CYGWIN)

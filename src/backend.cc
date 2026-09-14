@@ -12,7 +12,9 @@
 #include <map>     // for multimap
 #include <algorithm>
 
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
 #include "extensions/compile_service/compile_service.h"
+#endif
 #include "vm/vm.h"
 
 #include "packages/core/heartbeat.h"
@@ -146,7 +148,9 @@ void call_remove_destructed_objects() {
 // Run the events of the current gametick and advance the counter: the
 // per-target loop calls this once per elapsed gametick period.
 void backend_run_one_gametick() {
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
   compile_service::process_compile_service_requests_on_main_thread(1);
+#endif
   call_tick_events();
   g_current_gametick++;
 }

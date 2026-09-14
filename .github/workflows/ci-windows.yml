@@ -51,6 +51,7 @@ jobs:
           cmake -G "MSYS Makefiles" \
             -DCMAKE_BUILD_TYPE=${{ matrix.build }} \
             -DMARCH_NATIVE=OFF \
+            -DENABLE_LUDE_COMPILE_SERVICE=ON \
             -DPACKAGE_CRYPTO=OFF \
             -DPACKAGE_DB_MYSQL="" \
             -DPACKAGE_DB_SQLITE=2 \

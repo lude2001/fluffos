@@ -51,17 +51,46 @@ compile_service::RequestExecutor g_request_executor = compile_service::execute_c
 constexpr auto kQueueTimeout = std::chrono::seconds(5);
 constexpr int kQueueTimeoutMs = 5000;
 #ifdef _WIN32
-constexpr const char *kPipeSecurityDescriptor =
-    "D:(A;;GA;;;WD)(A;;GA;;;AU)(A;;GA;;;SY)(A;;GA;;;BA)";
-
 class PipeSecurityAttributes {
  public:
   PipeSecurityAttributes() {
+    HANDLE token = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+      fail(GetLastError(), "OpenProcessToken");
+      return;
+    }
+
+    DWORD token_user_size = 0;
+    GetTokenInformation(token, TokenUser, nullptr, 0, &token_user_size);
+    const DWORD size_error = GetLastError();
+    if (size_error != ERROR_INSUFFICIENT_BUFFER || token_user_size == 0) {
+      CloseHandle(token);
+      fail(size_error, "GetTokenInformation(size)");
+      return;
+    }
+
+    std::vector<unsigned char> token_user_buffer(token_user_size);
+    if (!GetTokenInformation(token, TokenUser, token_user_buffer.data(), token_user_size, &token_user_size)) {
+      const DWORD error = GetLastError();
+      CloseHandle(token);
+      fail(error, "GetTokenInformation");
+      return;
+    }
+    CloseHandle(token);
+
+    auto *token_user = reinterpret_cast<TOKEN_USER *>(token_user_buffer.data());
+    LPSTR user_sid = nullptr;
+    if (!ConvertSidToStringSidA(token_user->User.Sid, &user_sid)) {
+      fail(GetLastError(), "ConvertSidToStringSidA");
+      return;
+    }
+
+    const std::string security_descriptor =
+        "D:P(A;;GA;;;" + std::string(user_sid) + ")(A;;GA;;;SY)(A;;GA;;;BA)";
+    LocalFree(user_sid);
     if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(
-            kPipeSecurityDescriptor, SDDL_REVISION_1, &descriptor_, nullptr)) {
-      g_last_pipe_error = GetLastError();
-      debug_message("compile_service: pipe security descriptor setup failed (win32=%lu)\n",
-                    g_last_pipe_error.load());
+            security_descriptor.c_str(), SDDL_REVISION_1, &descriptor_, nullptr)) {
+      fail(GetLastError(), "ConvertStringSecurityDescriptorToSecurityDescriptorA");
       return;
     }
 
@@ -76,9 +105,16 @@ class PipeSecurityAttributes {
     }
   }
 
-  SECURITY_ATTRIBUTES *get() { return descriptor_ != nullptr ? &attributes_ : nullptr; }
+  bool valid() const { return descriptor_ != nullptr; }
+  SECURITY_ATTRIBUTES *get() { return &attributes_; }
 
  private:
+  void fail(DWORD error, const char *operation) {
+    g_last_pipe_error = error;
+    debug_message("compile_service: %s failed while restricting pipe to current user (win32=%lu)\n",
+                  operation, error);
+  }
+
   SECURITY_ATTRIBUTES attributes_{};
   PSECURITY_DESCRIPTOR descriptor_ = nullptr;
 };
@@ -223,6 +259,10 @@ void handle_client(HANDLE pipe) {
 void service_loop() {
   debug_message("compile_service: service loop starting for %s\n", g_pipe_name.c_str());
   PipeSecurityAttributes pipe_security;
+  if (!pipe_security.valid()) {
+    g_pipe_ready_cv.notify_all();
+    return;
+  }
   while (!g_stopping.load()) {
     HANDLE pipe =
         CreateNamedPipeA(g_pipe_name.c_str(), PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,

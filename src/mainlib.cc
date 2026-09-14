@@ -36,7 +36,10 @@
 #include "vm/vm.h"              // for push_constant_string, etc
 #include "comm.h"               // for init_user_conn
 #include "backend.h"            // for backend();
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
 #include "extensions/compile_service/compile_service.h"
+#include "extensions/compile_service/compile_service_protocol.h"
+#endif
 
 // from lexer_utils.cc
 extern void print_all_predefines();
@@ -369,6 +372,12 @@ int driver_main(int argc, char** argv) {
     exit(-1);
   }
 
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
+  // init_main() changes the process working directory to the mudlib root.
+  // Resolve the config path first so driver and lpccp derive the same pipe ID.
+  const auto compile_service_config = compile_service::normalize_compile_service_path(config_file);
+#endif
+
   auto* base = init_main(config_file);
 
   debug_message("==== Runtime Config Table ====\n");
@@ -421,18 +430,24 @@ int driver_main(int argc, char** argv) {
     exit(1);
   }
 
-  start_compile_service(config_file);
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
+  start_compile_service(compile_service_config);
+#endif
 
   // Initialize user connection socket
   if (!init_user_conn()) {
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
     stop_compile_service();
+#endif
     exit(1);
   }
 
   debug_message("Initializations complete.\n\n");
   setup_signal_handlers();
   backend(base);
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
   stop_compile_service();
+#endif
 
   return 0;
 }

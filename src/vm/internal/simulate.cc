@@ -64,7 +64,9 @@ void db_cleanup(void);  // FIXME
 #include <vector>
 
 #include "packages/core/replace_program.h"  // for replace_program_pending
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
 #include "extensions/compile_service/compile_service.h"
+#endif
 #include "vm/internal/trace.h"              // for dump_trace && get_svalue_trace
 /*
  * This one is called from HUP.
@@ -124,7 +126,9 @@ void shutdownMudOS(int exit_code) {
   monitor(0, 0, 0, 0, 0); /* cause gmon.out to be written */
 #endif
   Tracer::collect();
+#ifdef FLUFFOS_ENABLE_COMPILE_SERVICE
   stop_compile_service();
+#endif
 
 #ifdef _WIN32
   WSACleanup();
