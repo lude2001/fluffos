@@ -1,6 +1,6 @@
 # FluffOS 官方稳定版重基线：本地独有能力清单
 
-**状态：** Task 2 已完成源码与江湖 mudlib 静态审计，供 Task 3 抽离使用
+**状态：** Task 2 已完成源码与江湖 mudlib 静态审计；Task 3 已完成 JSON 与 HTTP 的首轮模块化抽离
 **本地基线：** `98cc9b42b6f7f1630189b4b968ed708ff41f2203`
 **官方基线：** `v2026.0901.0`，commit `7af5c3fffe2505c7cb764951bed863b16eee471b`
 **共同祖先：** `ee8137603946d12248e9ed429f09eb2388e007e3`
@@ -91,7 +91,9 @@ void http_response_parser_close(mixed)
 
 其中 server 直接使用 request parser、`url_decode()` 和 `http_build_response()`；client 直接使用 response parser。`url_encode()`、`http_decode_query()`、`http_decode_form()` 当前没有江湖非测试调用，但属于同一公开 package 且已有测试，首轮一并保留，避免收窄既有 API。
 
-迁移约束：从官方 sockets package 完全分离为 `lude_http`，不得修改官方 `sockets.cc`；parser handle 生命周期、分片结果 mapping 和错误结果结构保持兼容。
+旧基线抽离结果：HTTP 的 11 个 efun、helper 和增量 parser 已移入 `src/packages/lude_http/`；sockets package 不再编译或声明 HTTP 能力。新 package 自己声明 `PACKAGE_LUDE_HTTP`，并补齐 `options.autogen.h` 对 package 清单的增量生成依赖，使 LPC 可见 `__PACKAGE_LUDE_HTTP__`。
+
+迁移约束：重放到官方基线时以独立 `lude_http` package 接入，不修改官方 `sockets.cc`；parser handle 生命周期、分片结果 mapping 和错误结果结构保持兼容。旧基线的 Windows 规范构建和 helper、request parser、response parser 三组定向测试均已通过。
 
 ## 3. Windows 构建、launcher 与安装器
 

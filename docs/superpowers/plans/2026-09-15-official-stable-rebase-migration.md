@@ -106,9 +106,9 @@
 
 迁移策略：
 
-- [ ] 从官方 sockets package 的 `sockets.cc` 中解耦。
-- [ ] 独立为 `src/packages/lude_http/`，拥有自己的 `.spec`、实现和测试。
-- [ ] 保持现有 efun 名称和返回 mapping 结构。
+- [x] 已在旧基线上从 sockets package 的 `sockets.cc`、`sockets.spec` 和 source 列表中解耦。
+- [x] 已独立为 `src/packages/lude_http/`，拥有自己的 CMake option、`.spec`、实现和既有测试。
+- [x] 保持现有 11 个 efun 名称和返回 mapping 结构；Windows 规范构建及 helper、request parser、response parser 三组定向测试通过。
 - [ ] 为请求大小、header/body 上限、parser handle 生命周期和异常清理补明确边界。
 - [ ] 使用当前 LPC HTTP 服务的真实分片方式固定请求/响应 parser fixtures，覆盖 partial header、partial body、chunked、Content-Length、连接关闭和错误输入。
 - [ ] 候选环境禁用支付、QQ 消息、部署控制和外部 HTTP 写操作；验证解析器时使用本地假服务，不调用真实第三方。
@@ -223,7 +223,7 @@
 
 ### Task 3：在旧基线上抽离扩展边界
 
-- [ ] 从当前 `master` 创建短期本地分支 `codex/legacy-extension-extraction`。
+- [x] 已从当前 `master` 创建短期本地分支 `codex/legacy-extension-extraction`。
 - [ ] 只做行为保持的目录移动、适配层和最小钩子收敛；不得顺便改变协议、TLS、存档或运行语义。
 - [ ] 每个独有能力形成独立提交和独立契约测试，证明重构前后输出与副作用一致。
 - [ ] 该分支不部署生产，只用于得到可重放、可审查的扩展切片；完成后保留 tag/提交引用并删除临时分支。

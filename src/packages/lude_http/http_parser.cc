@@ -1,7 +1,7 @@
 #include "base/package_api.h"
 
-#include "packages/sockets/http_efuns.h"
-#include "packages/sockets/http_parser.h"
+#include "packages/lude_http/http_efuns.h"
+#include "packages/lude_http/http_parser.h"
 
 #include <cctype>
 #include <limits>

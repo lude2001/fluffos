@@ -323,6 +323,7 @@ add_custom_command(
   OUTPUT "options.autogen.h"
   COMMAND "make_options_defs" "-I${CMAKE_CURRENT_BINARY_DIR}" "-I${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/base/internal/options_incl.h"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/base/internal/options_incl.h"
+          "${CMAKE_CURRENT_BINARY_DIR}/packages/packages.autogen.h"
 )
 
 add_custom_command(
