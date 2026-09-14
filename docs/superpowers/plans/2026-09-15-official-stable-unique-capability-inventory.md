@@ -103,11 +103,11 @@ void http_response_parser_close(mixed)
 - `src/main_lpcprj.cc`
 - `scripts/stage-driver-dist.ps1`
 - `scripts/stage-windows-install-image.ps1`
-
-旧基线审计确认这些能力已经位于 VM 外部：`lpcprj` 是不链接 `libdriver` 的独立 executable；`build.cmd` 只负责编排构建、staging 和 installer；运行时 DLL 由 `objdump` 递归发现后进入 `build/dist`，再复制到安装镜像。现有五组 Windows 布局、相对配置启动、installer 配置与临时安装测试均已通过，因此 Task 3 不为这一层制造额外源码重构，只把这些文件作为一个可重放交付切片保留。
 - `scripts/build-windows-installer.ps1`
 - `packaging/windows/fluffos.iss`
 - 对应安装布局和相对配置测试脚本
+
+旧基线审计确认这些能力已经位于 VM 外部：`lpcprj` 是不链接 `libdriver` 的独立 executable；`build.cmd` 只负责编排构建、staging 和 installer；运行时 DLL 由 `objdump` 递归发现后进入 `build/dist`，再复制到安装镜像。现有五组 Windows 布局、相对配置启动、installer 配置与临时安装测试均已通过，因此 Task 3 不为这一层制造额外源码重构，只把这些文件作为一个可重放交付切片保留。
 
 这些代码已经基本位于 VM 外部，应整体保留。新官方工具或 DLL 只通过 staging 发现/复制进入 `build/dist`，不在 driver core 中维护安装器逻辑。
 
@@ -123,6 +123,17 @@ void http_response_parser_close(mixed)
 - `.github/workflows/release-artifacts.yml`
 
 不带入官方 CodeQL、Coverity、Docker publish、文档站和大矩阵 workflow。`Release Artifacts` 的静态 Linux job 继续保持 `Release`、`STATIC=ON`、`MARCH_NATIVE=OFF`、MySQL、SQLite、C++ tests、LPC testsuite、启动 smoke、静态链接检查和 `.sha256`。
+
+Task 3 固定的迁移覆盖清单如下；旧基线不改 workflow，重放到官方稳定版时按表逐项适配：
+
+| workflow | 必须保留的覆盖 | 允许的适配 |
+| --- | --- | --- |
+| `ci-ubuntu.yml` | GCC/Clang × Debug/RelWithDebInfo，C++ unit tests，LPC testsuite | runner、依赖包名、已证实的测试排除 |
+| `ci-macos.yml` | Debug/RelWithDebInfo，OpenSSL/ICU，C++ unit tests，LPC testsuite | runner、Homebrew 路径与包名 |
+| `ci-windows.yml` | MSYS2，Debug/RelWithDebInfo，SQLite profile，C++ unit tests，LPC testsuite | MSYS2 包名、官方新版 CMake 参数 |
+| `release-artifacts.yml` | 手动 `all/windows/linux/linux-static/macos`；Windows installer/runtime；Linux 动态与静态 runtime；macOS runtime | 新版依赖、制品中新增的官方运行时文件 |
+
+静态生产 driver 的硬契约是 `Release`、`STATIC=ON`、`MARCH_NATIVE=OFF`、MySQL、SQLite、默认 DB handle，以及 `file`/`readelf`/`ldd` 三重静态链接检查和 tarball SHA-256。
 
 ## 5. runtime compile service 与 `lpccp`
 
