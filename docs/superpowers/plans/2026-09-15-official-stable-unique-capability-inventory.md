@@ -1,6 +1,6 @@
 # FluffOS 官方稳定版重基线：本地独有能力清单
 
-**状态：** Task 0 至 Task 4 已完成；独有能力已在旧基线抽离，官方稳定版纯净基线已构建并通过完整测试
+**状态：** Task 0 至 Task 5 已完成；独有能力已在官方稳定基线接入，Windows 候选完成构建、完整 testsuite 与江湖隔离登录验证，扩大兼容/soak 验证仍在进行
 **本地基线：** `98cc9b42b6f7f1630189b4b968ed708ff41f2203`
 **官方基线：** `v2026.0901.0`，commit `7af5c3fffe2505c7cb764951bed863b16eee471b`
 **共同祖先：** `ee8137603946d12248e9ed429f09eb2388e007e3`
@@ -163,7 +163,9 @@ Task 3 固定的迁移覆盖清单如下；旧基线不改 workflow，重放到�
 
 Task 3 先做行为保持的目录和 adapter 抽离，不同时改变启用方式。迁到官方基线后再增加显式 build/runtime 开关，使生产 driver 不默认开放 named pipe。本地现有协议、排队、CLI 输出和失败结构先保持兼容。
 
-Task 3 结果：服务、transport、协议和 runtime 请求实现已经形成 `fluffos_compile_service` 静态扩展库；`lpccp` 是不链接 driver 的独立客户端。Windows 规范构建通过，相关测试 27 项通过。CI 既有排除项 `ConcurrentPipeClients` 仍可复现首个客户端 `ERROR_FILE_NOT_FOUND`，必须作为后续独立修复，不能算作本次抽离回归通过。
+Task 3 结果：服务、transport、协议和 runtime 请求实现已经形成 `fluffos_compile_service` 静态扩展库；`lpccp` 是不链接 driver 的独立客户端。Windows 规范构建通过，相关测试 27 项通过。
+
+新基线接入结果：服务直接消费官方 compiler 的结构化诊断，只在官方生命周期、backend tick、输出和运行时错误边界保留少量钩子。首个 named-pipe 实例创建前客户端抢跑导致 `ERROR_FILE_NOT_FOUND` 的竞态已通过启动就绪等待修复；全量 CTest 和连续并发 transport 重复均通过，真实江湖隔离实例的 `lpccp` 请求返回结构化成功。
 
 ## 6. mapping 可观测性
 

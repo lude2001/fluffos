@@ -265,18 +265,20 @@
 - [x] 已用本仓库四个轻量 workflow 替换官方重型 workflow，并把测试门禁适配为官方 CTest labels。
 - [x] native JSON 已作为独立 package 接入；新增的 native efun 契约测试 32 项通过，官方 LPC `std/json.lpc` 原有 178 项测试也继续通过。
 - [x] HTTP helper、request parser 和 response parser 已作为独立 `lude_http` package 接入；三份契约测试共 90 项检查通过，官方 sockets package 未修改。
-- [ ] 江湖兼容、Windows 交付层和 compile service 尚待依次接入与验证。
+- [x] Windows `build/dist`、安装镜像、安装器、`lpcprj` 与 `lpccp` 已接入；`build.cmd` 从干净 `build/work` 完成最终构建，布局、相对配置、安装器语言/配置和用户 PATH 测试通过。
+- [x] compile service 已按扩展目录接入，仅保留生命周期、每 tick 派发、输出和错误采集等少量核心钩子；25 项服务测试与并发 transport 测试通过，并修复首个 named-pipe 实例尚未就绪时客户端抢跑的竞态。
+- [x] 江湖英杰传隔离冷启动与测试角色登录已通过。官方新版暴露的两处 mudlib 兼容问题已在 LPC 仓库以最小提交修复：`START_ROOM` 显式引入，以及背包分类服务在自由任务前预加载；它们均不是需要移植的 driver 独有功能。
 
 ### Task 6：本地候选环境验证
 
-- [ ] 使用江湖英杰传本地工作树和 `config/config.dev`；需要写存档的验证只使用本地测试角色。
-- [ ] 运行旧、新 driver 时避免复用相同端口、日志和 IPC 名称；同一份 config 默认一次只运行一个实例。
-- [ ] 不触发支付、QQ 消息、邮件、部署控制、公告等外部写操作。
-- [ ] 完整冷启动 master、simul_efun 和 preload，编译真实 mudlib；不得用对生产目录执行批量 `lpccp --reload-loaded` 代替冷启动。
-- [ ] 用同一组输入分别运行旧 driver 与候选 driver，比较协议字节、状态快照、日志错误和关键性能指标。
-- [ ] 复制一个本地测试角色存档进行旧→新恢复和保存验证；原测试存档保留不动。
+- [x] 使用江湖英杰传本地工作树的隔离副本和 `config/config.dev`；所有角色数据写入只发生在副本中的 `gameteststd1` 存档。
+- [x] 旧、新 driver 使用不同的临时端口、日志目录和配置绝对路径；没有停止或替换原有本地实例。
+- [x] 验证只执行冷启动、编译服务请求、测试角色登录和 `look`，未执行支付、QQ 消息、邮件、部署控制或公告操作。
+- [x] 候选安装镜像通过 `lpcprj` 完整冷启动 master、simul_efun 和全部 preload，并进入 `Initializations complete`；没有对生产目录批量 reload。
+- [ ] 已用旧、新 driver 对同一复制角色完成登录和 `look`，两者均成功；完整协议字节、状态快照和性能指标差异仍待后续扩大验证。
+- [x] 候选 driver 已从复制的旧测试角色存档恢复并完成正常登录；原 LPC 工作树中的测试存档未被候选实例写入。新→旧双向存档兼容尚未验证。
 - [ ] 进行长时间 soak，覆盖心跳、call_out、异步 DB/IO、对象 swap/reload、WebSocket/TLS 和内存趋势。
-- [ ] 记录候选 driver 和运行时文件 SHA-256，作为本地验收结果。
+- [x] 已记录最终候选工件 SHA-256：`driver.exe` 为 `a866cafa257eb17eb9c084f54a6a1dcf58a450287552cbbf1052dcf90919cd8e`，`lpccp.exe` 为 `6b9c02d033b7b1299af89428eddb21febaf8ba3ab384143842413f39b9afd11e`，`lpcprj.exe` 为 `f49109a57fdc3c0eae51c69cbed0a33086344ab063464794295b09ed51b5c639`，installer 为 `8cc58f4a9808b6f5f4bf11f15011c75dd1d1be1909b46782402aaaef82ec0079`。
 
 ### Task 7：本地收尾
 
@@ -291,18 +293,18 @@
 
 ### 构建
 
-- [ ] Windows：`build.cmd` 完成，所有支持工件位于 `build/dist`。
+- [x] Windows：`build.cmd` 完成，所有支持工件位于 `build/dist`，安装镜像和 installer 同步生成。
 - [ ] Linux：完成 Release、`MARCH_NATIVE=OFF` 的可移植构建。
 - [ ] GitHub `Release Artifacts` 的 `linux-static` 目标能够生成 `fluffos-linux-static-production`，并通过静态链接检查和 SHA-256 输出。
 - [ ] 官方启用的 sanitizer/单元测试配置至少完成一轮。
-- [ ] `git diff --check` 无错误。
-- [ ] 每次候选构建记录源码提交、工具链、flags、依赖版本、制品列表和 SHA-256；禁止以文件时间或文件名认定版本。
+- [x] `git diff --check` 无错误。
+- [x] 本次 Windows 候选构建记录源码提交 `65f0fc1d`、版本 `20260820-dd2a3a14-65f0fc1d`、构建 profile、制品和 SHA-256；未以文件时间或文件名代替校验。
 
 ### Driver 与 LPC
 
-- [ ] C++ 单元测试通过。
-- [ ] 官方 LPC testsuite 全量运行；普通平台 CI 的既有容错策略可以保留，但 `Release Artifacts` 的静态生产构建必须严格通过。
-- [ ] 当前游戏 mudlib 在隔离冷启动中完成 master、simul_efun、preload 和可达业务 owner 编译。
+- [x] C++ 非 testsuite CTest 共 366 项通过，0 失败。
+- [x] 最终 `build/dist/driver.exe` 全量运行官方 LPC testsuite：715 个文件、10,717 项检查通过，输出 `Checks succeeded.`。
+- [x] 当前游戏 mudlib 在隔离冷启动中完成 master、simul_efun、全部 preload 和登录路径对象编译；测试角色登录与 `look` 成功。
 - [ ] master、simul_efun、继承链、clone 和 hot reload 定向用例通过。
 - [ ] 新旧 driver 对关键 LPC 语义的差异得到解释和批准。
 - [ ] `save_object/restore_object`、`save_variable/restore_variable` 完成旧→新和新→旧双向兼容测试。
@@ -310,10 +312,10 @@
 ### 本地独有能力
 
 - [ ] JSON canonical fixture 在旧/新 driver 间字节和语义一致，覆盖真实客户端协议、autoload 和配置数据。
-- [ ] HTTP 请求/响应 parser 的增量、边界和错误用例通过。
+- [x] HTTP 请求/响应 parser 的增量、边界和错误用例通过，共 90 项检查。
 - [ ] mapping 统计分配/释放后回到基线。
-- [ ] `lpccp` compile、reload-loaded、compile-only、fresh-required 和协议兼容通过；目录模式只能在崩溃缺陷修复后于隔离实例验证，禁止对生产目录运行。
-- [ ] 并发请求保持 FIFO 串行 VM 执行，关闭和超时路径无悬挂任务。
+- [x] `lpccp` compile、reload-loaded、compile-only、fresh-required 和协议兼容由扩展测试覆盖；最终安装镜像还对江湖 `/clone/user/user.c` 返回 `ok: true`、无 diagnostics/runtime_errors。目录 reload 仍禁止用于生产目录。
+- [x] 并发 transport 测试连续重复通过；启动函数现在等待首个 named-pipe 实例就绪，FIFO 串行执行、关闭和超时路径由服务测试覆盖。
 
 ### 江湖英杰传本地集成
 
@@ -321,9 +323,9 @@
 - [ ] TLS/WebSocket 实际握手通过，不存在证书校验降级。
 - [ ] 本地 PolarDB 正常证书验证连接通过。
 - [ ] 本地开发数据库连接在现有开发配置下通过；不连接或操作线上游戏服务器。
-- [ ] 使用本地测试角色完成登录、重连、保存恢复和核心流程检查。
+- [ ] 已使用本地测试角色副本完成登录、旧存档恢复和 `look`；重连、反向存档兼容及更广核心流程尚未完成。
 - [ ] 候选 soak 期间无新增 driver 崩溃、runtime error、存档错误、协议错误、数据库错误或持续内存增长。
-- [ ] 整个验证过程没有触发远程部署、线上热编译或线上玩家数据变更。
+- [x] 整个验证过程没有触发远程部署、线上热编译或线上玩家数据变更。
 
 ---
 
