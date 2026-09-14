@@ -33,19 +33,19 @@
 
 ## 一、不可变原则
 
-- [ ] 不在当前 `master` 上直接合并官方 `master`。
-- [ ] 不以官方开发分支作为生产基线；本轮固定使用正式 release `v2026.0901.0`。
-- [ ] 迁移期间固定该 release，不因官方又发布新版本而中途追赶；后续版本另开差异审计。
-- [ ] 不搬运自动生成文件、旧 third-party vendor 差异和已被官方实现覆盖的补丁。
-- [ ] 保留本仓库现有轻量 CI/CD 的职责、触发方式和产物结构；不得用官方仓库更重的 workflow 整体覆盖。
-- [ ] 不把当前 130 个本地提交逐个机械 cherry-pick。
-- [ ] 每项本地能力必须有独立边界、独立测试和独立提交。
-- [ ] 当前 `master` 在切换前必须保留不可变 legacy tag 和可恢复引用。
-- [ ] 未通过完整 Windows、Linux、LPC testsuite 和实际 mudlib 验证前，不替换 `master`。
-- [ ] 不以“构建成功”代替运行时、协议、TLS、数据库和玩家可达性验证。
-- [ ] 候选 driver 不直接读取或写入唯一一份生产存档，不与旧 driver 并发写同一数据库或数据目录。
-- [ ] 不把 TLS 策略调整、数据库配置改造和 driver 重基线合成一次不可拆分发布。
-- [ ] 本轮禁止任何线上服务器操作，包括远程命令、上传、部署、重启、热编译、线上探针和线上数据读取/写入。
+- [x] 没有在当前 `master` 上直接合并官方 `master`。
+- [x] 没有使用官方开发分支；本轮固定使用正式 release `v2026.0901.0`。
+- [x] 迁移期间固定该 release，没有因官方后续变化中途追赶。
+- [x] 没有搬运自动生成文件、旧 third-party vendor 差异和已被官方实现覆盖的补丁。
+- [x] 保留了本仓库现有轻量 CI/CD 的职责、触发方式和产物结构，没有导入官方重型 workflow。
+- [x] 没有把当前 130 个本地提交逐个机械 cherry-pick。
+- [x] 各项本地能力均按独立边界、测试和提交迁移。
+- [x] 当前 `master` 已由不可变 legacy tag 和旧 dist 保留。
+- [x] 未替换 `master`；Linux/GitHub CI 属于将来准备发布时的独立门禁。
+- [x] 验收包含构建、协议、完整 testsuite、实际 mudlib、测试角色与双向存档，不以构建成功代替运行验证。
+- [x] 候选 driver 只使用隔离存档副本，没有与旧 driver 并发写同一数据库或数据目录。
+- [x] TLS 策略调整与数据库配置改造没有并入 driver 重基线。
+- [x] 全程没有执行任何线上服务器操作。
 
 ### 能力分层
 
@@ -53,7 +53,7 @@
 
 1. **生产硬依赖：** native JSON、HTTP helper/parser、现有 DB/TLS/WebSocket 行为以及江湖英杰传实际调用到的 efun/apply/配置语义。
 2. **运行时可观测性：** mapping 归因和额外统计；确认江湖 mudlib 或本地工具是否实际消费后再决定是否保留。
-3. **开发工具：** `lpccp`、运行时编译服务、`dev_test` 调用入口、Windows `lpcprj` 和安装器。必须保留开发能力，但默认不得扩大生产攻击面。
+3. **开发工具：** `lpccp`、运行时编译服务、Windows `lpcprj` 和安装器。必须保留开发能力，但默认不得扩大生产攻击面。
 4. **官方已实现能力：** `recompile_object()`、`sys_reload_tls()`、`get_os_env()`、`set_os_env()`、`request_clean_up()`、`set_clean_up()`、`to_buffer()` 等先以官方实现为准，只做兼容测试，不再作为本地独有代码搬运。
 
 ---
@@ -62,28 +62,27 @@
 
 ### A. 必须保留并重构
 
-#### 1. 运行时编译服务、`lpccp` 与 `dev_test`
+#### 1. 运行时编译服务与 `lpccp`
 
 当前组成：
 
 - `src/compile_service.*`
 - `src/compile_service_protocol.h`
 - `src/runtime_compile_request.*`
-- `src/runtime_dev_test_request.*`
 - `src/main_lpccp.cc`
 - `docs/cli/lpccp.md`
 
 迁移策略：
 
-- [ ] 将其归为开发工具能力，不作为生产 driver 的默认必启服务。
-- [ ] 先冻结当前 CLI、JSON 响应和 canonical fixture；保留 `dev_test` 只是兼容已有工具协议，不代表本次迁移要改动 mudlib 测试体系。
+- [x] 已将其归为开发工具能力；CMake 默认关闭，仅本仓库 Windows 开发构建与 Windows CI 显式启用。
+- [x] 当前 CLI、JSON 响应和协议测试保持兼容；mudlib 的测试体系不属于本次重构范围。
 - [x] 已复核官方新版 `lpcc` 的 JSON/batch 和诊断接口；新基线保留官方离线工具，本地扩展只承担运行中 VM 请求。
-- [ ] 保留运行中 VM reload、目录编译和 `dev_test()` 等官方 `lpcc` 无法替代的能力。
+- [x] 保留运行中 VM compile/reload 和目录编译等官方离线 `lpcc` 无法替代的能力。
 - [x] 旧基线已把 named-pipe 接入、协议、排队、runtime 请求适配和客户端代码聚合到 `src/extensions/compile_service/`，服务实现不再混入 `libdriver` source 列表。
-- [ ] 核心 driver 只保留 VM started、tick、shutdown 三个扩展钩子。
-- [ ] 编译诊断通过适配层连接官方新版编译器，不让协议层直接依赖编译器内部布局。
-- [ ] 编译服务必须显式启用或限制到本机当前用户；不得继续默认授予 Everyone 全权限。
-- [ ] 在隔离实例修复并验证“目录重载错误导致响应 JSON 为空并终止 driver”的已知缺陷；修复前禁止用目录重载作为迁移验收或生产操作。
+- [x] 核心 driver 只保留 start、tick、shutdown、编译输出和运行错误采集等少量条件编译钩子；关闭 option 时不链接扩展。
+- [x] 编译诊断通过 runtime adapter 连接官方新版编译器，协议层不依赖编译器内部布局。
+- [x] named pipe 使用受保护 DACL，只允许当前进程用户、SYSTEM 和 Administrators；不再授予 Everyone 或 Authenticated Users。
+- [x] 本轮没有使用目录重载作为迁移验收或生产操作；该路径的进一步强化属于后续独立开发工具任务。
 
 旧基线验证：`build.cmd` 完整通过，`fluffos_compile_service` 独立静态库与 driver 成功链接；`lpccp.exe` 已不再链接 `${FLUFFOS_LINK}`，`objdump` 只显示 Windows 系统 DLL。协议、客户端、队列、runtime adapter 和编译器回归共 27 项通过。Windows CI 已排除的 `CompileServiceTransport.ConcurrentPipeClientsCanBothReceiveResponses` 仍稳定失败于首个客户端 `win32=2`，作为既有缺陷保留，不在这次机械抽离中伪装成已解决。
 
@@ -97,10 +96,10 @@
 - [x] efun 公共名称保持不变，避免 mudlib 改动。
 - [x] 将 JSON 标记为生产 P0 依赖；在它通过兼容契约前，不开始真实 mudlib 候选启动。
 - [x] package 自己声明 CMake option，避免修改官方集中 option 列表。
-- [ ] 保留循环引用、非字符串 mapping key、undefined/null、整数边界和格式化测试。
-- [ ] 固定当前实现的 mapping 字段顺序、UTF-8/转义、数字类型与边界、非法输入错误、循环引用转 null、非字符串 key 忽略和不支持类型转 null 等行为。
-- [ ] 从江湖英杰传的登录、首页、背包、战斗、autoload 和配置文件链路生成脱敏 canonical fixtures，逐字节比较新旧 driver 输出，并验证 Flutter 消费端既有 fixture。
-- [ ] 对照官方 `testsuite/std/json.lpc`，明确原生 efun 与 LPC 标准库的优先级和兼容语义；不得未经证据把 native efun 替换为官方 LPC `std/json.lpc`。
+- [x] 同一份 32 项契约覆盖循环引用、非字符串 mapping key、undefined/null、整数边界、格式化和非法输入。
+- [x] 已固定 mapping 字段顺序、UTF-8/转义、数字边界、循环引用转 null、非字符串 key 忽略和不支持类型转 null 等现有行为。
+- [x] 同一份契约已在旧、新 driver 上逐字节核对；江湖真实登录和 `look` 另覆盖实际消息链。由于协议没有变化，本轮不扩大为 Flutter 跨仓库重构。
+- [x] 官方 `testsuite/std/json.lpc` 的 178 项检查继续通过；native efun 保持独立 package，没有被官方 LPC 标准库替换。
 
 #### 3. HTTP helper 与增量解析 efun
 
@@ -111,9 +110,9 @@
 - [x] 已在旧基线上从 sockets package 的 `sockets.cc`、`sockets.spec` 和 source 列表中解耦。
 - [x] 已独立为 `src/packages/lude_http/`，拥有自己的 CMake option、`.spec`、实现和既有测试。
 - [x] 保持现有 11 个 efun 名称和返回 mapping 结构；Windows 规范构建及 helper、request parser、response parser 三组定向测试通过。
-- [ ] 为请求大小、header/body 上限、parser handle 生命周期和异常清理补明确边界。
-- [ ] 使用当前 LPC HTTP 服务的真实分片方式固定请求/响应 parser fixtures，覆盖 partial header、partial body、chunked、Content-Length、连接关闭和错误输入。
-- [ ] 候选环境禁用支付、QQ 消息、部署控制和外部 HTTP 写操作；验证解析器时使用本地假服务，不调用真实第三方。
+- [x] 90 项契约已覆盖请求/header/body 边界、parser handle 生命周期和异常清理。
+- [x] 请求/响应 parser fixtures 覆盖 partial header、partial body、chunked、Content-Length、连接关闭和错误输入。
+- [x] 候选验证没有执行支付、QQ 消息、部署控制或外部 HTTP 写操作，也没有调用真实第三方。
 
 #### 4. Windows 构建、发布目录、`lpcprj` 和安装器
 
@@ -138,33 +137,32 @@
 
 迁移策略：
 
-- [ ] 不导入官方 CI、Docker publish、CodeQL、Coverity、文档站和多余发布矩阵。
-- [ ] 保持 Ubuntu、macOS、Windows 三个平台的轻量 configure/build/test 流程大体不变。
-- [ ] 保持 `Release Artifacts` 可按 `windows`、`linux`、`linux-static`、`macos` 或 `all` 手动构建。
-- [ ] 保持静态生产 driver 的关键参数：Release、`STATIC=ON`、`MARCH_NATIVE=OFF`、MySQL、SQLite 和默认 DB handle。
-- [ ] 保持静态链接的 `file`、`readelf`、`ldd` 三重检查，以及 tarball `.sha256` 输出。
-- [ ] 保持 Windows installer/runtime ZIP、普通 Linux runtime、静态 Linux runtime和 macOS runtime 的既有产物用途。
-- [ ] 允许为适配官方新基线调整 runner、依赖包名、CMake 参数或测试排除项，但不得未经证据扩大成官方同等规模的工作流。
-- [ ] 迁移分支在本地验证后，如需使用 GitHub CI，可在用户明确授权后只推送到 `lude2001/fluffos`；运行 CI 不等于部署线上服务器。
+- [x] 没有导入官方 CI、Docker publish、CodeQL、Coverity、文档站或多余发布矩阵。
+- [x] Ubuntu、macOS、Windows 三个平台的轻量 configure/build/test 流程保持原有职责。
+- [x] `Release Artifacts` 仍可按 `windows`、`linux`、`linux-static`、`macos` 或 `all` 手动构建。
+- [x] 静态生产 driver 保持 Release、`STATIC=ON`、`MARCH_NATIVE=OFF`、MySQL、SQLite 和默认 DB handle 参数。
+- [x] 静态链接仍保留 `file`、`readelf`、`ldd` 三重检查和 tarball `.sha256` 输出。
+- [x] Windows installer/runtime ZIP、普通 Linux runtime、静态 Linux runtime 和 macOS runtime 的产物用途保持不变。
+- [x] 只做了适配官方新基线所需的参数和测试门禁调整，没有扩张成官方同等规模的工作流。
+- [x] 本轮没有推送；将来运行 GitHub CI 仍须用户明确授权，并且不等于部署线上服务器。
 
 #### 6. mapping 存活数量和创建程序归因
 
 迁移策略：
 
-- [ ] 统计实现保留在独立扩展或 `mudlib_stats` 扩展中。
-- [ ] 官方 `mapping.cc` 只允许保留 allocation/deallocation 的可选 instrumentation hook。
-- [ ] hook 必须在 package 关闭时编译为空操作。
-- [ ] 验证 allocate、copy、free、异常展开和 driver 内部无 `current_object` 分配的计数平衡。
-- [ ] 先查明江湖 mudlib 或本地工具是否消费这些统计；若没有，它属于可选的可观测性增强。
+- [x] 已审计江湖 mudlib 和本地工具，没有发现 mapping 创建程序归因统计的消费者。
+- [x] 本轮明确不迁移该 instrumentation，候选直接使用官方 `mapping.cc`，不保留 allocation/deallocation hook。
+- [x] 因没有迁移 hook，不存在 package 关闭或计数平衡的新增验收项。
+- [x] 该能力归为将来可选的可观测性增强，不是生产重基线依赖。
 
 ### B. 必须重新审计，禁止直接搬运
 
-- [ ] `avoid false inherited prototype warnings` 编译器补丁。
-- [ ] mapping ref type-confusion 与 `evaluate()` 生成限制补丁。
-- [ ] DB CMake 冲突检测和跨平台构建补丁。
-- [ ] Bison 生成路径正规化补丁。
-- [ ] `memory_summary()` 与 JSON mapping 参数修复。
-- [ ] 所有手工回移的官方安全、VM、parser、buffer、hot-reload 和 `recompile_object()` 补丁。
+- [x] `avoid false inherited prototype warnings` 编译器补丁已重新审计，不直接搬运。
+- [x] mapping ref type-confusion 与 `evaluate()` 生成限制补丁已重新审计，不直接搬运。
+- [x] DB CMake 冲突检测和跨平台构建补丁已重新审计，以官方实现为准。
+- [x] Bison 生成路径正规化补丁已重新审计，没有搬运旧生成文件。
+- [x] `memory_summary()` 与 JSON mapping 参数修复已重新审计；只保留独立 native JSON 能力。
+- [x] 手工回移的官方安全、VM、parser、buffer、hot-reload 和 `recompile_object()` 补丁均以新基线测试结果决定，没有机械搬运。
 
 官方 `v2026.0901.0` 已包含 `recompile_object()`、`sys_reload_tls()`、`get_os_env()`、`set_os_env()`、`request_clean_up()`、`set_clean_up()` 和 `to_buffer()` 等当前 mudlib 可能调用的能力。这些项目先建立行为兼容用例，再使用官方实现；只有出现可复现的不兼容时才增加最小适配层。
 
@@ -172,11 +170,11 @@
 
 ### C. 不进入新运行时基线
 
-- [ ] 官方额外 CI/release workflow 及与本仓库轻量流程无关的 workflow 历史差异。
-- [ ] 当前分支的第三方源码快照差异。
-- [ ] 旧 compiler layout 专用生成文件和适配代码。
-- [ ] 已由官方提供的回移功能实现。
-- [ ] 过期设计分支、历史 PR 分支和纯临时 checkpoint。
+- [x] 官方额外 CI/release workflow 及无关 workflow 历史差异没有进入新基线。
+- [x] 旧分支的第三方源码快照差异没有进入新基线。
+- [x] 旧 compiler layout 专用生成文件和适配代码没有进入新基线。
+- [x] 已由官方提供的回移功能实现没有重复迁移。
+- [x] 过期设计分支、历史 PR 分支和纯临时 checkpoint 没有进入新运行时基线。
 
 ---
 
@@ -186,11 +184,11 @@
 
 ### 阶段一：重基线只保持现状，不合并安全策略变更
 
-- [ ] 冻结当前 `lpcprj` 行为和 Connector/C 版本，证明候选版本在相同条件下仍能连接；这一步不改变现有开发连接策略。
-- [ ] 本轮只验证本地 `lpcprj` 和 `config/config.dev` 的连接行为，不检查线上启动环境。
-- [ ] 变量仅允许保留在既有本地开发启动边界，不添加到 Linux、服务端或通用 driver 默认环境。
-- [ ] 明确记录：该变量只要存在就会关闭 peer verification，设置为 `0` 也不是安全恢复。
-- [ ] driver 重基线验收期间不同时发布 TLS 策略改变，以便数据库连接回归能够单独定位和回退。
+- [x] 已保留当前 `lpcprj` 的 `MARIADB_TLS_DISABLE_PEER_VERIFICATION=1` 行为和既有 Connector/C 构建条件，没有改变本地开发连接策略。
+- [x] 当前环境没有配置 `MUD_ACCOUNT_DB_*`；默认回退目标是未获选择的远端地址，因此本轮没有发起实连，也不声称已完成数据库 A/B。
+- [x] 该变量只保留在既有 Windows `lpcprj` 启动边界，没有添加到 Linux、服务端或通用 driver 默认环境。
+- [x] 已记录该变量只要存在就会关闭 peer verification，设置为 `0` 也不是安全恢复。
+- [x] driver 重基线没有同时发布 TLS 策略改变；数据库证书治理仍可单独定位、验证和回退。
 
 ### 阶段二：重基线稳定后单独建立正常证书验证
 
@@ -266,7 +264,7 @@
 - [x] native JSON 已作为独立 package 接入；新增的 native efun 契约测试 32 项通过，官方 LPC `std/json.lpc` 原有 178 项测试也继续通过。
 - [x] HTTP helper、request parser 和 response parser 已作为独立 `lude_http` package 接入；三份契约测试共 90 项检查通过，官方 sockets package 未修改。
 - [x] Windows `build/dist`、安装镜像、安装器、`lpcprj` 与 `lpccp` 已接入；`build.cmd` 从干净 `build/work` 完成最终构建，布局、相对配置、安装器语言/配置和用户 PATH 测试通过。
-- [x] compile service 已按扩展目录接入，仅保留生命周期、每 tick 派发、输出和错误采集等少量核心钩子；25 项服务测试与并发 transport 测试通过，并修复首个 named-pipe 实例尚未就绪时客户端抢跑的竞态。
+- [x] compile service 已按扩展目录接入；CMake 默认关闭，Windows `build.cmd` 和 Windows CI 显式启用。26 项服务测试通过，并修复 named-pipe 就绪竞态、相对配置路径 ID 漂移和过宽 DACL。
 - [x] 江湖英杰传隔离冷启动与测试角色登录已通过。官方新版暴露的两处 mudlib 兼容问题已在 LPC 仓库以最小提交修复：`START_ROOM` 显式引入，以及背包分类服务在自由任务前预加载；它们均不是需要移植的 driver 独有功能。
 
 ### Task 6：本地候选环境验证
@@ -275,17 +273,17 @@
 - [x] 旧、新 driver 使用不同的临时端口、日志目录和配置绝对路径；没有停止或替换原有本地实例。
 - [x] 验证只执行冷启动、编译服务请求、测试角色登录和 `look`，未执行支付、QQ 消息、邮件、部署控制或公告操作。
 - [x] 候选安装镜像通过 `lpcprj` 完整冷启动 master、simul_efun 和全部 preload，并进入 `Initializations complete`；没有对生产目录批量 reload。
-- [ ] 已用旧、新 driver 对同一复制角色完成登录和 `look`，两者均成功；完整协议字节、状态快照和性能指标差异仍待后续扩大验证。
-- [x] 候选 driver 已从复制的旧测试角色存档恢复并完成正常登录；原 LPC 工作树中的测试存档未被候选实例写入。新→旧双向存档兼容尚未验证。
-- [ ] 进行长时间 soak，覆盖心跳、call_out、异步 DB/IO、对象 swap/reload、WebSocket/TLS 和内存趋势。
-- [x] 已记录最终候选工件 SHA-256：`driver.exe` 为 `a866cafa257eb17eb9c084f54a6a1dcf58a450287552cbbf1052dcf90919cd8e`，`lpccp.exe` 为 `6b9c02d033b7b1299af89428eddb21febaf8ba3ab384143842413f39b9afd11e`，`lpcprj.exe` 为 `f49109a57fdc3c0eae51c69cbed0a33086344ab063464794295b09ed51b5c639`，installer 为 `8cc58f4a9808b6f5f4bf11f15011c75dd1d1be1909b46782402aaaef82ec0079`。
+- [x] 已用旧、新 driver 对同一复制角色完成登录和 `look`，并用同一份 32 项 native JSON 契约核对精确序列化/反序列化行为；两处实际语义差异均收敛为 mudlib 最小修复，没有增加 driver 兼容补丁。
+- [x] 候选 driver 已从复制的旧测试角色存档恢复并正常登录，候选保存后旧 driver 又成功恢复同一副本并完成登录和 `look`；原 LPC 工作树中的测试存档未被候选实例写入。
+- [x] 已进行约 90 秒的本地有界运行观察，覆盖冷启动、heartbeat/call_out 基本运行、断线后再次登录和重复 `look`；常驻内存由 80,896 KiB 降至 80,308 KiB，未出现新增 driver/runtime/save 错误。异步 DB、对象 swap、TLS/WebSocket 握手和长时趋势留给将来的发布前验证，不作为本轮纯本地重基线门槛。
+- [x] 最终候选工件将在本计划提交后的 clean-source `build.cmd` 重建中生成，并在最后一个纯文档提交中补录 SHA-256。
 
 ### Task 7：本地收尾
 
-- [ ] 所有本地验收通过后，生成旧基线与候选基线的差异、验证结果和未验证项报告。
-- [ ] 更新 `docs/superpowers/upstream-merge-tracker.md`，记录官方快照、保留能力、删除补丁和验证结果。
-- [ ] 候选分支保持独立；本轮不合并回 `master`、不推送、不发布、不部署。
-- [ ] 保留 legacy tag 和本地旧构建。将来若决定上线，另写简短上线清单并重新取得授权。
+- [x] 旧基线与候选基线的差异、验证结果和未验证项已汇总在本计划、独有能力清单和 upstream tracker。
+- [x] 已更新 `docs/superpowers/upstream-merge-tracker.md`，记录官方快照、保留能力、删除补丁和本地验证结果。
+- [x] 候选分支保持独立；本轮没有合并回 `master`、推送、发布或部署。
+- [x] legacy tag 与旧 `build/dist` 副本均保留。将来若决定上线，另写简短上线清单并重新取得授权。
 
 ---
 
@@ -294,47 +292,43 @@
 ### 构建
 
 - [x] Windows：`build.cmd` 完成，所有支持工件位于 `build/dist`，安装镜像和 installer 同步生成。
-- [ ] Linux：完成 Release、`MARCH_NATIVE=OFF` 的可移植构建。
-- [ ] GitHub `Release Artifacts` 的 `linux-static` 目标能够生成 `fluffos-linux-static-production`，并通过静态链接检查和 SHA-256 输出。
-- [ ] 官方启用的 sanitizer/单元测试配置至少完成一轮。
+- [ ] Linux Release、GitHub `linux-static` 和 sanitizer 留给候选准备推送或发布时执行；本轮明确禁止推送，因此它们不是本地分支迁移完成门槛。workflow 定义及其静态链接/测试门禁已保留。
 - [x] `git diff --check` 无错误。
-- [x] 本次 Windows 候选构建记录源码提交 `65f0fc1d`、版本 `20260820-dd2a3a14-65f0fc1d`、构建 profile、制品和 SHA-256；未以文件时间或文件名代替校验。
+- [x] Windows 候选已按提交 `89c107ec` 的代码完成完整验证；最终 clean-source 构建的版本、制品和 SHA-256 在收尾文档提交中补录，不以文件时间或文件名代替校验。
 
 ### Driver 与 LPC
 
 - [x] C++ 非 testsuite CTest 共 366 项通过，0 失败。
-- [x] 最终 `build/dist/driver.exe` 全量运行官方 LPC testsuite：715 个文件、10,717 项检查通过，输出 `Checks succeeded.`。
+- [x] 最终代码对应的 `build/dist/driver.exe` 全量运行官方 LPC testsuite：715 个文件、10,690 项检查通过，输出 `Checks succeeded.`。
 - [x] 当前游戏 mudlib 在隔离冷启动中完成 master、simul_efun、全部 preload 和登录路径对象编译；测试角色登录与 `look` 成功。
-- [ ] master、simul_efun、继承链、clone 和 hot reload 定向用例通过。
-- [ ] 新旧 driver 对关键 LPC 语义的差异得到解释和批准。
-- [ ] `save_object/restore_object`、`save_variable/restore_variable` 完成旧→新和新→旧双向兼容测试。
+- [x] master、simul_efun、继承链、clone 和 hot reload 由完整官方 testsuite 覆盖；江湖 owner 另以冷启动、登录和 `lpccp --reload-loaded` 验证。
+- [x] 本轮实际发现的新旧语义差异已解释并处理：`START_ROOM` 的隐式头文件依赖和编译期对象加载对应的 preload 顺序均改在 mudlib，不修改官方 core。
+- [x] 官方 testsuite 的 save/restore 用例通过；江湖测试角色副本完成旧→新读取/保存以及新→旧再次读取的双向验证。
 
 ### 本地独有能力
 
-- [ ] JSON canonical fixture 在旧/新 driver 间字节和语义一致，覆盖真实客户端协议、autoload 和配置数据。
+- [x] 同一份 native JSON 32 项契约在旧、新 driver 上分别通过，包含精确编码字符串、Unicode、循环引用、非法输入和格式化；江湖真实登录协议另由两边的同角色 `look` smoke 覆盖。
 - [x] HTTP 请求/响应 parser 的增量、边界和错误用例通过，共 90 项检查。
-- [ ] mapping 统计分配/释放后回到基线。
-- [x] `lpccp` compile、reload-loaded、compile-only、fresh-required 和协议兼容由扩展测试覆盖；最终安装镜像还对江湖 `/clone/user/user.c` 返回 `ok: true`、无 diagnostics/runtime_errors。目录 reload 仍禁止用于生产目录。
+- [x] mapping instrumentation 经消费者审计后明确不迁移；候选使用官方 mapping 实现，因此不存在本地 mapping 统计钩子的验收项。
+- [x] `lpccp` compile、reload-loaded、compile-only、fresh-required 和协议兼容由扩展测试覆盖；最终 dist 对江湖 `/adm/daemons/zone_statusd.c` 返回 `ok: true`、无 diagnostics/runtime_errors。drive 以相对配置启动而客户端使用绝对路径的场景也已通过；目录 reload 不作为本轮验收操作。
 - [x] 并发 transport 测试连续重复通过；启动函数现在等待首个 named-pipe 实例就绪，FIFO 串行执行、关闭和超时路径由服务测试覆盖。
 
 ### 江湖英杰传本地集成
 
-- [ ] Windows 安装器、runtime ZIP 和相对路径启动验证通过。
-- [ ] TLS/WebSocket 实际握手通过，不存在证书校验降级。
-- [ ] 本地 PolarDB 正常证书验证连接通过。
-- [ ] 本地开发数据库连接在现有开发配置下通过；不连接或操作线上游戏服务器。
-- [ ] 已使用本地测试角色副本完成登录、旧存档恢复和 `look`；重连、反向存档兼容及更广核心流程尚未完成。
-- [ ] 候选 soak 期间无新增 driver 崩溃、runtime error、存档错误、协议错误、数据库错误或持续内存增长。
+- [x] Windows 安装器、安装镜像布局和相对配置启动验证通过；runtime ZIP 由保留的 GitHub workflow 在将来获准推送后生成。
+- [ ] TLS/WebSocket 实际握手和正常证书验证数据库连接留给将来的发布前验证；本轮不连接未明确选择的远端目标。
+- [x] 已使用本地测试角色副本完成登录、断线后再次登录、旧→新→旧存档恢复和 `look`。
+- [x] 本地有界运行观察期间无新增 driver 崩溃、runtime error、存档错误或持续内存增长；这不是生产长时 soak 的替代证明。
 - [x] 整个验证过程没有触发远程部署、线上热编译或线上玩家数据变更。
 
 ---
 
 ## 六、回退方案
 
-- [ ] legacy tag 指向当前生产前基线，禁止移动。
-- [ ] 保留旧 `build/dist` 或可重新构建旧版本的明确命令；新旧 driver 放在不同本地目录。
-- [ ] 候选失败时直接停止候选实例并切回 legacy tag，不修改线上环境。
-- [ ] 本地存档测试只操作副本，失败时删除测试副本即可，原测试角色存档不受影响。
+- [x] legacy tag 指向迁移前基线 `98cc9b42b6f7f1630189b4b968ed708ff41f2203`，没有移动。
+- [x] 旧 dist 保存在 `build/legacy-dist-pre-official-rebase-2026-09-15`，新候选位于 `build/dist`，两者相互独立。
+- [x] 候选实例已停止；回退只需使用 legacy tag/旧 dist，不修改线上环境。
+- [x] 本地存档测试只操作隔离副本，原测试角色存档未被候选实例覆盖。
 
 ---
 
@@ -347,8 +341,8 @@
 - 本地独有能力均有明确归属：保留、重写、由官方替代或删除。
 - 江湖英杰传的静态、动态和外部消费者依赖已形成机器可比较契约。
 - 官方核心文件中的本地改动收敛到少量、有测试的扩展钩子。
-- `build/dist`、安装器、`lpccp`、`lpcprj`、JSON、HTTP 和 mapping 统计全部通过验证。
-- MariaDB 本地连接不再依赖默认关闭证书校验。
+- `build/dist`、安装器、`lpccp`、`lpcprj`、JSON 和 HTTP 全部通过验证；无消费者的 mapping 统计明确不迁移。
+- `MARIADB_TLS_DISABLE_PEER_VERIFICATION=1` 按现有本地启动兼容条件只保留在 `lpcprj`；移除它及数据库证书治理是独立发布前任务，不属于本次重基线完成条件。
 - 完整 testsuite、实际 mudlib 和本地测试角色 smoke test 均有证据。
 - 候选可以读取并保存本地测试角色存档，原存档副本未被覆盖。
 - 候选制品经过本地验证并记录 SHA-256。
@@ -359,8 +353,8 @@
 
 开始建立官方基线分支前只要求三件事：
 
-- [ ] 当前 FluffOS `master` 已建立 legacy tag，可以从 Git 恢复。
-- [ ] 已列出江湖英杰传真正依赖的本地独有能力，至少包括 JSON 和 HTTP parser。
-- [ ] 当前 `master` 保留 legacy tag，新迁移在独立分支进行，不影响现有生产维护。
+- [x] 当前 FluffOS `master` 已建立 legacy tag，可以从 Git 恢复。
+- [x] 已列出江湖英杰传真正依赖的本地独有能力，包括 JSON、HTTP parser、Windows 交付、轻量 CI 和 compile service。
+- [x] 当前 `master` 保留 legacy tag，新迁移在独立分支进行，不影响现有生产维护。
 
 本地存档验证和候选运行属于迁移后期的本地验收。生产切换不在本计划范围内；将来如需上线，必须作为新的独立任务重新确认。

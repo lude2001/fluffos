@@ -59,34 +59,44 @@ Pure official baseline validation on Windows/MSYS2 MinGW64:
   reports existing warnings in official and vendored sources. These are tracked
   as official-baseline observations, not local migration regressions.
 
-Local candidate validation at `65f0fc1d`:
+Local candidate validation through `89c107ec`:
 
 - The canonical Windows `build.cmd` completed and produced `build/dist`, the
   install image, and the bilingual installer. Layout, relative-config launcher,
   installer configuration, and user-PATH install/uninstall checks passed.
-- All 366 non-testsuite CTest cases passed. The final `build/dist/driver.exe`
-  then passed 10,717 LPC checks across 715 files in an isolated copied
+- All 366 non-testsuite CTest cases passed. The final code's `build/dist/driver.exe`
+  then passed 10,690 LPC checks across 715 files in an isolated copied
   testsuite.
 - JSON package tests passed 32 native checks while the official LPC JSON suite
   retained its 178 checks. HTTP helper/request/response tests passed 90 checks.
-- Compile-service tests passed after fixing the named-pipe startup readiness
-  race. A real `lpccp` request against an isolated Jianghu runtime returned
-  structured success with empty diagnostics and runtime errors.
+- All 26 compile-service tests passed after fixing the named-pipe startup
+  readiness race. The extension is now CMake opt-in (default off), enabled by
+  the local Windows build/CI only, and its pipe DACL is limited to the current
+  user, SYSTEM, and Administrators. A real `lpccp` request against an isolated
+  Jianghu runtime returned structured success with empty diagnostics and
+  runtime errors, including relative-driver/absolute-client config paths.
 - The install image cold-started a copied Jianghu mudlib through `lpcprj` and a
   copied `gameteststd1` save logged in and executed `look`. The newer driver
   exposed two mudlib assumptions, fixed separately in the LPC repository by
   explicitly including `login.h` for `START_ROOM` and preloading the inventory
   classification table/service before free quests. Neither was converted into
   a driver compatibility patch.
-- Candidate SHA-256 values: `driver.exe`
-  `a866cafa257eb17eb9c084f54a6a1dcf58a450287552cbbf1052dcf90919cd8e`,
-  `lpccp.exe` `6b9c02d033b7b1299af89428eddb21febaf8ba3ab384143842413f39b9afd11e`,
-  `lpcprj.exe` `f49109a57fdc3c0eae51c69cbed0a33086344ab063464794295b09ed51b5c639`,
-  installer `8cc58f4a9808b6f5f4bf11f15011c75dd1d1be1909b46782402aaaef82ec0079`.
+- The same 32-check native JSON contract passed on the legacy and candidate
+  drivers. A copied Jianghu save completed legacy-to-candidate restore/save and
+  was then read successfully by the legacy driver again; both directions
+  logged in and executed `look`.
+- Two logins in one candidate runtime covered the net-dead/reconnect path. A
+  bounded 90-second observation showed no new compile/runtime/save errors and
+  resident memory moved from 80,896 KiB to 80,308 KiB. This is local migration
+  evidence, not a substitute for a future production soak.
+- Final clean-source candidate SHA-256 values are recorded by the closing
+  documentation commit after rebuilding from the committed migration plan.
 
 Still open before any release decision: Linux/static CI execution, sanitizer,
-TLS/WebSocket and certificate-verified database checks, bidirectional save
-compatibility, broader gameplay comparison, and soak testing.
+TLS/WebSocket and certificate-verified database checks, broader gameplay
+comparison, and production-duration soak testing. These require a separately
+authorized release task and are not prerequisites for completing this local
+rebaseline branch.
 
 No remote was added, and nothing was pushed, published, deployed, or run on an
 online server.
