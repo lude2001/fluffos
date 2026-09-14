@@ -259,6 +259,13 @@
 
 每个主题必须先有测试或 fixture，再移植实现；不得把多个能力压进一个巨型提交。
 
+当前迁移进度：
+
+- [x] repository policy、迁移文档和 upstream tracker 已落到新基线。
+- [x] 已用本仓库四个轻量 workflow 替换官方重型 workflow，并把测试门禁适配为官方 CTest labels。
+- [x] native JSON 已作为独立 package 接入；新增的 native efun 契约测试 32 项通过，官方 LPC `std/json.lpc` 原有 178 项测试也继续通过。
+- [ ] HTTP、江湖兼容、Windows 交付层和 compile service 尚待依次接入与验证。
+
 ### Task 6：本地候选环境验证
 
 - [ ] 使用江湖英杰传本地工作树和 `config/config.dev`；需要写存档的验证只使用本地测试角色。

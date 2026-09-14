@@ -59,6 +59,8 @@ string json_format(string, int | void)
 
 迁移约束：公共 efun 名称和现行序列化语义不变；package 自己声明构建 option。官方 `src/packages/CMakeLists.txt` 仍自动发现带 `CMakeLists.txt` 的 package，因此 JSON 可以成为 drop-in package，不需要修改 VM。
 
+新基线接入结果：`src/packages/json/` 已直接作为 drop-in package 加入，未修改官方 VM/compiler。定向测试通过 native efun 32 项；官方 `std/json.lpc` 178 项原测试保持通过。
+
 ## 2. HTTP helper 与增量 parser package
 
 ### 当前公共接口
