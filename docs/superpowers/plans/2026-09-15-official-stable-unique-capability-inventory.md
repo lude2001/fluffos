@@ -103,6 +103,8 @@ void http_response_parser_close(mixed)
 - `src/main_lpcprj.cc`
 - `scripts/stage-driver-dist.ps1`
 - `scripts/stage-windows-install-image.ps1`
+
+旧基线审计确认这些能力已经位于 VM 外部：`lpcprj` 是不链接 `libdriver` 的独立 executable；`build.cmd` 只负责编排构建、staging 和 installer；运行时 DLL 由 `objdump` 递归发现后进入 `build/dist`，再复制到安装镜像。现有五组 Windows 布局、相对配置启动、installer 配置与临时安装测试均已通过，因此 Task 3 不为这一层制造额外源码重构，只把这些文件作为一个可重放交付切片保留。
 - `scripts/build-windows-installer.ps1`
 - `packaging/windows/fluffos.iss`
 - 对应安装布局和相对配置测试脚本

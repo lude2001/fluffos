@@ -117,11 +117,13 @@
 
 迁移策略：
 
-- [ ] 保留根目录 `build.cmd` 作为 Windows 规范入口。
-- [ ] 保持 `build/dist` 为唯一支持的本地 Windows 可运行输出目录。
-- [ ] 打包逻辑继续位于 `scripts/`、`packaging/windows/` 和 release workflow，不侵入 VM。
-- [ ] `lpcprj` 保持为外部启动器，不链接 driver 内部实现。
-- [ ] 官方新版新增工具和运行时依赖必须自动进入 staging，不维护易漂移的固定遗漏清单。
+- [x] 旧基线已确认并保留根目录 `build.cmd` 作为 Windows 规范入口。
+- [x] 旧基线已确认 `build/dist` 是唯一支持的本地 Windows 可运行输出目录。
+- [x] 打包逻辑位于 `scripts/`、`packaging/windows/` 和 release workflow，没有进入 VM。
+- [x] `lpcprj` 是只依赖 C++ 标准库与 Windows API 的独立 executable，不链接 driver 内部实现；现有 MariaDB 本地兼容环境变量保持不变。
+- [x] `stage-driver-dist.ps1` 通过 `objdump` 递归发现非系统 DLL，安装镜像再从 dist 自动复制运行时 DLL；没有维护第三方 DLL 固定复制清单。
+
+旧基线验证：`build.cmd` 完整成功并生成 dist、install image 与 installer；`test-install-image-layout.ps1`、`test-run-driver-relative-config.ps1`、`test-lpcprj-relative-config.ps1`、`test-windows-installer-config.ps1` 和临时目录静默安装/用户 PATH 回滚测试均通过。
 
 #### 5. 本仓库轻量 CI/CD 与静态生产 driver
 
