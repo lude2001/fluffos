@@ -31,6 +31,11 @@ std::string g_service_id;
 std::string g_pipe_name;
 std::atomic<unsigned long> g_last_pipe_error{0};
 std::mutex g_queue_mutex;
+#ifdef _WIN32
+std::mutex g_pipe_ready_mutex;
+std::condition_variable g_pipe_ready_cv;
+bool g_pipe_ready = false;
+#endif
 
 struct PendingRequest {
   compile_service::CompileServiceRequest request;
@@ -226,8 +231,14 @@ void service_loop() {
       g_last_pipe_error = GetLastError();
       debug_message("compile_service: CreateNamedPipeA failed for %s (win32=%lu)\n", g_pipe_name.c_str(),
                     g_last_pipe_error.load());
+      g_pipe_ready_cv.notify_all();
       return;
     }
+    {
+      std::lock_guard<std::mutex> lock(g_pipe_ready_mutex);
+      g_pipe_ready = true;
+    }
+    g_pipe_ready_cv.notify_all();
     debug_message("compile_service: waiting for client on %s\n", g_pipe_name.c_str());
 
     BOOL connected = ConnectNamedPipe(pipe, nullptr) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
@@ -258,7 +269,23 @@ bool start_compile_service(std::string_view config_path) {
   g_stopping = false;
   g_running = true;
 #ifdef _WIN32
+  g_last_pipe_error = 0;
+  {
+    std::lock_guard<std::mutex> lock(g_pipe_ready_mutex);
+    g_pipe_ready = false;
+  }
   g_server_thread = std::thread(service_loop);
+  std::unique_lock<std::mutex> lock(g_pipe_ready_mutex);
+  const bool ready = g_pipe_ready_cv.wait_for(lock, std::chrono::seconds(1), [] {
+    return g_pipe_ready || g_last_pipe_error.load() != 0;
+  });
+  if (!ready || !g_pipe_ready) {
+    lock.unlock();
+    debug_message("compile_service: pipe was not ready within one second (win32=%lu)\n",
+                  g_last_pipe_error.load());
+    stop_compile_service();
+    return false;
+  }
 #endif
   return true;
 }
@@ -291,6 +318,12 @@ void stop_compile_service() {
     g_client_threads.clear();
   }
   g_running = false;
+#ifdef _WIN32
+  {
+    std::lock_guard<std::mutex> lock(g_pipe_ready_mutex);
+    g_pipe_ready = false;
+  }
+#endif
 }
 
 bool compile_service_running() { return g_running.load(); }
