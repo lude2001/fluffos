@@ -686,6 +686,12 @@ add_dependencies(libdriver autogen)
 
 list(APPEND FLUFFOS_LIBRARIES libdriver)
 
+# Local runtime compile service. Its implementation stays in one extension
+# library so upstream integration remains limited to lifecycle/tick hooks.
+add_subdirectory(extensions/compile_service)
+add_dependencies(fluffos_compile_service autogen)
+list(APPEND FLUFFOS_LIBRARIES fluffos_compile_service)
+
 # JEMALLOC must be the first!
 if (CYGWIN)
   set(USE_JEMALLOC OFF)
@@ -840,6 +846,15 @@ else ()
   add_executable(driver "main.cc")
   target_link_libraries(driver PUBLIC ${FLUFFOS_LINK})
 
+  # Thin Windows launcher used by the local installer. It deliberately stays
+  # outside libdriver so upstream driver internals remain untouched.
+  add_executable(lpcprj "main_lpcprj.cc")
+
+  add_executable(lpccp "extensions/compile_service/main_lpccp.cc")
+  if (NOT WIN32)
+    target_link_libraries(lpccp PRIVATE Threads::Threads)
+  endif ()
+
   add_executable(lpcc "main_lpcc.cc")
   target_link_libraries(lpcc PUBLIC ${FLUFFOS_LINK})
 
@@ -879,7 +894,7 @@ print_target_properties(driver)
 install(TARGETS ${GENERATED_DOCS}
         RUNTIME DESTINATION bin)
 
-install(TARGETS driver lpcc lpcshell symbol o2json json2o
+install(TARGETS driver lpcprj lpccp lpcc lpcshell symbol o2json json2o
   RUNTIME DESTINATION bin)
 
 # LPC stdlib files

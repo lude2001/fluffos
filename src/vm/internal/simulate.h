@@ -2,7 +2,9 @@
 #define SIMULATE_H
 
 #include "base/internal/scratchpad.h"
+#include <functional>
 #include <string>
+#include <string_view>
 
 #include "vm/internal/base/machine.h"
 
@@ -63,6 +65,9 @@ void shout_string(const char*);
 [[noreturn]] void error_needs_free(char*);
 [[noreturn]] void throw_error(void);
 [[noreturn]] void error_handler(char*);
+using runtime_error_sink_t = std::function<void(std::string_view)>;
+void push_runtime_error_sink(runtime_error_sink_t);
+void pop_runtime_error_sink();
 
 void startshutdownMudOS(int);
 void shutdownMudOS(int);

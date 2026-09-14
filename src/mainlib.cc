@@ -36,6 +36,7 @@
 #include "vm/vm.h"              // for push_constant_string, etc
 #include "comm.h"               // for init_user_conn
 #include "backend.h"            // for backend();
+#include "extensions/compile_service/compile_service.h"
 
 // from lexer_utils.cc
 extern void print_all_predefines();
@@ -420,14 +421,18 @@ int driver_main(int argc, char** argv) {
     exit(1);
   }
 
+  start_compile_service(config_file);
+
   // Initialize user connection socket
   if (!init_user_conn()) {
+    stop_compile_service();
     exit(1);
   }
 
   debug_message("Initializations complete.\n\n");
   setup_signal_handlers();
   backend(base);
+  stop_compile_service();
 
   return 0;
 }

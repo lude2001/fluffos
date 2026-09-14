@@ -6,6 +6,9 @@
 #ifndef COMM_H
 #define COMM_H
 
+#include <functional>
+#include <string_view>
+
 #include "net/net_compat.h"
 
 /*
@@ -43,6 +46,10 @@
 
 void add_vmessage(struct object_t*, const char*, ...);
 void add_message(struct object_t*, const char*, int);
+using runtime_output_sink_t = std::function<void(std::string_view)>;
+void push_runtime_output_sink(runtime_output_sink_t);
+void pop_runtime_output_sink();
+bool has_runtime_output_sink();
 bool init_user_conn();
 void shutdown_external_ports();
 void set_prompt(const char*);
