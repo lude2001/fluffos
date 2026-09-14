@@ -276,7 +276,7 @@
 - [x] 已用旧、新 driver 对同一复制角色完成登录和 `look`，并用同一份 32 项 native JSON 契约核对精确序列化/反序列化行为；两处实际语义差异均收敛为 mudlib 最小修复，没有增加 driver 兼容补丁。
 - [x] 候选 driver 已从复制的旧测试角色存档恢复并正常登录，候选保存后旧 driver 又成功恢复同一副本并完成登录和 `look`；原 LPC 工作树中的测试存档未被候选实例写入。
 - [x] 已进行约 90 秒的本地有界运行观察，覆盖冷启动、heartbeat/call_out 基本运行、断线后再次登录和重复 `look`；常驻内存由 80,896 KiB 降至 80,308 KiB，未出现新增 driver/runtime/save 错误。异步 DB、对象 swap、TLS/WebSocket 握手和长时趋势留给将来的发布前验证，不作为本轮纯本地重基线门槛。
-- [x] 最终候选工件将在本计划提交后的 clean-source `build.cmd` 重建中生成，并在最后一个纯文档提交中补录 SHA-256。
+- [x] 最终候选工件已从 clean-source 提交 `a3860bcc` 重建：`driver.exe` SHA-256 为 `c438b3d5d964bc1c561073753ff159dfa3e62fd11bffa47ea334a4ad21a9104d`，`lpccp.exe` 为 `37a2c52ba81b0ccb3d593c05651777e064832c26341dee0ea801a4503d5a0af6`，`lpcprj.exe` 为 `8475446e4deadbf0225ef45c94786fe53ebc44537d6e6c86e2f8dd684334ab4e`，installer 为 `5f8dc5fc8917ccce6efaf0b73aace1795747483f42ab785253de0ee807e76cde`。
 
 ### Task 7：本地收尾
 
@@ -294,7 +294,7 @@
 - [x] Windows：`build.cmd` 完成，所有支持工件位于 `build/dist`，安装镜像和 installer 同步生成。
 - [ ] Linux Release、GitHub `linux-static` 和 sanitizer 留给候选准备推送或发布时执行；本轮明确禁止推送，因此它们不是本地分支迁移完成门槛。workflow 定义及其静态链接/测试门禁已保留。
 - [x] `git diff --check` 无错误。
-- [x] Windows 候选已按提交 `89c107ec` 的代码完成完整验证；最终 clean-source 构建的版本、制品和 SHA-256 在收尾文档提交中补录，不以文件时间或文件名代替校验。
+- [x] Windows 候选代码在 `89c107ec` 完成完整验证；最终 clean-source 构建来自 `a3860bcc`，版本为 `20260820-dd2a3a14-a3860bcc`，制品和 SHA-256 已补录，不以文件时间或文件名代替校验。
 
 ### Driver 与 LPC
 

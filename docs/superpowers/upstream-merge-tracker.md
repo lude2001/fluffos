@@ -89,8 +89,12 @@ Local candidate validation through `89c107ec`:
   bounded 90-second observation showed no new compile/runtime/save errors and
   resident memory moved from 80,896 KiB to 80,308 KiB. This is local migration
   evidence, not a substitute for a future production soak.
-- Final clean-source candidate SHA-256 values are recorded by the closing
-  documentation commit after rebuilding from the committed migration plan.
+- Final clean-source artifacts were rebuilt from `a3860bcc`, version
+  `20260820-dd2a3a14-a3860bcc`. SHA-256 values: `driver.exe`
+  `c438b3d5d964bc1c561073753ff159dfa3e62fd11bffa47ea334a4ad21a9104d`,
+  `lpccp.exe` `37a2c52ba81b0ccb3d593c05651777e064832c26341dee0ea801a4503d5a0af6`,
+  `lpcprj.exe` `8475446e4deadbf0225ef45c94786fe53ebc44537d6e6c86e2f8dd684334ab4e`,
+  installer `5f8dc5fc8917ccce6efaf0b73aace1795747483f42ab785253de0ee807e76cde`.
 
 Still open before any release decision: Linux/static CI execution, sanitizer,
 TLS/WebSocket and certificate-verified database checks, broader gameplay
