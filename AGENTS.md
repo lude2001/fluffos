@@ -473,3 +473,30 @@ All third-party libraries are vendored as full source trees. Lessons from the 20
 ### Known state / deferred
 * `crypt` (musl 1.1.24 subset) and `utf8_decoder_dfa` (Hoehrmann) are intentionally frozen -- confirmed unchanged upstream through musl 1.2.6 / no upstream versioning.
 * libtelnet, libevent, widecharwidth: upgrades deliberately deferred (maintainer request, 2026-07); their unused test/doc trees are already pruned.
+
+---
+
+## 15. Independent Fork Policy
+
+This repository is maintained as an independent project. All writable GitHub
+operations are restricted to the configured `origin`, which must resolve to
+`lude2001/fluffos`.
+
+* Never add, restore, or depend on a remote named `upstream` or on upstream
+  remote-tracking branches. Research against `fluffos/fluffos` must be
+  read-only and must not alter Git remote configuration.
+* Before any `git push`, PR edit/create/reopen, or release operation, verify the
+  destination explicitly. Stop if it is not `lude2001/fluffos`.
+* Unless the user explicitly requests otherwise, do not create a remote PR.
+  Keep work on local branches, merge locally only after validation, and push
+  only when separately authorized.
+* Every read-only review or merge from official FluffOS must update
+  `docs/superpowers/upstream-merge-tracker.md` with the official snapshot,
+  retained local capabilities, omitted patches, and validation results.
+* The repository's four lightweight workflows are the supported CI/CD surface:
+  `ci-ubuntu.yml`, `ci-macos.yml`, `ci-windows.yml`, and
+  `release-artifacts.yml`. Do not replace them with the official heavyweight
+  workflow set during an upstream rebase.
+* On Windows, the supported local delivery entry point is `build.cmd`, and
+  runnable artifacts must be staged under `build/dist`. Treat `build/work` and
+  other build directories as intermediate state.
