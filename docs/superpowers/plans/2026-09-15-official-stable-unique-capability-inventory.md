@@ -97,6 +97,8 @@ void http_response_parser_close(mixed)
 
 迁移约束：重放到官方基线时以独立 `lude_http` package 接入，不修改官方 `sockets.cc`；parser handle 生命周期、分片结果 mapping 和错误结果结构保持兼容。旧基线的 Windows 规范构建和 helper、request parser、response parser 三组定向测试均已通过。
 
+新基线接入结果：`src/packages/lude_http/` 由官方 package 自动发现，未修改官方 sockets 或 VM；helper 17 项、request parser 37 项、response parser 36 项检查全部通过。
+
 ## 3. Windows 构建、launcher 与安装器
 
 官方 tag 中不存在以下本地交付入口：

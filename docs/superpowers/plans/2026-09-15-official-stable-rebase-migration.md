@@ -264,7 +264,8 @@
 - [x] repository policy、迁移文档和 upstream tracker 已落到新基线。
 - [x] 已用本仓库四个轻量 workflow 替换官方重型 workflow，并把测试门禁适配为官方 CTest labels。
 - [x] native JSON 已作为独立 package 接入；新增的 native efun 契约测试 32 项通过，官方 LPC `std/json.lpc` 原有 178 项测试也继续通过。
-- [ ] HTTP、江湖兼容、Windows 交付层和 compile service 尚待依次接入与验证。
+- [x] HTTP helper、request parser 和 response parser 已作为独立 `lude_http` package 接入；三份契约测试共 90 项检查通过，官方 sockets package 未修改。
+- [ ] 江湖兼容、Windows 交付层和 compile service 尚待依次接入与验证。
 
 ### Task 6：本地候选环境验证
 
