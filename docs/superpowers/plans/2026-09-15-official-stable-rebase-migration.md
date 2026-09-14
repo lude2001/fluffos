@@ -91,10 +91,10 @@
 
 迁移策略：
 
-- [ ] 独立为 namespaced 编译期 package，例如 `src/packages/lude_json/`。
-- [ ] efun 公共名称保持不变，避免 mudlib 改动。
-- [ ] 将 JSON 标记为生产 P0 依赖；在它通过兼容契约前，不开始真实 mudlib 候选启动。
-- [ ] package 自己声明 CMake option，避免修改官方集中 option 列表。
+- [x] 保持为本地独有的 `src/packages/json/` drop-in package；官方当前没有同名 native package，无需为了命名空间改动现有兼容标记。
+- [x] efun 公共名称保持不变，避免 mudlib 改动。
+- [x] 将 JSON 标记为生产 P0 依赖；在它通过兼容契约前，不开始真实 mudlib 候选启动。
+- [x] package 自己声明 CMake option，避免修改官方集中 option 列表。
 - [ ] 保留循环引用、非字符串 mapping key、undefined/null、整数边界和格式化测试。
 - [ ] 固定当前实现的 mapping 字段顺序、UTF-8/转义、数字类型与边界、非法输入错误、循环引用转 null、非字符串 key 忽略和不支持类型转 null 等行为。
 - [ ] 从江湖英杰传的登录、首页、背包、战斗、autoload 和配置文件链路生成脱敏 canonical fixtures，逐字节比较新旧 driver 输出，并验证 Flutter 消费端既有 fixture。

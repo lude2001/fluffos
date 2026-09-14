@@ -22,7 +22,7 @@
 
 | 能力 | 官方稳定版 | 江湖实际依赖 | 决定 | 新归属 |
 | --- | --- | --- | --- | --- |
-| 原生 `json_decode/json_encode/json_format` | 没有 native package；testsuite 有 LPC `std/json.lpc`，且没有 `json_format` | P0：非测试源码分别有 30、100、5 处调用 | 保留完整兼容语义 | `src/packages/lude_json/` |
+| 原生 `json_decode/json_encode/json_format` | 没有 native package；testsuite 有 LPC `std/json.lpc`，且没有 `json_format` | P0：非测试源码分别有 30、100、5 处调用 | 保留完整兼容语义 | 本地独有的 drop-in `src/packages/json/` |
 | HTTP helper/parser efun | 没有对应 efun 或实现 | P0：本地 HTTP server/client 直接调用 | 保留完整 package | `src/packages/lude_http/` |
 | Windows dist、`lpcprj`、安装器 | 官方没有 | 本地开发与 Windows 交付依赖 | 保留，继续与 VM 解耦 | 根构建入口、`scripts/`、`packaging/windows/`、独立 launcher target |
 | 轻量 CI/CD 与静态生产 driver | 官方 workflow 体系不同 | 当前 GitHub 生产 artifact 来源 | 原样保留流程，按新基线做最小参数适配 | 现有四个 workflow |
@@ -181,7 +181,7 @@ Task 3 先做行为保持的目录和 adapter 抽离，不同时改变启用方�
 
 ## Task 3 抽离顺序
 
-1. `lude_json`：只移动 package 和测试，保持输出不变。
+1. `json`：把构建 option 收进 package 自身，使整个 `src/packages/json/` 成为可重放的 drop-in 模块；接口与兼容标记保持不变。
 2. `lude_http`：从 sockets 中移出 source/spec，保持接口不变。
 3. Windows launcher/build/staging/installer：整理为 VM 外部交付层，并锁定现有测试。
 4. CI workflows：只建立迁移覆盖清单，不在旧基线上改流程。
