@@ -13,7 +13,7 @@
 - 稳定版提交时间：`2026-08-31T21:17:12-07:00`
 - 审查日期：`2026-09-15`
 - 迁移分支：`codex/rebase-v2026.0901.0`
-- 旧版独有功能抽离分支：`codex/legacy-extension-extraction`，位于 `a3cbf2bf5815d4fa269712fb4e9c37a2773d4b56`
+- 旧版独有功能抽离归档标签：`legacy/extension-extraction-2026-09-15`，指向 `a3cbf2bf5815d4fa269712fb4e9c37a2773d4b56`
 - 最近一次本地合并提交：`00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`（`merge upstream int division edge guards`）
 - 上一次本地合并提交：`58a4be68929a97ead0b37834866766f6b60b5e71`（`merge upstream varargs parameter guard`）
 

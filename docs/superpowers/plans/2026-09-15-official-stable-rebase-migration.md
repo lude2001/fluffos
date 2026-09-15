@@ -228,7 +228,7 @@
 - [x] 已从当前 `master` 创建短期本地分支 `codex/legacy-extension-extraction`。
 - [x] 已完成行为保持的目录移动、适配层和最小钩子收敛；没有改变协议、TLS、存档或运行语义。
 - [x] JSON、HTTP、Windows 交付边界、轻量 CI 契约和 compile service 分别形成独立提交；JSON/HTTP/Windows/compile service 均已完成对应构建或契约测试。
-- [x] 抽离分支固定在 `a3cbf2bf5815d4fa269712fb4e9c37a2773d4b56`，只作为可重放、可审查的扩展切片保留；未部署、未推送，迁移完成前不删除。
+- [x] 抽离结果固定在 `a3cbf2bf5815d4fa269712fb4e9c37a2773d4b56`；迁移完成并切换本地 `master` 后，以归档标签 `legacy/extension-extraction-2026-09-15` 保留该可重放、可审查切片，再删除临时分支。该标签未推送，相关代码未部署。
 
 ### Task 4：建立官方稳定基线迁移分支
 
@@ -283,7 +283,7 @@
 - [x] 旧基线与候选基线的差异、验证结果和未验证项已汇总在本计划、独有能力清单和 upstream tracker。
 - [x] 已更新 `docs/superpowers/upstream-merge-tracker.md`，记录官方快照、保留能力、删除补丁和本地验证结果。
 - [x] 候选通过本地验收后，本地 `master` 以分支指针切换方式接纳新基线；没有把旧 `master` 普通 merge 到候选历史。未推送、未发布、未部署。
-- [x] legacy tag 与旧 `build/dist` 副本均保留。将来若决定上线，另写简短上线清单并重新取得授权。
+- [x] 迁移前 master 的 legacy tag、扩展抽离归档标签与旧 `build/dist` 副本均保留。将来若决定上线，另写简短上线清单并重新取得授权。
 
 ---
 
