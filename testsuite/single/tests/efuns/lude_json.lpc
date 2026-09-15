@@ -43,10 +43,12 @@ void do_tests() {
   arr[0] = 1;
   arr[1] = arr;
   ASSERT_EQ("[1,null]", efun::json_encode(arr));
+  arr[1] = 0;
 
   m = (["ok" : 1]);
   m["self"] = m;
   ASSERT_EQ((["ok" : 1, "self" : 0]), efun::json_decode(efun::json_encode(m)));
+  m["self"] = 0;
 
   m = (["ok" : 1]);
   ASSERT_EQ(1, refs(m));
