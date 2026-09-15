@@ -1,1164 +1,495 @@
-# Official FluffOS Merge Tracker
+# FluffOS 官方版本合并跟踪表
 
-This document tracks read-only reviews of the official `fluffos/fluffos`
-repository and records which upstream features were merged into this independent
-fork.
+本文档跟踪对官方 `fluffos/fluffos` 仓库的只读审查，并记录哪些上游功能已经合入本独立分支。
 
-Every future merge or backport of official functionality must update this file
-in the same change set. Do not add an `upstream` git remote for this workflow;
-official repository access stays read-only.
+今后每次合并或回移官方功能，都必须在同一变更集中更新本文档。此流程不得添加名为 `upstream` 的 Git 远程；对官方仓库的访问始终保持只读。
 
-## Current Upstream Snapshot
+## 当前上游快照
 
-- Official repository: `fluffos/fluffos`
-- Official release reviewed: `v2026.0901.0` (annotated tag)
-- Stable release commit: `7af5c3fffe2505c7cb764951bed863b16eee471b`
-- Stable release commit title: `tracing: stop a trace that fills its buffer from wedging tracing for good (#1361)`
-- Stable release commit date: `2026-08-31T21:17:12-07:00`
-- Review date: `2026-09-15`
-- Migration branch: `codex/rebase-v2026.0901.0`
-- Legacy extraction branch: `codex/legacy-extension-extraction` at
-  `a3cbf2bf5815d4fa269712fb4e9c37a2773d4b56`
-- Latest local merge commit: `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`
-  (`merge upstream int division edge guards`)
-- Previous local merge commit:
-  `58a4be68929a97ead0b37834866766f6b60b5e71`
-  (`merge upstream varargs parameter guard`)
+- 官方仓库：`fluffos/fluffos`
+- 已审查的官方版本：`v2026.0901.0`（附注标签）
+- 稳定版提交：`7af5c3fffe2505c7cb764951bed863b16eee471b`
+- 稳定版原始提交标题：`tracing: stop a trace that fills its buffer from wedging tracing for good (#1361)`
+- 稳定版提交时间：`2026-08-31T21:17:12-07:00`
+- 审查日期：`2026-09-15`
+- 迁移分支：`codex/rebase-v2026.0901.0`
+- 旧版独有功能抽离分支：`codex/legacy-extension-extraction`，位于 `a3cbf2bf5815d4fa269712fb4e9c37a2773d4b56`
+- 最近一次本地合并提交：`00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`（`merge upstream int division edge guards`）
+- 上一次本地合并提交：`58a4be68929a97ead0b37834866766f6b60b5e71`（`merge upstream varargs parameter guard`）
 
-## Stable Rebaseline To `v2026.0901.0`
+## 以 `v2026.0901.0` 为基线重建
 
-The new local candidate branch starts directly from the peeled official stable
-commit instead of replaying the fork's 130 local commits. Local capabilities
-are reintroduced as small, reviewable layers. The first candidate retains:
+新的本地候选分支直接从官方稳定版标签解引用后的提交开始，而不是重放本分支原有的 130 个本地提交。独有能力以小型、可审查的层次重新引入。首个候选版本保留：
 
-- the native JSON package;
-- the HTTP helper/request/response parser package;
-- the Windows `build/dist`, launcher, installer, and staging layer;
-- the repository's four lightweight CI/CD workflows, including the static
-  production driver artifact;
-- the runtime compile service and standalone `lpccp`, adapted through a small
-  compiler/VM boundary.
+- 原生 JSON 包；
+- HTTP 辅助函数、请求和响应解析包；
+- Windows `build/dist`、启动器、安装器和分阶段打包层；
+- 本仓库的四个轻量 CI/CD 工作流，包括静态生产 driver 工件；
+- 运行时编译服务和独立 `lpccp`，通过较小的编译器/VM 边界接入。
 
-The first candidate deliberately omits local mapping instrumentation because
-the Jianghu mudlib has no non-test consumer. Official compiler, VM, parser,
-async, FFI, WASM, networking, and third-party code remain authoritative; old
-backport implementations are not replayed merely because they differ.
+首个候选版本有意不保留本地 mapping 插桩，因为江湖 mudlib 中没有非测试消费者。官方编译器、VM、解析器、async、FFI、WASM、网络和第三方代码继续作为权威实现；不能仅因旧回移实现与官方不同就重新引入。
 
-Pure official baseline validation on Windows/MSYS2 MinGW64:
+Windows/MSYS2 MinGW64 上的纯官方基线验证：
 
-- RelWithDebInfo configure/build/install succeeded with the same package profile
-  as official Windows CI.
-- 340 non-testsuite CTest cases passed.
-- The LPC testsuite could not use its hard-coded ports `4000` through `4003`
-  because an existing local driver was intentionally left running. A copied
-  testsuite with configuration and its two port assertions moved to `24000`
-  through `24003` passed 10,655 checks across 711 files and printed
-  `Checks succeeded.`
-- Configure prints `FATALPACKAGE_DB_DEFAULT_DB is not valid!` when MySQL is
-  disabled and SQLite is selected while still exiting successfully; MinGW also
-  reports existing warnings in official and vendored sources. These are tracked
-  as official-baseline observations, not local migration regressions.
+- 使用与官方 Windows CI 相同的包配置完成 RelWithDebInfo 配置、构建和安装。
+- 340 个非 testsuite CTest 用例全部通过。
+- 因为有一个现存本地 driver 被有意保留运行，LPC testsuite 无法使用硬编码的 `4000` 至 `4003` 端口。复制 testsuite 并把配置及两处端口断言改为 `24000` 至 `24003` 后，711 个文件中的 10,655 项检查全部通过，并输出 `Checks succeeded.`。
+- 禁用 MySQL、选择 SQLite 时，配置过程会输出 `FATALPACKAGE_DB_DEFAULT_DB is not valid!`，但仍以成功状态退出；MinGW 也会报告官方及 vendored 源码中已有的警告。这些属于官方基线现象，不是本地迁移回归。
 
-Local candidate validation through `89c107ec`:
+截至 `89c107ec` 的本地候选版本验证：
 
-- The canonical Windows `build.cmd` completed and produced `build/dist`, the
-  install image, and the bilingual installer. Layout, relative-config launcher,
-  installer configuration, and user-PATH install/uninstall checks passed.
-- All 366 non-testsuite CTest cases passed. The final code's `build/dist/driver.exe`
-  then passed 10,690 LPC checks across 715 files in an isolated copied
-  testsuite.
-- JSON package tests passed 32 native checks while the official LPC JSON suite
-  retained its 178 checks. HTTP helper/request/response tests passed 90 checks.
-- All 26 compile-service tests passed after fixing the named-pipe startup
-  readiness race. The extension is now CMake opt-in (default off), enabled by
-  the local Windows build/CI only, and its pipe DACL is limited to the current
-  user, SYSTEM, and Administrators. A real `lpccp` request against an isolated
-  Jianghu runtime returned structured success with empty diagnostics and
-  runtime errors, including relative-driver/absolute-client config paths.
-- The install image cold-started a copied Jianghu mudlib through `lpcprj` and a
-  copied `gameteststd1` save logged in and executed `look`. The newer driver
-  exposed two mudlib assumptions, fixed separately in the LPC repository by
-  explicitly including `login.h` for `START_ROOM` and preloading the inventory
-  classification table/service before free quests. Neither was converted into
-  a driver compatibility patch.
-- The same 32-check native JSON contract passed on the legacy and candidate
-  drivers. A copied Jianghu save completed legacy-to-candidate restore/save and
-  was then read successfully by the legacy driver again; both directions
-  logged in and executed `look`.
-- Two logins in one candidate runtime covered the net-dead/reconnect path. A
-  bounded 90-second observation showed no new compile/runtime/save errors and
-  resident memory moved from 80,896 KiB to 80,308 KiB. This is local migration
-  evidence, not a substitute for a future production soak.
-- Final clean-source artifacts were rebuilt from `a3860bcc`, version
-  `20260820-dd2a3a14-a3860bcc`. SHA-256 values: `driver.exe`
-  `c438b3d5d964bc1c561073753ff159dfa3e62fd11bffa47ea334a4ad21a9104d`,
-  `lpccp.exe` `37a2c52ba81b0ccb3d593c05651777e064832c26341dee0ea801a4503d5a0af6`,
-  `lpcprj.exe` `8475446e4deadbf0225ef45c94786fe53ebc44537d6e6c86e2f8dd684334ab4e`,
-  installer `5f8dc5fc8917ccce6efaf0b73aace1795747483f42ab785253de0ee807e76cde`.
+- 规范 Windows 入口 `build.cmd` 成功完成，并生成 `build/dist`、安装映像和双语安装器。目录布局、相对配置启动器、安装器配置以及用户 PATH 安装/卸载检查均通过。
+- 366 个非 testsuite CTest 用例全部通过。最终代码生成的 `build/dist/driver.exe` 又在隔离的 testsuite 副本中通过了 715 个文件、10,690 项 LPC 检查。
+- JSON 包通过 32 项原生检查，官方 LPC JSON 套件保留其 178 项检查；HTTP 辅助函数、请求和响应测试通过 90 项检查。
+- 修复命名管道启动就绪竞态后，26 项编译服务测试全部通过。该扩展现为 CMake 可选项（默认关闭），仅由本地 Windows 构建/CI 启用；管道 DACL 仅允许当前用户、SYSTEM 和 Administrators。针对隔离江湖运行时的真实 `lpccp` 请求返回结构化成功结果，diagnostics 和 runtime errors 均为空，并覆盖相对 driver 配置路径与绝对客户端配置路径组合。
+- 安装映像通过 `lpcprj` 冷启动江湖 mudlib 副本，复制的 `gameteststd1` 存档能够登录并执行 `look`。新 driver 暴露了 mudlib 的两个假设，已在 LPC 仓库分别修复：为 `START_ROOM` 显式包含 `login.h`，以及在自由任务前预加载背包分类表/服务。两者均未转化为 driver 兼容补丁。
+- 同一套 32 项原生 JSON 契约在旧 driver 和候选 driver 上均通过。复制的江湖存档完成“旧版读取→候选版恢复/保存→旧版再次读取”，两个方向都能登录并执行 `look`。
+- 同一候选运行时中的两次登录覆盖了断线和重连路径。90 秒有界观察期间未出现新的编译、运行时或存档错误，常驻内存从 80,896 KiB 变为 80,308 KiB。这是本地迁移证据，不能替代未来的生产环境长期观察。
+- 最终干净源码工件从 `a3860bcc` 重新构建，版本为 `20260820-dd2a3a14-a3860bcc`。SHA-256：`driver.exe` 为 `c438b3d5d964bc1c561073753ff159dfa3e62fd11bffa47ea334a4ad21a9104d`，`lpccp.exe` 为 `37a2c52ba81b0ccb3d593c05651777e064832c26341dee0ea801a4503d5a0af6`，`lpcprj.exe` 为 `8475446e4deadbf0225ef45c94786fe53ebc44537d6e6c86e2f8dd684334ab4e`，安装器为 `5f8dc5fc8917ccce6efaf0b73aace1795747483f42ab785253de0ee807e76cde`。
 
-Still open before any release decision: Linux/static CI execution, sanitizer,
-TLS/WebSocket and certificate-verified database checks, broader gameplay
-comparison, and production-duration soak testing. These require a separately
-authorized release task and are not prerequisites for completing this local
-rebaseline branch.
+任何发布决策前仍需完成：Linux/静态 CI、sanitizer、TLS/WebSocket 和证书验证数据库连接检查、更广泛的玩法对比，以及生产时长级别的稳定性观察。这些工作需要另行授权的发布任务，不是完成当前本地基线重建分支的前置条件。
 
-No remote was added, and nothing was pushed, published, deployed, or run on an
-online server.
+本次未添加任何远程，也没有推送、发布、部署或访问线上服务器。
 
-## Merged In `c20b15e4`
+## 合入提交 `c20b15e4`
 
-The following official changes were selectively merged or manually backported:
+选择性合入或手工回移了以下官方变更：
 
-- `request_clean_up()` efun from official issue-fix work.
-- `set_clean_up()` efun from official cleanup scheduling work.
-- `get_os_env()` and `set_os_env()` efuns with explicit read/write config
-  allow-lists.
-- `member_array()` flag 4 predicate mode and the reverse-search not-found fix.
-- `call_out` handle lookup/removal fixes for older pending handles, including
-  the union-owner guard.
-- `pcre_match_all()` zero-width match handling to avoid infinite loops.
-- Prompt-path error containment and null error-context guard.
-- SQLite failed-execution cleanup to avoid double `sqlite3_finalize()`.
-- `sprintf` column-mode wrapping fix that preserves indentation.
-- Documentation and tests for the merged efuns and bug fixes.
+- 官方问题修复中的 `request_clean_up()` efun。
+- 官方清理调度功能中的 `set_clean_up()` efun。
+- 带显式读写配置白名单的 `get_os_env()` 和 `set_os_env()` efun。
+- `member_array()` 的 flag 4 谓词模式，以及反向搜索未找到结果的修复。
+- 针对较旧待处理句柄的 `call_out` 查找/移除修复，包括 union owner 防护。
+- 处理 `pcre_match_all()` 零宽匹配，避免无限循环。
+- prompt 路径错误隔离和空错误上下文防护。
+- SQLite 执行失败后的清理，避免重复调用 `sqlite3_finalize()`。
+- 保留缩进的 `sprintf` 列模式换行修复。
+- 为上述 efun 和问题修复补充文档与测试。
 
-Validation for this merge:
+验证命令：
 
 - `.\build.cmd`
 - `..\build\dist\driver.exe etc\config.test -ftest`
 - `git diff --check`
 
-Note: the SQLite regression in `testsuite/single/tests/efuns/db.c` is present,
-but the Windows build used for this validation skipped the SQLite section
-because `__USE_SQLITE3__` was not enabled.
-
-## Merged In `c168e3aa07dcfbd193485a51a7387ce055bf7412`
-
-The following additional official fixes were selectively merged or manually
-backported:
-
-- PR #1256: `restore_variable()` now bounds true recursive nesting instead of
-  cumulative container count, so wide-but-shallow arrays/mappings restore
-  correctly.
-- PR #1258, partially: compiler local-name allocation now handles identifiers
-  larger than the normal 4096-byte block without overrunning it.
-- PR #1258, partially: `restore_variable()` size-cache growth now detects
-  signed integer overflow and fails the pre-pass cleanly.
-- PR #1244, partially: `call_stack(4)` consistently returns `file:line` for
-  every frame.
-- PR #1244, partially: arithmetic compound assignment now keeps float semantics
-  for declared `float` lvalues and promotes runtime `int op= float` results to
-  float.
-- PR #1238, partially: `unique_mapping()` now releases copied keys and partial
-  mappings when callback or mapping construction paths unwind through `error()`.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- src/compiler/internal/grammar.autogen.cc src/compiler/internal/grammar.y src/compiler/internal/lex.cc src/packages/core/efuns_main.cc src/packages/ops/ops.cc src/vm/internal/base/interpret.cc src/vm/internal/base/mapping.cc src/vm/internal/base/object.cc testsuite/single/tests/efuns/call_stack.c testsuite/single/tests/efuns/restore_variable.c testsuite/single/tests/operators/compound_assign_float.c`
-
-Notes:
-
-- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` from
-  `src/compiler/internal/grammar.y`; the generated line-table changes are
-  expected.
-- `recompile_object()` from PR #1258 was not applicable to this local tree
-  because this branch does not currently contain that efun entry point.
-
-## Merged In `09ec81cbf4775ca1972c514f35f075611cec25a7`
-
-The following additional official issue fixes were selectively merged or
-manually backported:
-
-- PR #1238, remaining runtime scope: object load-count/depth accounting now
-  happens before `valid_read`, preventing recursive `valid_read` load paths from
-  bypassing the protection.
-- PR #1238, remaining runtime scope: parser package tokenization now preserves
-  UTF-8 multibyte bytes for word, `STR`, and `OBJ` matching.
-- PR #1244, partially: a class body followed directly by a variable name now
-  produces a targeted diagnostic instead of a confusing generic parse failure.
-- PR #1244, partially: `safe_apply()` and function-pointer callback exception
-  paths now unwind the value stack from the saved call base instead of popping
-  arguments twice.
-- PR #1244, partially: async file/database callbacks and DNS resolve callbacks
-  preserve `this_player()` when `this_player in call_out` compatibility is
-  enabled.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- src/compiler/internal/grammar.autogen.cc src/compiler/internal/grammar.autogen.h src/compiler/internal/grammar.y src/packages/async/async.cc src/packages/core/dns.cc src/packages/parser/parser.cc src/vm/internal/apply.cc src/vm/internal/base/function.cc src/vm/internal/simulate.cc testsuite/clone/class788_ok.c testsuite/clone/class788_repro.c testsuite/single/tests/compiler/class_combined_decl.c testsuite/single/tests/crasher/1014.c testsuite/single/tests/efuns/async_this_player.c testsuite/single/tests/efuns/parse_utf8.c`
-
-Notes:
-
-- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` and
-  `src/compiler/internal/grammar.autogen.h` from
-  `src/compiler/internal/grammar.y`; the generated parser table changes are
-  expected.
-- The new async `this_player()` regression is intentionally side-effect-free.
-  The local testsuite compiles and schedules those callback paths, while the
-  broader async callback execution coverage still comes from the existing async
-  tests.
-
-## Merged In `9ddb8d623bfe972f64d7681400ce498b01199932`
-
-The following official PR #1250 runtime/compiler behavior was selectively
-merged or manually backported:
-
-- Added public `to_buffer()` and internal `_to_buffer()` conversion support for
-  strings, buffers, and integer arrays.
-- Allowed buffer concatenation and compound assignment with buffers, strings,
-  and integer arrays while preserving strict byte conversion.
-- Allowed buffer range assignment from buffers, strings, and integer arrays.
-- Enforced strict buffer byte writes and byte lvalue arithmetic in the
-  `0..255` range instead of silently truncating.
-- Added buffer `foreach` support, including writable byte refs for
-  `foreach(int ref c in buffer_value)`.
-- Reduced use of the global byte lvalue state for byte refs by carrying the
-  byte pointer in the active lvalue/ref.
-- Kept string `foreach ref` behavior conservative in this branch: the existing
-  tests still assert that string refs do not mutate the source string.
-- Added focused operator tests for buffer byte bounds, buffer range assignment,
-  buffer foreach, and buffer refs.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/buffer_bytes.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/buffer_range_assign.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/foreach.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/ref.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check`
-
-Notes:
-
-- Official PR #1250 docs/sidebar changes were not imported because this branch
-  uses local Chinese repository documentation and a different docs boundary.
-- The official split compiler frontend files are not present in this branch;
-  the behavior was adapted into the older local `grammar.y` / `lex.cc` layout.
-- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` from
-  `src/compiler/internal/grammar.y`; the generated parser table changes are
-  expected.
-
-## Merged In `726e990d17b11614ac9387c4b60cdc7f77bf9d73`
-
-The following official PR #1247 fixes were selectively merged or manually
-backported as a first partial safety batch:
-
-- `write_buffer()` now rejects negative lengths and checks offset/length bounds
-  without signed overflow.
-- `read_file()` now clamps the terminator write to the actual bytes read after
-  the forward line scan and maximum-size clamp.
-- Reverse EGC search no longer loops forever when an unaligned match is found at
-  offset zero.
-- `sys_reload_tls()` now validates the requested port against the number of
-  `external_port` entries instead of comparing an index to the byte size of the
-  array.
-- `lpcaddr_to_sockaddr()` now rejects host names that would overflow its fixed
-  host buffer.
-- `socket_accept()` now applies close-on-exec handling to the accepted OS socket
-  fd and closes the accepted fd on that error path.
-- MySQL binary/string fields now allocate buffers from the current row's actual
-  BLOB length instead of the column-wide maximum length.
-- Added focused regressions for `write_buffer()` bounds, reverse `strsrch()`,
-  and invalid `sys_reload_tls()` port indexes.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/write_buffer_bounds.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/strsrch.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sys_reload_tls.c`
-- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-partial.log`
-- `git diff --check`
-
-Notes:
-
-- This is a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0 and wrote its log to
-  `build/lpc-full-test-pr1247-partial.log`; that build artifact is not tracked.
-- This batch intentionally focused on low-risk runtime safety fixes that do not
-  require adopting official-only compiler layout, hot-reload, or larger package
-  restructuring.
-
-## Merged In `9414cfe9bb775ef10b2c3bfe3188c09aeebf7f86`
-
-The following official PR #1247 fixes were selectively merged or manually
-backported as a second partial safety/bounds batch:
-
-- `random_number()` and `secure_random_number()` now return `0` for non-positive
-  bounds before constructing a random distribution.
-- Shared-string hash table sizing now caps the power-of-two growth loop before
-  signed integer overflow.
-- `pcre_replace()` now uses the same non-overlapping capture-group selection in
-  its sizing and copy passes, avoiding heap overwrite on nested captures.
-- `uncompress()` now releases partial output data on inflate failure.
-- `terminal_colour()` now uses `safe_apply()` for
-  `terminal_colour_replace()` so callback errors do not leak local buffers.
-- `repeat_string()` now clamps before multiplying string length by repeat count.
-- `replace_string()` now bounds and accounts for the Boyer-Moore skip-copy fast
-  path.
-- `get_dir()` now bounds directory/file path concatenation before `stat()`.
-- `add_action()` missing-function error construction now uses bounded formatting
-  and does not pass user-controlled text as the format string.
-- `call_out()` now handles null function-pointer owners during reclaim and
-  saturates seconds-to-milliseconds conversion.
-- Matrix transforms now reject arrays shorter than the required 16 elements.
-- Mudlib stats author/domain and stat-file restore paths now bound fixed-buffer
-  copies/scans.
-- Macro parameter parsing now stops on malformed parameter names instead of
-  continuing with an unconsumed character.
-- Constant-folded `INT_MIN / -1` and `% -1` cases now avoid C++ undefined
-  behavior in `#if`, expression division, and integer modulo folding.
-- Added focused regressions for pcre replacement, random/secure_random bounds,
-  matrix short arrays, large call_out delays, macro parameter errors,
-  terminal_colour callback errors, uncompress failure cleanup, and 64-bit
-  integer division/modulo folding.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/pcre.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/random.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/secure_random.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/matrix.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/call_out.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/64bit.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/bad_macro_params.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/terminal_colour_error_replace.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/uncompress_invalid.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/replace_string.c`
-- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-second-batch.log`
-- `git diff --check`
-
-Notes:
-
-- This is still a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0 and wrote its log to
-  `build/lpc-full-test-pr1247-second-batch.log`; that build artifact is not
-  tracked.
-- The Windows build regenerated `src/compiler/internal/grammar.autogen.cc` from
-  `src/compiler/internal/grammar.y`; the generated parser table changes are
-  expected.
-
-## Merged In `ed01cbc055924f13df67cd4bd62795db2a96defb`
-
-The following official PR #1247 async fixes were selectively merged or manually
-backported as a third partial batch:
-
-- Async worker requests that have been popped from the queue but not yet moved
-  to the finished queue are now tracked in `current_works` so debugmalloc
-  marking accounts for their callback funptr and captured `command_giver`.
-- `async_getdir()` now grows its raw directory-entry buffer by
-  `sizeof(struct dirent)` per entry instead of `sizeof(dirent *)`.
-- `async_read()`, `async_getdir()`, and `async_write()` now release the callback
-  function object on permission-denied paths where no request will be queued.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/async_this_player.c`
-- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-async.log`
-- `git diff --check`
-
-Notes:
-
-- This is still a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0 and wrote its log to
-  `build/lpc-full-test-pr1247-async.log`; that build artifact is not tracked.
-- A standalone local run of `/single/tests/efuns/async.c` printed
-  `Checks succeeded` but did not exit before the command timeout in this
-  harness, so it was not used as a clean gating signal for this commit.
-
-## Merged In `e4eda115aa6d42adc384920f49be49b435a51d9c`
-
-The following official PR #1247 interactive-input fix was selectively merged or
-manually backported as a fourth partial batch:
-
-- `input_to()` now rejects string callbacks whose function name starts with the
-  internal apply marker `#` before preparing the VM call frame. The rejection
-  path releases the pending input sentence, referenced object, and carryover
-  arguments instead of returning from the later stack-setup path.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/input_to.c`
-- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-input-to.log`
-- `git diff --check -- src/comm.cc`
-
-Notes:
-
-- This is still a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0 and wrote its log to
-  `build/lpc-full-test-pr1247-input-to.log`; that build artifact is not
-  tracked.
-- The focused `input_to` test covers the existing non-interactive setup path.
-  The `#` apply branch is an interactive safety path, so this merge is gated by
-  the Windows build, the existing `input_to` test, and the full LPC testsuite
-  rather than a dedicated live socket regression.
-
-## Merged In `b6a529611506f9350877d859d1039f6edb424732`
-
-The following official PR #1247 external-process socket cleanup was selectively
-merged or manually backported as a fifth partial batch:
-
-- `external_start()` now closes the provisioned efun socket with
-  `socket_close(fd, SC_FORCE | SC_FINAL_CLOSE)` when `posix_spawn()` fails after
-  the socket has been registered, then clears `sv[0]` so the deferred raw-fd
-  cleanup does not double-close it.
-- The `socket_close()` internal flags are exposed through `socket_efuns.h` so
-  the external package can use the same forced-final close path as the socket
-  package.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sockets.c`
-- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-external.log`
-- `git diff --check -- src/packages/external/external.cc src/packages/sockets/socket_efuns.cc src/packages/sockets/socket_efuns.h`
-
-Notes:
-
-- This is still a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0 and wrote its log to
-  `build/lpc-full-test-pr1247-external.log`; that build artifact is not
-  tracked.
-- The affected `posix_spawn()` failure path is in the non-Windows external
-  implementation. The local Windows validation proves the shared socket API
-  exposure and existing socket behavior still build and pass, but it is not a
-  dedicated POSIX runtime reproduction of the spawn-failure cleanup path.
-
-## Merged In `94c3029bee39d9528c9243debc1757c85c8f429f`
-
-The following official PR #1247 `call_other()` type-checking fix was selectively
-merged or manually backported as a sixth partial batch:
-
-- `check_co_args()` now passes the bounded declared-argument count to
-  `check_co_args2()` when reading `prog->argument_types`, while keeping the full
-  pushed argument count for stack indexing. Extra actual arguments no longer
-  make the type checker read beyond the declared argument type table.
-- `call_other()` type-check error strings are now emitted with `error("%s",
-  buf)` instead of treating object-derived text as a printf format string.
-- The existing `call_other` efun regression now temporarily enables runtime
-  call-other type checking and exercises the extra-argument error path.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/call_other.c`
-- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-call-other.log`
-- `git diff --check -- src/vm/internal/apply.cc testsuite/single/tests/efuns/call_other.c`
-
-Notes:
-
-- This is still a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0 and wrote its log to
-  `build/lpc-full-test-pr1247-call-other.log`; that build artifact is not
-  tracked.
-
-## Merged In `797ca93624c7543a54ba3e453d0f96af25be5f2a`
-
-The following official PR #1247 parser lifetime fix was selectively merged or
-manually backported as a seventh partial batch:
-
-- Parser verb nodes removed during an active parse are now deferred until the
-  outermost parse unwinds, preventing `parse_vn` from pointing at freed memory
-  if a handler destructs itself or calls `parse_remove()` from a
-  `can_`/`direct_`/`do_` apply.
-- `clear_result()` initializes each saved argument count to zero, so
-  error-path cleanup never reads uninitialized counts.
-- If a handler is already destructed when `we_are_finished()` commits a
-  candidate, the half-built result is freed and `best_match` is cleared so the
-  parser does not call `do_the_call()` with a null/destructed target.
-- Added `/single/tests/crasher/parser_handler_destruct.c` to cover a handler
-  destructing itself from `direct_*` while returning success.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/parser_handler_destruct.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/parse_utf8.c`
-- `..\build\dist\driver.exe etc\config.test -ftest *> ..\build\lpc-full-test-pr1247-parser-uaf.log`
-- `git diff --check -- src/packages/parser/parser.cc testsuite/single/tests/crasher/parser_handler_destruct.c`
-
-Notes:
-
-- This is still a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0 and wrote its log to
-  `build/lpc-full-test-pr1247-parser-uaf.log`; that build artifact is not
-  tracked.
-- An initial parallel run of the focused parser tests left a local
-  `build/dist/driver.exe` test process after timeout; it was stopped by exact
-  path before rerunning `parse_utf8.c` successfully. The separate production
-  `D:\code_env\FluffOS\libexec\fluffos\driver.exe` process was not touched.
-
-## Merged In `a8fada2406154b2ab0942b85d00388114d29d730`
-
-The following official PR #1247 fixes were selectively merged or manually
-backported as an eighth partial runtime-hardening batch:
-
-- `allocate(n, function)` now keeps the partially built result array on the VM
-  stack while running per-element callbacks, so callback errors do not leak the
-  result or already-stored refcounted values.
-- Telnet LINEMODE subnegotiation now checks the second suboption byte exists
-  before reading or echoing it, and ZMP argument arrays fill `item[0..n-1]`
-  instead of writing one slot past the end.
-- `query_replaced_program()` without an explicit object now reads
-  `current_object->replaced_program` instead of treating the arbitrary stack top
-  as an object.
-- `replaceable(ob, ({}))` now allocates the built-in ignore entries even for an
-  empty caller ignore list.
-- `compose_mapping()` now frees deleted mapping keys before freeing the node.
-- `sprintf()` now prints integer/float values with bounded `snprintf()` for
-  huge user-supplied precision.
-- The disassembler now treats the direct switch-table `minval` as
-  `sizeof(LPC_INT)` instead of a hardcoded four bytes.
-- Compiler overload warnings and trace lines now pass source-derived text as a
-  `"%s"` argument instead of a printf format string.
-- `strftime()` now uses heap storage rather than a stack VLA sized by
-  `__MAX_STRING_LENGTH__`.
-- `checkmemory` now bounds the configured default fail-message copy.
-- `norm()` now uses the array passed to the helper when measuring length, fixing
-  the shared helper path used by `angle()`.
-- MUD-port input now clamps read length to the local buffer and rejects
-  non-positive length prefixes.
-- Added `/single/tests/crasher/replaceable_empty.c` and extended the existing
-  `allocate` and `sprintf` efun regressions.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/replaceable_empty.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/allocate.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/replaceable.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check`
-
-Notes:
-
-- This is still a partial merge of PR #1247, not a full PR merge.
-- The full testsuite command exited with status 0. Its output was observed in
-  the terminal and was not redirected to a tracked artifact.
-
-## Merged In `1b03c79fa98733e8b7265f56eb4d27bb5003b017`
-
-The following official PR #1239/#1241 preprocessor directive comment behavior
-was selectively merged or manually backported into this branch's older
-`src/compiler/internal/lex.cc` layout:
-
-- Block comments inside preprocessor directive payloads now fold to whitespace
-  instead of being removed entirely, so macro bodies such as
-  `1 -/* comment */-1` keep token boundaries.
-- Directive-line block comments that span physical lines remain consumed as
-  part of the directive, preventing continuation text from being tokenized as
-  normal LPC code.
-- Existing local trailing-line-comment handling for directive payloads is now
-  pinned by tests for `#define`, `#ifdef`, `#undef`, and nested macro argument
-  expansion.
-- Added `/single/tests/compiler/preprocessor.c` to cover block-comment tails,
-  live and dead `#if` branches, string literals containing comment markers,
-  comment-as-whitespace token separation, trailing `//` macro comments, and
-  `#ifdef`/`#undef` lookup with trailing comments.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
-- `git diff --check -- src/compiler/internal/lex.cc testsuite/single/tests/compiler/preprocessor.c`
-
-Notes:
-
-- This is a local-layout backport of PR #1239/#1241 behavior, not a wholesale
-  import of official `lexer_rules_pp.cc`, generated Flex scanner changes, or
-  official GTest compiler harness changes.
-- The initial focused test failed before rebuilding the driver because the old
-  dist binary still tokenized `1 -/* comment */-1` as `1--1`; after rebuilding,
-  the focused test passed.
-
-## Merged In `56c00880b40692bbc12a803026dd739e042859f2`
-
-The following official PR #1230 compile-time master apply behavior was
-selectively merged or manually backported into this branch's older compiler and
-lexer layout:
-
-- Added `inherit_program(string from, string path, int priv)` as a master apply
-  consulted for each LPC `inherit` statement.
-- `inherit_program()` can keep the default path, redirect to another program,
-  supply inline source as an array of strings, or deny the inheritance.
-- Added `include_file(string compiled, string from, string path)` as a master
-  apply consulted for each `#include` directive.
-- `include_file()` can keep the default path, redirect to another include file,
-  supply inline include text as an array of strings, or deny the include.
-- Added `StringLexStream` so master-supplied inline include/inherit text can be
-  compiled through the same lexer stream abstraction as disk files.
-- Added `load_object_from_source()` for synthesized inherited programs and made
-  it support the normal inherited-parent retry flow, including inline source
-  that itself inherits unloaded disk or synthesized parents.
-- Added testsuite master hook forwarding through `set_compile_hooks()` for
-  focused compiler tests.
-- Added focused tests and fixtures for inherit redirects, inline inherited
-  programs, denied inherits, private-inherit flags, include redirects, inline
-  includes, nested include call shapes, and nested inline inherit source.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/inherit_program.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/include_file.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/get_include_path.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check`
-
-Notes:
-
-- This is a core-behavior merge of PR #1230, adapted to this branch's
-  `grammar_rules.cc` / `lex.cc` compiler layout rather than importing official
-  `grammar_rules.cc` / `lexer_utils.cc` changes wholesale.
-- The official hot-reload daemon/demo from PR #1230 was not part of this
-  commit. It was later adapted into this branch's `.c` testsuite layout in
-  `362f6fefae58197c27baa7243ac494db6882c9dd`.
-- The new master applies preserve existing production behavior when the mudlib
-  master returns the original path or does not route to a custom hook.
-
-## Merged In `99aa8be9e5db99f26d503bec7beae6ff32856921`
-
-The following official PR #1247/#1258 compiler-hardening items were selectively
-merged or manually reconciled with this branch's older `lex.cc` /
-`compiler.cc` layout:
-
-- The local old compiler had an additional precomposed warning buffer in
-  `define_new_function()` that could include source-derived function/program
-  names. It now calls `yywarn("%s", buff)` instead of treating that buffer as a
-  printf format string.
-- The local-name allocator's normal block path now copies the already-computed
-  byte length with `memcpy()` rather than re-scanning with `strcpy()`, matching
-  the safer official hardening direction around local-name storage.
-- Added `/single/tests/compiler/long_local_name.c` as local coverage for a
-  near-`MAXLINE` local/global-name compile path.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/long_local_name.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/replaceable_empty.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/include_file.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
-- `git diff --check -- src\compiler\internal\compiler.cc src\compiler\internal\lex.cc testsuite\single\tests\compiler\long_local_name.c`
-
-Notes:
-
-- This is not a full merge of PR #1247 or PR #1258.
-- Official #1258's `recompile_object()` dangling filename-pointer fix remains
-  pending until this branch carries `recompile_object()` from PR #1237.
-- Official's `>4096` identifier regression cannot be expressed directly in this
-  branch's LPC source tests because the old lexer enforces `MAXLINE=4096` first;
-  the added test therefore pins the largest local source-level case this branch
-  can compile without changing lexer line-length semantics.
-
-## Merged In `fa228dce2b4ca9eb7f7219474dac2b4014d2d13d`
-
-The following official PR #1244 string-semantics coverage was selectively
-merged into this branch's existing `string_index.c` regression suite:
-
-- Documented the intentional virtual-NUL result when indexing a string at
-  `strlen(s)`.
-- Added CRLF extended-grapheme-cluster coverage: `strlen("\r\n") == 1`,
-  indexing `"\r\n"` returns the CR codepoint at cluster 0 and virtual NUL at
-  cluster 1, and `strsrch()` only matches on cluster boundaries.
-
-Validation for this merge:
-
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/string_index.c`
-- `git diff --check -- src\base\internal\strutils.cc testsuite\single\tests\operators\string_index.c`
-
-Notes:
-
-- This is a test/comment merge of PR #1244 behavior. The runtime behavior was
-  already present in this branch; the merge pins it so future string changes do
-  not accidentally reinterpret CRLF as two searchable/indexable clusters.
-
-## Merged In `06719fab6466eed700d3bc6474b23dd02c27adca`
-
-The following official PR #1237 hot-reload foundation was selectively merged:
-
-- Object global variables now live in a separate `TAG_OBJ_VARS` allocation
-  instead of the tail of `object_t`. The block is always at least one `svalue_t`
-  and is allocated through `allocate_object_variables()`.
-- `object_t` now carries `prog_generation`, the field later used by
-  `recompile_object()` to invalidate stale function pointers after a program
-  swap.
-- Debug-memory checking now marks object variable blocks from their owning
-  object and reports orphan `TAG_OBJ_VARS` blocks explicitly.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- src/base/internal/debugmalloc.h src/vm/internal/base/object.h src/vm/internal/base/object.cc src/packages/develop/checkmemory.cc`
-
-Notes:
-
-- This is a partial merge of PR #1237, not the full `recompile_object()` efun.
-- No public LPC API is exposed by this commit. Existing production mudlibs keep
-  using the same object variables through `ob->variables`; the allocation shape
-  changes only inside the driver.
-- The remaining PR #1237 work includes the actual efun, live program swap,
-  variable migration by name, master/simul_efun handling, function-pointer
-  generation checks, executing-frame guards, clone/virtual/call_out/heart_beat
-  safety handling, and focused regression tests.
-
-## Merged In `3ebd18267178a324798779a4ae19be90306fe0dc`
-
-The following official PR #1237 function-pointer foundation was selectively
-merged:
-
-- Function pointer headers now snapshot the owner's `prog_generation` at
-  creation or `bind()` time.
-- `call_function_pointer()` now rejects stale `FP_LOCAL` and `FP_FUNCTIONAL`
-  pointers when their owner object has moved to a newer program generation.
-- `FP_LOCAL` pointers now store the creation-time `program_t` and hold/release
-  `func_ref` against that program, rather than decrementing the owner's current
-  program after a later swap.
-- Debug-memory checking now accounts `FP_LOCAL` extra function refs against the
-  stored creation program.
-- `%O` formatting now prints local function pointers from the stored creation
-  program and tolerates removed simul_efun table entries.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- src/vm/internal/base/function.h src/vm/internal/base/function.cc src/packages/core/efuns_main.cc src/packages/develop/checkmemory.cc src/packages/core/sprintf.cc`
-
-Notes:
-
-- This is still a partial merge of PR #1237. It does not expose
-  `recompile_object()` yet, but it makes the later program swap safe for
-  existing function-pointer lifetime and stale-layout checks.
-- Current production mudlibs do not need changes. Existing function pointers
-  behave the same until an object program generation is actually bumped by the
-  later hot-reload efun.
-
-## Merged In `721fa0e65938b5b60fcb71fe6b8b82078ee5d552`
-
-The following official PR #1237 `recompile_object()` core behavior was
-selectively merged:
-
-- Added public `recompile_object(object)` efun.
-- Recompiling a master copy now swaps the new program into the live master copy
-  and its loaded clones in place.
-- Global variables migrate by name so existing state survives compatible source
-  changes, while newly introduced variables keep their initializer values.
-- Master applies and simul_efun dispatch tables are rebuilt before running the
-  recompiled program's `__INIT`.
-- Stale function-pointer protection from the earlier `prog_generation` merge is
-  now active when a program is replaced.
-- Pending `replace_program()` state is cancelled at the swap point.
-- Unsafe targets are rejected, including clone targets, objects whose old
-  program is currently executing on the VM stack, nested `recompile_object()`
-  calls, and objects that already have pending `replace_program()` state before
-  the recompile begins.
-- Added focused local regression coverage for master-and-clone updates,
-  variable migration by name, new variable initializers, stale local function
-  pointers, and clone-target rejection.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check`
-
-Notes:
-
-- This is a local-layout merge of the core efun and swap machinery from PR
-  #1237. It is not a wholesale import of every official hot-reload demo,
-  documentation page, or broad official regression fixture.
-- Existing production mudlibs do not need changes unless they deliberately call
-  `recompile_object()` or depend on the new hot-reload behavior.
-
-## Merged In `9e2aed146a581a951c7e79bb153c7d583761bca1`
-
-The following official PR #1258 `recompile_object()` Coverity fix was
-selectively merged after PR #1237 became applicable in this branch:
-
-- `recompile_object()` now passes the stable `old_prog->filename` pointer to
-  the compiler instead of passing a temporary local string buffer.
-- The source file descriptor opened for recompilation is closed through `DEFER`,
-  so compile-error paths do not leak it.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- src/vm/internal/simulate.cc`
-
-## Merged In `1b8c5cc68c32380d80b4f19f81456c09f62239ce`
-
-The following official PR #1237 regression coverage was selectively adapted to
-this branch's `.c` testsuite layout:
-
-- Expanded `recompile_object.c` coverage for vanished source files, virtual
-  object backing-source recompilation, `replace_program()` state during a swap,
-  self-destructing and erroring `__INIT`, live simul_efun table rebuild, and
-  master executing-frame rejection.
-- Added `recompile_object2.c` coverage for catch_tell routing, shadow chains,
-  name-based call_outs running the new program, stale function-pointer call_outs
-  failing cleanly, add_action sentences, and heart_beat registration.
-- Added a testsuite master `compile_object()` fixture for the
-  `/data/recompile_object/virt` virtual-object case.
-
-Validation for this merge:
-
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --cached --check`
-
-Notes:
-
-- The official post-run idle-master recompile fixture is not represented in the
-  local testsuite because this branch's single-test harness shuts down
-  immediately after the focused test. The local coverage still verifies the
-  master executing-frame guard, and the code path rebuilds master applies when
-  the master object itself is swapped.
-- The focused `recompile_object2.c` run validates the synchronous portions of
-  that test. The local branch does not rely on the official post-run delayed
-  call_out verifier because the local single-test runner shuts down
-  immediately; it instead verifies that name/funptr call_out handles survive
-  recompile and remain removable.
-
-## Merged In `362f6fefae58197c27baa7243ac494db6882c9dd`
-
-The following official PR #1230/#1237 hot-reload demo and coverage was
-selectively adapted as a testsuite-only development example:
-
-- Added `/single/hot_reload.c`, a daemon that registers as the testsuite
-  master's compile hooks, records include/inherit dependency edges, snapshots
-  source file size+mtime, and reloads stale watched programs.
-- The state-keeping reload path uses `recompile_object()` so master copies and
-  live clones receive the new program in place while retaining compatible
-  variables by name.
-- The opt-out reload path uses destruct+load so master copies restart from
-  initializers and existing clones keep their old program until mudlib code
-  chooses to migrate or destruct them.
-- Objects with `hot_reload_state()` / `hot_reload_restore()` use the
-  cooperative destruct+load path and explicitly choose which state survives.
-- Added `/single/tests/applies/hot_reload.c` to cover dependency graph
-  recording, deepest include-of-inherited-program changes, shared dependency
-  stale-set collection, compile-failure self-healing, deepest-first ancestor
-  refresh, currently-executing guard record preservation, state-keeping reloads,
-  clone updates, cooperative restore, and opt-out semantics.
-- Adjusted `recompile_object2.c` so call_out survival coverage is synchronous
-  in this branch's test runner and leaves no generated test files behind.
-
-Validation for this merge:
-
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/applies/hot_reload.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- testsuite/single/hot_reload.c testsuite/single/tests/applies/hot_reload.c testsuite/single/tests/efuns/recompile_object2.c`
-
-Notes:
-
-- This is a testsuite development example, not production-default behavior.
-  It activates only when loaded and enabled by the testsuite.
-- The official documentation-site page for hot reload was not imported
-  wholesale; local project docs summarize the boundary here and in the README.
-
-## Merged In `af6ccca5849049377135f204b70d775c301dcf72`
-
-The following remaining low-risk official PR #1247 safety/correctness fixes
-were selectively adapted:
-
-- `ed` now clamps expanded printed lines before copying to the caller buffer,
-  bounds default filename reuse, caps typed filename collection, and reserves
-  enough room for escaped replacement/pattern text.
-- `sprintf()` column/table formatting now owns the rendered `%O`/string buffer
-  used by pending column/table state instead of borrowing the transient clean
-  buffer. Pending column/table pad and owned storage are released on unwind.
-- `restore_variable()` / restore mapping paths now report malformed or
-  too-deep top-level mapping sizing failures as restore errors, and clear the
-  transient restore scratch state before `error()` paths that would otherwise
-  longjmp past normal cleanup.
-- `replace_dollars()` now checks output growth against the replacement string
-  length actually written, not the matched pattern length.
-- Added `sprintf_column_object.c` coverage and expanded `restore_variable.c`
-  coverage for deeply nested crafted input.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/restore_variable.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf_column_object.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/ed.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- src/packages/core/ed.cc src/packages/dwlib/dwlib.cc src/vm/internal/base/object.cc src/packages/core/sprintf.cc testsuite/single/tests/efuns/restore_variable.c testsuite/single/tests/efuns/sprintf_column_object.c`
-
-Notes:
-
-- `src/packages/dwlib/dwlib.cc` is adapted in source, but the current Windows
-  build configuration does not enable `PACKAGE_DWLIB`; validation for that
-  exact optional package path is therefore code-review/build-layout coverage,
-  not a live LPC package test in this run.
-
-## Merged In `b7e294247ee027115fb9333701b2d3ff29a245b0`
-
-The following official PR #1247 reclaim safety fixes were selectively adapted:
-
-- `reclaim_objects()` now keeps the internal `nested` recursion counter
-  balanced when `check_svalue()` exceeds `MAX_RECURSION` and returns early.
-- Reclaiming a destructed owner from an `FP_LOCAL` function pointer no longer
-  decrements the program's `func_ref` immediately. The function pointer remains
-  alive and later `dealloc_funp()` releases the stored creation program exactly
-  once.
-- Added `/clone/reclaim_fp_helper.c` and
-  `/single/tests/crasher/reclaim_funptr_owner.c` to cover a destructed owner
-  whose function pointer is retained, scheduled in a call_out, and then visited
-  by `reclaim_objects()` again.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/reclaim_funptr_owner.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- src/packages/core/reclaim.cc testsuite/clone/reclaim_fp_helper.c testsuite/single/tests/crasher/reclaim_funptr_owner.c`
-
-## Merged In `ae8a687fa34a442c0891c6109ba342e734e84277`
-
-The following official PR #1247 buffer range regression coverage was adapted:
-
-- Expanded `/single/tests/operators/buffer_range_assign.c` to cover
-  size-changing range assignment from a buffer RHS in both grow and shrink
-  directions. This pins the previously merged runtime fix that copies from
-  `buffer_t::item` rather than the `buffer_t` header during reallocation.
-
-Validation for this merge:
-
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/buffer_range_assign.c`
-- `..\build\dist\driver.exe etc\config.test -ftest`
-- `git diff --check -- testsuite/single/tests/operators/buffer_range_assign.c`
-
-## Merged In `bab352bad1679d7f838e72cd9c121faf8008a483`
-
-The following official PR #1247 MySQL regression coverage was adapted:
-
-- Extended `/single/tests/efuns/db.c` so the MySQL section can run even when
-  SQLite support is not enabled in the current Windows build.
-- Added optional coverage for per-row binary field lengths: when
-  `FT_MYSQL_HOST`, `FT_MYSQL_DB`, and `FT_MYSQL_USER` are present in the OS
-  environment, the test creates a temporary `VARBINARY` table and verifies that
-  `db_fetch()` returns each payload as a buffer sized to that row's actual
-  binary length.
-- Added those short MySQL test environment names to
-  `/testsuite/etc/config.test`'s `get_os_env()` allow-list. The names are kept
-  short so the existing config-line limit is not crossed.
-- The coverage is intentionally optional. A normal developer machine or CI
-  build without MySQL credentials now skips this MySQL live check without
-  failing the DB efun test.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/db.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/get_os_env.c`
-- `git diff --check -- testsuite/etc/config.test testsuite/single/tests/efuns/db.c`
-
-Notes:
-
-- A full testsuite run reached `/single/tests/efuns/db.c`, skipped the optional
-  MySQL live check because the environment variables were not configured, and
-  then later failed in the existing `/single/tests/efuns/async.c` callback path
-  with `async_read()` returning `-1`. That later async failure is not caused by
-  this MySQL coverage change and was not used as the gating signal for this
-  commit.
-
-## Merged In `c98193933a4abfafd2b65ef2386973cef4630228`
-
-The following remaining official PR #1247 parser/socket safety coverage was
-adapted:
-
-- `living_parse()` now skips non-object entries in the `parse_command("%l")`
-  object list instead of dereferencing them as objects. This matches the
-  official guard for caller-provided `0` values or destructed objects that were
-  turned into `0` by `check_for_destr()`.
-- Added `/single/tests/crasher/living_parse_nonobject.c` to cover `%l` parsing
-  with non-object list entries.
-- Added `/single/tests/crasher/socket_long_host.c` to cover clean rejection of
-  a socket target whose host portion is longer than the fixed host buffer. The
-  underlying runtime fix was already present locally; this commit adds the
-  missing local testsuite coverage adapted to this branch's include layout.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/living_parse_nonobject.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/socket_long_host.c`
-- `git diff --check -- src/packages/ops/parse.cc testsuite/single/tests/crasher/living_parse_nonobject.c testsuite/single/tests/crasher/socket_long_host.c`
-
-## Merged In `58a4be68929a97ead0b37834866766f6b60b5e71`
-
-The following remaining official PR #1247 compiler safety fix was adapted to
-this branch's older `grammar.y` layout:
-
-- A varargs argument declaration now checks that a preceding local parameter
-  exists before reading `type_of_locals_ptr[max_num_locals - 1]`.
-- Malformed declarations such as `void probe(void ...)` now report a compiler
-  error instead of reading `type_of_locals_ptr[-1]`.
-- Added `/clone/bad_varargs_void.c` and
-  `/single/tests/compiler/bad_varargs_void.c` as local regression coverage.
-
-Validation for this merge:
-
-- `.\build.cmd`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/bad_varargs_void.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/bad_macro_params.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/function.c`
-- `git diff --check -- src/compiler/internal/grammar.y src/compiler/internal/grammar.autogen.cc testsuite/clone/bad_varargs_void.c testsuite/single/tests/compiler/bad_varargs_void.c`
-
-Notes:
-
-- `src/compiler/internal/grammar.autogen.cc` was regenerated from
-  `src/compiler/internal/grammar.y`; the generated line-table churn is
-  expected.
-
-## Merged In `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`
-
-The following remaining official PR #1247 integer edge-case guards were adapted
-to this branch's older compiler and VM layout:
-
-- Constant-folded `constant / constant` and `constant % constant` now handle a
-  `-1` divisor without invoking C/C++ undefined behavior for `INT_MIN / -1`.
-- VM integer `/` and `%` now use the same guarded behavior at runtime:
-  `INT_MIN / -1` keeps the two's-complement wrapped LPC result, while
-  `INT_MIN % -1` returns `0`.
-- Compound assignment `/=` and `%=` now apply the same guard, so lvalue updates
-  cannot crash or trigger undefined behavior on the same edge case.
-- Added `/single/tests/operators/int_min_div_mod.c` to cover runtime `/`, `%`,
-  `/=`, and `%=` behavior for the 64-bit minimum integer.
-
-Validation for this merge:
-
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/int_min_div_mod.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/compound_assign_float.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/64bit.c`
-- `git diff --check -- src/compiler/internal/grammar.y src/compiler/internal/grammar.autogen.cc src/packages/ops/ops.cc src/vm/internal/base/interpret.cc testsuite/single/tests/operators/int_min_div_mod.c`
-
-Notes:
-
-- `src/compiler/internal/grammar.autogen.cc` was regenerated from
-  `src/compiler/internal/grammar.y`.
-- This completes the locally applicable low-risk `INT_MIN / -1` and `% -1`
-  guard coverage from PR #1247 across constant folding, VM execution, and
-  compound assignment.
-
-## Completion Audit On `2026-07-14`
-
-After commit `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`, the target PRs were
-re-queried read-only from `fluffos/fluffos` and compared against this branch's
-current old-layout source tree:
-
-- PR #1247: the locally applicable low-risk safety/correctness fixes in the
-  requested scope are merged in local form. This includes allocator/error-path
-  cleanup, `sprintf()` ownership and bounds fixes, mapping compose cleanup,
-  MySQL row-length coverage, telnet LINEMODE/ZMP guards, trace/compiler/
-  disassembler hardening, `replaceable()` empty-ignore handling,
-  `query_replaced_program()` target-object handling, MUD-port input bounds,
-  parser/socket/reclaim coverage, varargs guard, and integer edge guards.
-- PR #1258: the three applicable Coverity fixes are merged in local form:
-  lexer local-name overrun protection, restore-size overflow protection, and
-  the `recompile_object()` stable filename / fd cleanup fix after PR #1237 made
-  that code path applicable.
-- PR #1239/#1241: directive payload comment stripping and directive-line block
-  comments spanning physical lines are merged in this branch's old lexer
-  layout, with local preprocessor regression coverage.
-- PR #1244: the source-behavior fixes in the requested scope are merged in
-  local form, including `set_clean_up()`, `call_stack(4)`, class combined-decl
-  diagnostics, compound float assignment, async/DNS `this_player()` preservation,
-  safe callback unwind behavior, and CRLF/string-index coverage.
-- PR #1230/#1237: compile-time master applies, testsuite hot-reload demo,
-  `recompile_object()`, live master/clone program swap, name-based variable
-  migration, master/simul_efun rebuild, stale function-pointer checks, unsafe
-  target guards, virtual object coverage, call_out/add_action/heart_beat/shadow
-  coverage, and focused hot-reload tests are merged in local form.
-
-Focused validation for this audit:
-
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/preprocessor.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/inherit_program.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/include_file.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/applies/hot_reload.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/recompile_object2.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/restore_variable.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/sprintf_column_object.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/crasher/replaceable_empty.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/async_this_player.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/efuns/call_stack.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/compiler/class_combined_decl.c`
-- `..\build\dist\driver.exe etc\config.test -ftest:/single/tests/operators/int_min_div_mod.c`
-
-## Not Merged From The Reviewed Snapshot
-
-These official changes remain intentionally unmerged as of `00cf1f21`:
-
-- PR #1261: WebAssembly default-page crash/error debug modal.
-- Recent official thirdparty updates/pruning after #1259, including fmt,
-  nlohmann/json, utfcpp, libwebsockets, and related sample/test tree cleanup.
-- PR #1259: official `lpc-syntax` VS Code formatter wiring, tokenizer fixes,
-  highlighter fixes, generated grammar-contract updates, and extension tests.
-- PR #1258, remaining scope: no requested source-behavior fix remains known
-  unmerged. Only official-only file-layout or harness shape remains outside
-  this branch; the lexer local-name, restore overflow, and `recompile_object()`
-  dangling filename-pointer fixes are merged in local form.
-- PR #1257 and PRs #1253-#1255: official CI/release workflow restructuring and
-  automatic release triggers.
-- PR #1250, remaining scope: official docs/sidebar updates and any
-  official-only string/ref test cases tied to the newer split compiler/test
-  layout.
-- PR #1247, remaining scope after the integer edge-guard batch: no requested
-  low-risk source fix remains known unmerged. Remaining official material is
-  limited to official-only tests, optional-package live coverage not enabled by
-  the current Windows build, FFI, or newer compiler-layout-specific parts.
-- PR #1245: char-mode input delivery improvements and NAWS-at-logon fix.
-- PR #1244: no requested source-behavior fix remains known unmerged. Remaining
-  material is limited to official docs, official-only cases tied to file layout,
-  or test harness differences.
-- PR #1237, remaining scope: official hot-reload documentation-site page, the
-  official post-run idle-master recompile fixture, and any official-only test
-  harness shape. The core efun, live master/clone program swap, variable
-  migration, master/simul_efun rebuild, executing-frame guard, clone-target
-  rejection, virtual object coverage, call_out/add_action/heart_beat/shadow
-  coverage, `replace_program()` guard, self-destruct/erroring `__INIT` coverage,
-  stale function-pointer protection, and testsuite hot-reload demo coverage are
-  merged in local form.
-- PR #1231 and PR #1243: WebAssembly driver target and WASM size reductions.
-- PR #1230, remaining scope: official documentation-site pages and any
-  official-only test/doc shape not represented in this branch's local compiler
-  hook and hot-reload tests.
-- PR #1210: the large LPC platform modernization batch, including Flex-based
-  front-end work, clang-style diagnostics, arena compiles, `.lpc` source
-  preference, FFI package, decimal library, `tools/lpc-syntax`, official VS Code
-  extension, and generated syntax assets.
-- Documentation-only updates such as Docusaurus/i18n/sidebar/search work, large
-  efun doc expansions, and docs audit cleanup.
-
-## Update Rules
-
-When merging official functionality in the future:
-
-1. Re-query `fluffos/fluffos` read-only and update the snapshot SHA/date above.
-2. Add the local commit hash and a concise list of merged upstream changes.
-3. Move any newly merged item out of the "Not Merged" section or mark it
-   partially merged with the remaining scope.
-4. Record validation commands and any skipped coverage.
-5. Keep the official repository read-only: no remote, branch push, PR edit, or
-   release action against `fluffos/fluffos`.
+备注：`testsuite/single/tests/efuns/db.c` 中已有 SQLite 回归测试，但本次验证使用的 Windows 构建未启用 `__USE_SQLITE3__`，因此跳过了 SQLite 部分。
+
+## 合入提交 `c168e3aa07dcfbd193485a51a7387ce055bf7412`
+
+选择性合入或手工回移了以下官方修复：
+
+- PR #1256：`restore_variable()` 现在限制真实递归嵌套深度，而非累计容器数量，因此宽而浅的数组/mapping 可以正确恢复。
+- PR #1258（部分）：编译器本地名称分配器可处理超过常规 4096 字节块的标识符，不再越界。
+- PR #1258（部分）：`restore_variable()` 的大小缓存扩容会检测有符号整数溢出，并干净地终止预扫描。
+- PR #1244（部分）：`call_stack(4)` 对每个栈帧一致返回 `file:line`。
+- PR #1244（部分）：算术复合赋值对声明为 `float` 的左值保持浮点语义，并把运行时 `int op= float` 的结果提升为 float。
+- PR #1238（部分）：`unique_mapping()` 在回调或 mapping 构造路径经 `error()` 展开时，会释放已复制的键和部分 mapping。
+
+验证命令：`.\build.cmd`、`..\build\dist\driver.exe etc\config.test -ftest`，以及针对相关编译器、VM、测试文件的 `git diff --check`。
+
+备注：Windows 构建根据 `grammar.y` 重新生成 `grammar.autogen.cc`，生成的行表变化符合预期。PR #1258 的 `recompile_object()` 当时不适用于本地源码树，因为该分支尚无此 efun 入口。
+
+## 合入提交 `09ec81cbf4775ca1972c514f35f075611cec25a7`
+
+选择性合入或手工回移了以下官方问题修复：
+
+- PR #1238 剩余运行时范围：对象加载计数/深度统计提前到 `valid_read` 之前，防止递归 `valid_read` 加载路径绕过保护。
+- PR #1238 剩余运行时范围：parser 包分词时保留 UTF-8 多字节，用于 word、`STR` 和 `OBJ` 匹配。
+- PR #1244（部分）：class 主体后直接跟变量名时给出有针对性的诊断，而不是含混的通用解析错误。
+- PR #1244（部分）：`safe_apply()` 和函数指针回调异常路径从保存的调用基址展开值栈，不再重复弹出参数。
+- PR #1244（部分）：启用 `this_player in call_out` 兼容选项时，异步文件/数据库回调和 DNS resolve 回调会保留 `this_player()`。
+
+验证命令：`.\build.cmd`、完整 LPC testsuite 和相关文件的 `git diff --check`。
+
+备注：Windows 构建根据 `grammar.y` 重新生成了 `grammar.autogen.cc/.h`，解析表变化符合预期。新的 async `this_player()` 回归测试有意保持无副作用；本地 testsuite 会编译并调度这些路径，更广泛的回调执行覆盖仍来自既有 async 测试。
+
+## 合入提交 `9ddb8d623bfe972f64d7681400ce498b01199932`
+
+选择性合入或手工回移了官方 PR #1250 的运行时/编译器行为：
+
+- 为字符串、buffer 和整数数组增加公开 `to_buffer()` 与内部 `_to_buffer()` 转换支持。
+- 允许 buffer 与 buffer、字符串、整数数组拼接及复合赋值，同时保持严格字节转换。
+- 允许以 buffer、字符串或整数数组进行 buffer 范围赋值。
+- 对 buffer 字节写入和字节左值算术严格执行 `0..255` 范围，不再静默截断。
+- 增加 buffer `foreach` 支持，包括 `foreach(int ref c in buffer_value)` 的可写字节引用。
+- 活跃左值/引用直接携带字节指针，减少对全局字节左值状态的使用。
+- 本分支保守维持字符串 `foreach ref` 行为：现有测试仍断言字符串引用不会修改源字符串。
+- 补充 buffer 字节范围、范围赋值、foreach 和引用的专项运算符测试。
+
+验证：`build.cmd`、四个专项测试、完整 LPC testsuite 和 `git diff --check` 均通过。
+
+备注：未引入 PR #1250 的文档/侧边栏变更，因为本分支使用本地中文文档和不同的文档边界。官方拆分后的编译器前端文件在本分支不存在，相关行为已适配旧版 `grammar.y` / `lex.cc` 布局；生成的解析表变化符合预期。
+
+## 合入提交 `726e990d17b11614ac9387c4b60cdc7f77bf9d73`
+
+作为第一批局部安全修复，选择性回移了官方 PR #1247：
+
+- `write_buffer()` 拒绝负长度，并在不发生有符号溢出的情况下检查 offset/length 边界。
+- `read_file()` 在正向行扫描和最大长度限制后，把终止符写入位置限制为实际读取字节数。
+- 反向 EGC 搜索在偏移 0 发现未对齐匹配时不再死循环。
+- `sys_reload_tls()` 按 `external_port` 条目数量验证端口，而不是把索引与数组字节大小比较。
+- `lpcaddr_to_sockaddr()` 拒绝会溢出固定 host 缓冲区的主机名。
+- `socket_accept()` 对已接受的 OS socket fd 应用 close-on-exec，并在失败路径关闭 fd。
+- MySQL 二进制/字符串字段按当前行实际 BLOB 长度分配缓冲区，不再使用整列最大长度。
+- 增加 `write_buffer()` 边界、反向 `strsrch()` 和无效 `sys_reload_tls()` 端口索引回归测试。
+
+验证：`build.cmd`、三个专项测试、完整 LPC testsuite（日志 `build/lpc-full-test-pr1247-partial.log`）和 `git diff --check`。
+
+备注：这是 PR #1247 的部分合入。该批次刻意限定为不需要引入官方专属编译器布局、热重载或大规模包重构的低风险运行时安全修复。
+
+## 合入提交 `9414cfe9bb775ef10b2c3bfe3188c09aeebf7f86`
+
+作为第二批安全/边界修复，选择性回移了官方 PR #1247：
+
+- `random_number()` 和 `secure_random_number()` 在构造随机分布前，对非正边界返回 `0`。
+- 共享字符串哈希表大小增长会在有符号整数溢出前停止 2 的幂增长循环。
+- `pcre_replace()` 的计数和复制阶段使用相同的非重叠捕获组选择，避免嵌套捕获导致堆覆盖。
+- `uncompress()` 在 inflate 失败时释放部分输出。
+- `terminal_colour()` 使用 `safe_apply()` 调用 `terminal_colour_replace()`，使回调错误不泄漏本地缓冲区。
+- `repeat_string()` 在字符串长度乘以重复次数前执行限制。
+- `replace_string()` 对 Boyer-Moore skip-copy 快速路径进行边界检查和计数。
+- `get_dir()` 在 `stat()` 前检查目录/文件路径拼接边界。
+- `add_action()` 的缺失函数错误使用有界格式化，且不再把用户文本作为格式串。
+- `call_out()` 在回收时处理空函数指针 owner，并对“秒转毫秒”执行饱和转换。
+- 矩阵变换拒绝少于 16 个元素的数组。
+- mudlib stats 的 author/domain 及状态文件恢复路径限制固定缓冲区复制/扫描。
+- 宏参数解析遇到非法参数名即停止，不再带着未消费字符继续。
+- 常量折叠的 `INT_MIN / -1` 和 `% -1` 在 `#if`、除法及取模折叠中避免 C++ 未定义行为。
+- 增加 PCRE、随机数、矩阵、超长 call_out、非法宏参数、terminal_colour 回调、uncompress 清理及 64 位整数除法/取模回归测试。
+
+验证：`build.cmd`、相关专项测试、完整 LPC testsuite（日志 `build/lpc-full-test-pr1247-second-batch.log`）和 `git diff --check`。
+
+备注：仍为 PR #1247 的部分合入；`grammar.autogen.cc` 由 `grammar.y` 重新生成，变化符合预期。
+
+## 合入提交 `ed01cbc055924f13df67cd4bd62795db2a96defb`
+
+作为第三批，选择性回移了官方 PR #1247 的 async 修复：
+
+- 已从队列弹出但尚未移入完成队列的 async worker 请求会记录在 `current_works`，使 debugmalloc 标记能够覆盖回调函数指针和捕获的 `command_giver`。
+- `async_getdir()` 每个条目按 `sizeof(struct dirent)` 扩容原始目录条目缓冲区，而不是 `sizeof(dirent *)`。
+- `async_read()`、`async_getdir()`、`async_write()` 在权限拒绝且不会入队的路径释放回调函数对象。
+
+验证：`build.cmd`、`async_this_player.c`、完整 LPC testsuite（日志 `build/lpc-full-test-pr1247-async.log`）及 `git diff --check`。
+
+备注：仍为 PR #1247 的部分合入。单独运行 `/single/tests/efuns/async.c` 输出 `Checks succeeded`，但在本工具环境超时前没有退出，因此未作为本提交的干净门禁信号。
+
+## 合入提交 `e4eda115aa6d42adc384920f49be49b435a51d9c`
+
+作为第四批，选择性回移了官方 PR #1247 的交互输入修复：
+
+- `input_to()` 在准备 VM 调用帧前拒绝函数名以内部 apply 标记 `#` 开头的字符串回调；拒绝路径会释放待处理 input sentence、引用对象和附带参数，不再从后续栈设置路径直接返回。
+
+验证：`build.cmd`、`input_to.c`、完整 LPC testsuite（日志 `build/lpc-full-test-pr1247-input-to.log`）及 `git diff --check -- src/comm.cc`。
+
+备注：仍为 PR #1247 的部分合入。专项测试覆盖既有非交互设置路径；`#` apply 分支属于交互安全路径，因此以 Windows 构建、既有 `input_to` 测试和完整 LPC testsuite 为门禁，而非专门的真实 socket 回归。
+
+## 合入提交 `b6a529611506f9350877d859d1039f6edb424732`
+
+作为第五批，选择性回移了官方 PR #1247 的外部进程 socket 清理：
+
+- `posix_spawn()` 在 socket 注册后失败时，`external_start()` 通过 `socket_close(fd, SC_FORCE | SC_FINAL_CLOSE)` 关闭已提供的 efun socket，然后清空 `sv[0]`，避免延迟原始 fd 清理重复关闭。
+- 通过 `socket_efuns.h` 暴露 `socket_close()` 内部 flag，使 external 包可使用与 socket 包相同的强制最终关闭路径。
+
+验证：`build.cmd`、`sockets.c`、完整 LPC testsuite（日志 `build/lpc-full-test-pr1247-external.log`）和相关文件的 `git diff --check`。
+
+备注：仍为 PR #1247 的部分合入。受影响的 `posix_spawn()` 失败路径位于非 Windows 实现；本地 Windows 验证证明共享 socket API 暴露及既有行为仍能构建并通过，但不是 POSIX spawn 失败清理路径的专项运行时复现。
+
+## 合入提交 `94c3029bee39d9528c9243debc1757c85c8f429f`
+
+作为第六批，选择性回移了官方 PR #1247 的 `call_other()` 类型检查修复：
+
+- `check_co_args()` 读取 `prog->argument_types` 时向 `check_co_args2()` 传递有界的声明参数数目，同时保留完整入栈参数数目用于栈索引；额外实参不再导致类型检查器越过声明参数类型表读取。
+- `call_other()` 类型检查错误以 `error("%s", buf)` 输出，不再把对象派生文本当作 printf 格式串。
+- 既有 `call_other` efun 回归测试会临时开启运行时类型检查并覆盖额外参数错误路径。
+
+验证：`build.cmd`、`call_other.c`、完整 LPC testsuite（日志 `build/lpc-full-test-pr1247-call-other.log`）及相关文件的 `git diff --check`。
+
+备注：仍为 PR #1247 的部分合入。
+
+## 合入提交 `797ca93624c7543a54ba3e453d0f96af25be5f2a`
+
+作为第七批，选择性回移了官方 PR #1247 的 parser 生命周期修复：
+
+- 活跃解析中被移除的 parser verb node 延迟到最外层解析退出后释放，避免 handler 在 `can_`/`direct_`/`do_` apply 中销毁自身或调用 `parse_remove()` 后，`parse_vn` 指向已释放内存。
+- `clear_result()` 将每个已保存参数数目初始化为 0，确保错误清理不读取未初始化计数。
+- `we_are_finished()` 提交候选项时若 handler 已销毁，则释放半成品结果并清空 `best_match`，避免以空/已销毁目标调用 `do_the_call()`。
+- 增加 `/single/tests/crasher/parser_handler_destruct.c`，覆盖 `direct_*` 返回成功时 handler 自毁。
+
+验证：`build.cmd`、两个专项测试、完整 LPC testsuite（日志 `build/lpc-full-test-pr1247-parser-uaf.log`）和相关文件的 `git diff --check`。
+
+备注：仍为 PR #1247 的部分合入。首次并行专项测试超时后遗留了本地 `build/dist/driver.exe`，已按精确路径停止后成功重跑 `parse_utf8.c`；未触碰独立的生产路径 `D:\code_env\FluffOS\libexec\fluffos\driver.exe` 进程。
+
+## 合入提交 `a8fada2406154b2ab0942b85d00388114d29d730`
+
+作为第八批运行时加固，选择性回移了官方 PR #1247：
+
+- `allocate(n, function)` 在逐元素回调期间把部分构建的结果数组保留在 VM 栈上，回调错误不再泄漏结果或已保存的引用计数值。
+- Telnet LINEMODE 子协商在读取/回显第二个子选项字节前检查其存在；ZMP 参数数组填充 `item[0..n-1]`，不再越界一格。
+- 无显式对象的 `query_replaced_program()` 读取 `current_object->replaced_program`，不再把任意栈顶值当对象。
+- `replaceable(ob, ({}))` 即使调用者忽略列表为空也会分配内置忽略项。
+- `compose_mapping()` 释放节点前会释放被删除的 mapping key。
+- `sprintf()` 对用户提供的超大精度使用有界 `snprintf()` 输出整数/浮点数。
+- 反汇编器把直接 switch 表的 `minval` 视为 `sizeof(LPC_INT)`，不再硬编码 4 字节。
+- 编译器重载警告和 trace 行以 `"%s"` 参数传递源代码派生文本，而非作为格式串。
+- `strftime()` 改用堆存储，不再使用由 `__MAX_STRING_LENGTH__` 决定大小的栈 VLA。
+- `checkmemory` 限制默认失败消息的复制长度。
+- `norm()` 测量长度时使用传入 helper 的数组，修复 `angle()` 共用路径。
+- MUD 端口输入把读取长度限制为本地缓冲区大小，并拒绝非正长度前缀。
+- 增加 `replaceable_empty.c`，扩充 `allocate` 和 `sprintf` 回归测试。
+
+验证：`build.cmd`、相关专项测试、完整 LPC testsuite 及 `git diff --check`。
+
+备注：仍为 PR #1247 的部分合入；完整 testsuite 状态为 0，输出仅在终端观察，未重定向到跟踪工件。
+
+## 合入提交 `1b03c79fa98733e8b7265f56eb4d27bb5003b017`
+
+将官方 PR #1239/#1241 的预处理器指令注释行为选择性适配到本分支旧版 `src/compiler/internal/lex.cc`：
+
+- 预处理器指令负载中的块注释折叠为空白而非完全删除，使 `1 -/* comment */-1` 之类宏体保持 token 边界。
+- 跨物理行的指令行块注释仍作为指令的一部分消费，避免续行文本被当作普通 LPC 代码分词。
+- 通过 `#define`、`#ifdef`、`#undef` 和嵌套宏参数展开测试固定本地既有的指令负载尾部行注释行为。
+- 增加 `/single/tests/compiler/preprocessor.c`，覆盖块注释尾部、有效/无效 `#if` 分支、包含注释标记的字符串字面量、注释作为空白的 token 分隔、尾部 `//` 宏注释及带尾注释的 `#ifdef`/`#undef` 查找。
+
+验证：`build.cmd`、`preprocessor.c` 和相关文件的 `git diff --check`。
+
+备注：这是 PR #1239/#1241 行为对本地布局的回移，不是整体引入官方 `lexer_rules_pp.cc`、生成的 Flex scanner 或官方 GTest 编译器框架。首次专项测试因 dist 中仍为旧 driver 而失败；重新构建后通过。
+
+## 合入提交 `56c00880b40692bbc12a803026dd739e042859f2`
+
+将官方 PR #1230 的编译期 master apply 行为选择性适配到本分支旧编译器/lexer 布局：
+
+- 增加 `inherit_program(string from, string path, int priv)` master apply，每条 LPC `inherit` 语句都会查询它。
+- `inherit_program()` 可保留默认路径、重定向到其他程序、以字符串数组提供内联源码或拒绝继承。
+- 增加 `include_file(string compiled, string from, string path)` master apply，每条 `#include` 都会查询它。
+- `include_file()` 可保留默认路径、重定向到其他 include、以字符串数组提供内联内容或拒绝 include。
+- 增加 `StringLexStream`，使 master 提供的内联 include/inherit 文本通过与磁盘文件相同的 lexer stream 抽象编译。
+- 增加 `load_object_from_source()` 用于合成继承程序，并支持正常的继承父级重试流程，包括内联源码继续继承未加载的磁盘或合成父级。
+- testsuite master 通过 `set_compile_hooks()` 转发 hook，供专项编译器测试使用。
+- 增加继承重定向、内联继承程序、拒绝继承、private inherit flag、include 重定向、内联 include、嵌套 include 调用形态和嵌套内联继承源码的测试/fixture。
+
+验证：`build.cmd`、四组专项编译器测试、完整 LPC testsuite 和 `git diff --check`。
+
+备注：核心行为已适配本地 `grammar_rules.cc` / `lex.cc` 布局，没有整体导入官方文件。PR #1230 的官方热重载 daemon/demo 不在此提交中，后来以 `.c` testsuite 布局在 `362f6fefae58197c27baa7243ac494db6882c9dd` 引入。当 mudlib master 返回原路径或不路由到自定义 hook 时，新 apply 保持原生产行为。
+
+## 合入提交 `99aa8be9e5db99f26d503bec7beae6ff32856921`
+
+将官方 PR #1247/#1258 的编译器加固项选择性协调到本分支旧 `lex.cc` / `compiler.cc` 布局：
+
+- 本地旧编译器的 `define_new_function()` 有一个额外的预组装警告缓冲区，可包含源代码派生的函数/程序名；现改为 `yywarn("%s", buff)`，不再把缓冲区当 printf 格式串。
+- 本地名称分配器的普通块路径使用 `memcpy()` 复制已计算的字节长度，不再用 `strcpy()` 重新扫描。
+- 增加 `/single/tests/compiler/long_local_name.c`，覆盖接近 `MAXLINE` 的本地/全局名称编译路径。
+
+验证：`build.cmd`、相关专项测试和文件级 `git diff --check`。
+
+备注：这不是 PR #1247 或 #1258 的完整合入。当时 #1258 的 `recompile_object()` 悬空文件名指针修复仍待 PR #1237 引入该 efun。由于旧 lexer 先限制 `MAXLINE=4096`，官方 `>4096` 标识符回归无法直接用本分支 LPC 源码表达；新增测试固定了不改变行长语义时可编译的最大源码级情形。
+
+## 合入提交 `fa228dce2b4ca9eb7f7219474dac2b4014d2d13d`
+
+把官方 PR #1244 的字符串语义覆盖选择性合入既有 `string_index.c` 回归套件：
+
+- 记录在 `strlen(s)` 位置索引字符串会返回虚拟 NUL 的预期行为。
+- 增加 CRLF 扩展字素簇覆盖：`strlen("\r\n") == 1`；索引 `"\r\n"` 时簇 0 返回 CR codepoint、簇 1 返回虚拟 NUL；`strsrch()` 只在簇边界匹配。
+
+验证：`string_index.c` 及相关文件的 `git diff --check`。
+
+备注：这是 PR #1244 行为的测试/注释合入；运行时行为已存在于本分支，测试用于防止未来把 CRLF 误解为两个可搜索/索引的簇。
+
+## 合入提交 `06719fab6466eed700d3bc6474b23dd02c27adca`
+
+选择性合入官方 PR #1237 的热重载基础：
+
+- 对象全局变量改存于独立 `TAG_OBJ_VARS` 分配块，不再位于 `object_t` 尾部；该块至少包含一个 `svalue_t`，通过 `allocate_object_variables()` 分配。
+- `object_t` 增加 `prog_generation`，供后续 `recompile_object()` 在程序交换后使旧函数指针失效。
+- debug memory 检查从所属对象标记对象变量块，并显式报告孤立 `TAG_OBJ_VARS` 块。
+
+验证：`build.cmd`、完整 LPC testsuite 和相关文件的 `git diff --check`。
+
+备注：这是 PR #1237 的部分合入，尚未公开 `recompile_object()` LPC API。生产 mudlib 仍通过 `ob->variables` 使用同样变量；变化只在 driver 内部。剩余工作包括 efun、实时程序交换、按名称迁移变量、master/simul_efun、函数指针代际检查、执行帧防护、clone/virtual/call_out/heart_beat 安全处理和专项测试。
+
+## 合入提交 `3ebd18267178a324798779a4ae19be90306fe0dc`
+
+选择性合入官方 PR #1237 的函数指针基础：
+
+- 函数指针 header 在创建或 `bind()` 时记录 owner 的 `prog_generation`。
+- owner 已切换到较新程序代际时，`call_function_pointer()` 拒绝旧 `FP_LOCAL` 和 `FP_FUNCTIONAL` 指针。
+- `FP_LOCAL` 保存创建时的 `program_t` 并对该程序持有/释放 `func_ref`，不再在交换后递减 owner 当前程序。
+- debug memory 检查把 `FP_LOCAL` 的额外函数引用计入保存的创建程序。
+- `%O` 使用保存的创建程序打印本地函数指针，并容忍已移除的 simul_efun 表项。
+
+验证：`build.cmd`、完整 LPC testsuite 和相关文件的 `git diff --check`。
+
+备注：仍为 PR #1237 的部分合入，尚未公开 `recompile_object()`，但已保证后续程序交换中的函数指针生命周期和旧布局检查安全。现有生产 mudlib 无需改动，只有后续热重载实际提升程序代际时行为才会变化。
+
+## 合入提交 `721fa0e65938b5b60fcb71fe6b8b82078ee5d552`
+
+选择性合入官方 PR #1237 的 `recompile_object()` 核心行为：
+
+- 增加公开 `recompile_object(object)` efun。
+- 重编译 master copy 时，把新程序原地交换到在线 master copy 及其已加载 clone。
+- 全局变量按名称迁移，兼容源码变更后保留既有状态；新增变量保持初始化器值。
+- 执行重编译程序的 `__INIT` 前重建 master apply 和 simul_efun 分发表。
+- 程序替换时启用此前基于 `prog_generation` 的旧函数指针保护。
+- 在交换点取消待处理的 `replace_program()` 状态。
+- 拒绝不安全目标，包括 clone、旧程序当前位于 VM 执行栈的对象、嵌套 `recompile_object()`、以及重编译前已有待处理 `replace_program()` 的对象。
+- 增加 master/clone 更新、按名称迁移变量、新变量初始化器、旧本地函数指针及拒绝 clone 目标的专项回归。
+
+验证：`build.cmd`、`recompile_object.c`、完整 LPC testsuite 和 `git diff --check`。
+
+备注：这是 PR #1237 核心 efun/交换机制对本地布局的合入，并非整体引入官方全部 demo、文档或大型 fixture。现有生产 mudlib 只有主动调用 `recompile_object()` 或依赖新热重载行为时才需调整。
+
+## 合入提交 `9e2aed146a581a951c7e79bb153c7d583761bca1`
+
+PR #1237 适用后，选择性合入官方 PR #1258 的 `recompile_object()` Coverity 修复：
+
+- 编译器使用稳定的 `old_prog->filename` 指针，不再传入临时本地字符串缓冲区。
+- 通过 `DEFER` 关闭重编译打开的源码 fd，避免编译错误路径泄漏。
+
+验证：`build.cmd`、`recompile_object.c`、完整 LPC testsuite 和 `git diff --check -- src/vm/internal/simulate.cc`。
+
+## 合入提交 `1b8c5cc68c32380d80b4f19f81456c09f62239ce`
+
+将官方 PR #1237 回归覆盖选择性适配到本分支 `.c` testsuite：
+
+- 扩充 `recompile_object.c`，覆盖源码消失、虚拟对象后备源码重编译、交换期间的 `replace_program()` 状态、自毁或报错的 `__INIT`、在线 simul_efun 表重建及 master 执行帧拒绝。
+- 增加 `recompile_object2.c`，覆盖 catch_tell 路由、shadow 链、按名称 call_out 使用新程序、旧函数指针 call_out 干净失败、add_action sentence 和 heart_beat 注册。
+- testsuite master 增加 `compile_object()` fixture，覆盖 `/data/recompile_object/virt` 虚拟对象。
+
+验证：两个专项测试、完整 LPC testsuite 和 `git diff --cached --check`。
+
+备注：本分支单测框架在专项测试后立即关闭，因此未包含官方“运行结束后 idle master 重编译”fixture；本地仍覆盖 master 执行帧防护，交换 master 时也会重建 apply。`recompile_object2.c` 验证同步部分，并验证名称/函数指针 call_out 句柄在重编译后仍存活且可移除，不依赖官方延迟 verifier。
+
+## 合入提交 `362f6fefae58197c27baa7243ac494db6882c9dd`
+
+把官方 PR #1230/#1237 的热重载 demo 和覆盖选择性适配为仅 testsuite 使用的开发示例：
+
+- 增加 `/single/hot_reload.c` daemon：注册为 testsuite master 编译 hook、记录 include/inherit 依赖边、快照源码大小和 mtime，并重载过期的被监视程序。
+- 保留状态的重载路径使用 `recompile_object()`，原地更新 master copy 和在线 clone，同时按名称保留兼容变量。
+- 不保留状态的路径使用 destruct+load，使 master copy 从初始化器重启；既有 clone 保持旧程序，直到 mudlib 自行迁移或销毁。
+- 带 `hot_reload_state()` / `hot_reload_restore()` 的对象使用协作式 destruct+load，并显式决定保留哪些状态。
+- 增加 `/single/tests/applies/hot_reload.c`，覆盖依赖图、最深层 include 变更、共享依赖过期集合、编译失败自愈、祖先由深到浅刷新、当前执行防护记录保留、状态保留重载、clone 更新、协作恢复和 opt-out 语义。
+- 调整 `recompile_object2.c`，使 call_out 存活覆盖在本地测试运行器中同步执行且不遗留生成文件。
+
+验证：`recompile_object2.c`、`hot_reload.c`、完整 LPC testsuite 和相关文件的 `git diff --check`。
+
+备注：这是 testsuite 开发示例，不是生产默认行为，仅在 testsuite 显式加载和启用后生效。未整体引入官方文档站热重载页面；本地边界记录在此文件和 README。
+
+## 合入提交 `af6ccca5849049377135f204b70d775c301dcf72`
+
+选择性适配了官方 PR #1247 剩余的低风险安全/正确性修复：
+
+- `ed` 在复制到调用者缓冲区前限制展开后的打印行，限制默认文件名复用和输入文件名长度，并为转义替换/模式文本预留足够空间。
+- `sprintf()` 列/表格式化持有待处理状态使用的 `%O`/字符串渲染缓冲区，不再借用临时清理缓冲区；展开时释放 pad 和自有存储。
+- `restore_variable()` / mapping 恢复路径把非法或过深顶层 mapping 的计数失败报告为恢复错误，并在可能 longjmp 越过正常清理的 `error()` 前清空临时 scratch 状态。
+- `replace_dollars()` 按实际写入的替换字符串长度检查输出增长，而非匹配模式长度。
+- 增加 `sprintf_column_object.c`，扩充 `restore_variable.c` 的深层构造输入覆盖。
+
+验证：`build.cmd`、相关专项测试、完整 LPC testsuite 和文件级 `git diff --check`。
+
+备注：已在源码适配 `src/packages/dwlib/dwlib.cc`，但当前 Windows 配置未启用 `PACKAGE_DWLIB`；因此该可选包路径仅有代码审查/构建布局覆盖，没有本次真实 LPC 包运行测试。
+
+## 合入提交 `b7e294247ee027115fb9333701b2d3ff29a245b0`
+
+选择性适配了官方 PR #1247 的 reclaim 安全修复：
+
+- `check_svalue()` 超过 `MAX_RECURSION` 提前返回时，`reclaim_objects()` 保持内部 `nested` 递归计数平衡。
+- 从 `FP_LOCAL` 函数指针回收已销毁 owner 时不再立即递减程序 `func_ref`；函数指针继续存活，之后由 `dealloc_funp()` 对保存的创建程序恰好释放一次。
+- 增加 `/clone/reclaim_fp_helper.c` 和 `/single/tests/crasher/reclaim_funptr_owner.c`，覆盖 owner 已销毁、函数指针仍被保存并安排于 call_out，随后再次由 `reclaim_objects()` 访问的情况。
+
+验证：`build.cmd`、专项测试、完整 LPC testsuite 和相关文件的 `git diff --check`。
+
+## 合入提交 `ae8a687fa34a442c0891c6109ba342e734e84277`
+
+适配了官方 PR #1247 的 buffer 范围回归覆盖：
+
+- 扩充 `/single/tests/operators/buffer_range_assign.c`，覆盖 buffer 右值在增大和缩小方向上的变长范围赋值；由此固定此前已合入的运行时修复：重新分配时从 `buffer_t::item` 而不是 `buffer_t` header 复制。
+
+验证：专项测试、完整 LPC testsuite 和相关文件的 `git diff --check`。
+
+## 合入提交 `bab352bad1679d7f838e72cd9c121faf8008a483`
+
+适配了官方 PR #1247 的 MySQL 回归覆盖：
+
+- 扩充 `/single/tests/efuns/db.c`，即使当前 Windows 构建未启用 SQLite，也能运行 MySQL 部分。
+- 增加可选的逐行二进制字段长度覆盖：OS 环境同时存在 `FT_MYSQL_HOST`、`FT_MYSQL_DB`、`FT_MYSQL_USER` 时，测试创建临时 `VARBINARY` 表，并验证 `db_fetch()` 为每行返回按该行实际二进制长度分配的 buffer。
+- 把上述简短环境变量名加入 `/testsuite/etc/config.test` 的 `get_os_env()` 白名单；保持短名称以避免超过既有配置行限制。
+- 该覆盖有意设为可选。没有 MySQL 凭据的普通开发机或 CI 会跳过真实 MySQL 检查，不使 DB efun 测试失败。
+
+验证：`build.cmd`、`db.c`、`get_os_env.c` 和相关文件的 `git diff --check`。
+
+备注：一次完整 testsuite 运行到达 `db.c` 后因未配置环境变量而跳过可选 MySQL 检查，随后在既有 `async.c` 回调路径因 `async_read()` 返回 `-1` 失败；后者不是本次 MySQL 覆盖变更导致，也未作为本提交门禁信号。
+
+## 合入提交 `c98193933a4abfafd2b65ef2386973cef4630228`
+
+适配了官方 PR #1247 剩余的 parser/socket 安全覆盖：
+
+- `living_parse()` 跳过 `parse_command("%l")` 对象列表中的非对象项，不再将其作为对象解引用；这与官方对调用者传入 `0` 或被 `check_for_destr()` 转为 `0` 的已销毁对象防护一致。
+- 增加 `/single/tests/crasher/living_parse_nonobject.c`，覆盖 `%l` 列表中的非对象项。
+- 增加 `/single/tests/crasher/socket_long_host.c`，覆盖主机部分超过固定缓冲区时的干净拒绝。底层修复本地早已存在，本提交补充适配本分支 include 布局的测试覆盖。
+
+验证：`build.cmd`、两个专项测试和相关文件的 `git diff --check`。
+
+## 合入提交 `58a4be68929a97ead0b37834866766f6b60b5e71`
+
+把官方 PR #1247 剩余的编译器安全修复适配到本分支旧 `grammar.y` 布局：
+
+- varargs 参数声明读取 `type_of_locals_ptr[max_num_locals - 1]` 前会确认存在前置本地参数。
+- `void probe(void ...)` 等非法声明现在报告编译错误，不再读取 `type_of_locals_ptr[-1]`。
+- 增加 `/clone/bad_varargs_void.c` 和 `/single/tests/compiler/bad_varargs_void.c` 回归覆盖。
+
+验证：`build.cmd`、相关专项测试和文件级 `git diff --check`。
+
+备注：`grammar.autogen.cc` 由 `grammar.y` 重新生成，生成的行表变化符合预期。
+
+## 合入提交 `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497`
+
+把官方 PR #1247 剩余的整数边界防护适配到本分支旧编译器/VM 布局：
+
+- 常量折叠的 `constant / constant` 和 `constant % constant` 在除数为 `-1` 时避免 `INT_MIN / -1` 的 C/C++ 未定义行为。
+- VM 运行时整数 `/`、`%` 使用相同防护：`INT_MIN / -1` 保持二进制补码环绕后的 LPC 结果，`INT_MIN % -1` 返回 `0`。
+- `/=` 和 `%=` 复合赋值使用同样防护，避免相同边界条件使左值更新崩溃或触发未定义行为。
+- 增加 `/single/tests/operators/int_min_div_mod.c`，覆盖 64 位最小整数的运行时 `/`、`%`、`/=`、`%=`。
+
+验证：`int_min_div_mod.c`、`compound_assign_float.c`、`64bit.c` 和相关文件的 `git diff --check`。
+
+备注：`grammar.autogen.cc` 由 `grammar.y` 重新生成。至此，PR #1247 中适用于本地的低风险 `INT_MIN / -1` 与 `% -1` 防护已覆盖常量折叠、VM 执行和复合赋值。
+
+## `2026-07-14` 完成度审计
+
+提交 `00cf1f218f14efbcfb55dfb63bd9b5bb4c046497` 后，再次以只读方式查询 `fluffos/fluffos` 中的目标 PR，并与本分支当前旧布局源码树比较：
+
+- PR #1247：请求范围内、本地适用的低风险安全/正确性修复均已以本地形式合入，包括分配器/错误路径清理、`sprintf()` 所有权和边界、mapping compose 清理、MySQL 行长度、Telnet LINEMODE/ZMP 防护、trace/编译器/反汇编器加固、`replaceable()` 空忽略列表、`query_replaced_program()` 目标对象、MUD 端口输入边界、parser/socket/reclaim、varargs 和整数边界防护。
+- PR #1258：三个适用的 Coverity 修复均已以本地形式合入：lexer 本地名称越界保护、恢复大小溢出保护，以及 PR #1237 使路径适用后的 `recompile_object()` 稳定文件名/fd 清理。
+- PR #1239/#1241：指令负载注释剥离和跨物理行的指令块注释已合入旧 lexer 布局，并有本地预处理器回归覆盖。
+- PR #1244：请求范围内的源码行为修复均已以本地形式合入，包括 `set_clean_up()`、`call_stack(4)`、class 组合声明诊断、float 复合赋值、async/DNS `this_player()` 保留、安全回调展开和 CRLF/字符串索引覆盖。
+- PR #1230/#1237：编译期 master apply、testsuite 热重载 demo、`recompile_object()`、在线 master/clone 程序交换、按名称迁移变量、master/simul_efun 重建、旧函数指针检查、不安全目标防护、虚拟对象、call_out/add_action/heart_beat/shadow 及专项热重载测试均已以本地形式合入。
+
+本次审计对预处理器、inherit/include hook、热重载、`recompile_object()`、恢复、`sprintf`、`replaceable`、async `this_player()`、`call_stack`、class 声明和整数边界等 13 个专项测试进行了验证。
+
+## 已审查快照中尚未合入的内容
+
+截至 `00cf1f21`，以下官方变更仍有意不合入：
+
+- PR #1261：WebAssembly 默认页面的崩溃/错误调试弹窗。
+- #1259 之后近期官方第三方依赖更新/清理，包括 fmt、nlohmann/json、utfcpp、libwebsockets 及相关示例/测试树清理。
+- PR #1259：官方 `lpc-syntax` VS Code formatter 接线、tokenizer/highlighter 修复、生成的 grammar contract 更新和扩展测试。
+- PR #1258 剩余范围：请求的源码行为修复已无已知遗漏；仅官方专属文件布局或测试框架形态仍在本分支之外。lexer 本地名称、恢复溢出和 `recompile_object()` 悬空文件名指针均已以本地形式合入。
+- PR #1257 及 #1253-#1255：官方 CI/release 工作流重构和自动发布触发器。
+- PR #1250 剩余范围：官方文档/侧边栏更新，以及绑定新版拆分编译器/测试布局的官方专属字符串/引用测试。
+- PR #1247 剩余范围：整数边界批次后，请求的低风险源码修复已无已知遗漏；剩余材料仅限官方专属测试、当前 Windows 构建未启用的可选包真实覆盖、FFI 或新版编译器布局专属部分。
+- PR #1245：字符模式输入投递改进和登录时 NAWS 修复。
+- PR #1244：请求的源码行为修复已无已知遗漏；剩余仅官方文档、依赖文件布局的官方专属用例或测试框架差异。
+- PR #1237 剩余范围：官方热重载文档站页面、运行结束后的 idle-master 重编译 fixture 和官方专属测试框架形态。核心 efun、在线 master/clone 交换、变量迁移、master/simul_efun 重建、执行帧防护、clone 目标拒绝、虚拟对象、call_out/add_action/heart_beat/shadow、`replace_program()` 防护、自毁/报错 `__INIT`、旧函数指针保护和 testsuite 热重载 demo 均已以本地形式合入。
+- PR #1231 和 PR #1243：WebAssembly driver 目标及 WASM 体积缩减。
+- PR #1230 剩余范围：官方文档站页面，以及本分支本地编译 hook/热重载测试未体现的官方专属测试/文档形态。
+- PR #1210：大规模 LPC 平台现代化批次，包括基于 Flex 的前端、clang 风格诊断、arena 编译、`.lpc` 源码优先、FFI 包、decimal 库、`tools/lpc-syntax`、官方 VS Code 扩展和生成的语法资源。
+- 仅文档更新，例如 Docusaurus/i18n/侧边栏/搜索、大量 efun 文档扩充和文档审计清理。
+
+## 更新规则
+
+今后合入官方功能时：
+
+1. 以只读方式重新查询 `fluffos/fluffos`，并更新上方快照 SHA 和日期。
+2. 添加本地提交哈希，以及简明的已合入上游变更列表。
+3. 将新合入项目移出“尚未合入”章节；若仅部分合入，则标明剩余范围。
+4. 记录验证命令和任何跳过的覆盖范围。
+5. 官方仓库始终保持只读：不得为 `fluffos/fluffos` 添加远程、推送分支、编辑 PR 或执行 release 操作。
