@@ -6,7 +6,7 @@
 
 **目标：** 以官方 `v2026.0901.0`（提交 `7af5c3fffe2505c7cb764951bed863b16eee471b`）为新的本地候选基线，只移植经确认仍有价值的本地独有能力，并把这些能力整理为可重复移植的编译期扩展、独立工具和少量稳定核心钩子。
 
-**当前基线：** 本地 `master` 为 `98cc9b42b6f7f1630189b4b968ed708ff41f2203`，最近本地标签为 `v2026.07.15`。相对官方 `v2026.0901.0`，GitHub 比较结果为本地独有 130 个提交、缺少官方 311 个提交；这些数字包含回移补丁、测试、文档和构建调整，不能直接当作独有功能数量。
+**迁移前基线：** 本地 `master` 为 `98cc9b42b6f7f1630189b4b968ed708ff41f2203`，最近本地标签为 `v2026.07.15`。相对官方 `v2026.0901.0`，GitHub 比较结果为本地独有 130 个提交、缺少官方 311 个提交；这些数字包含回移补丁、测试、文档和构建调整，不能直接当作独有功能数量。
 
 **当前生产构建基线：** `lude2001/fluffos` 的 GitHub Actions `Release Artifacts` 运行 `34217597099` 已在提交 `98cc9b42b6f7f1630189b4b968ed708ff41f2203` 成功生成 `fluffos-linux-static-production`。该工作流使用 `STATIC=ON`、`MARCH_NATIVE=OFF`，启用 MySQL/SQLite，运行 C++ 测试、LPC testsuite、启动 smoke 和静态链接检查，并生成 tarball SHA-256。它可以作为当前生产 driver 的可重建来源，无需访问线上服务器。
 
@@ -41,7 +41,7 @@
 - [x] 没有把当前 130 个本地提交逐个机械 cherry-pick。
 - [x] 各项本地能力均按独立边界、测试和提交迁移。
 - [x] 当前 `master` 已由不可变 legacy tag 和旧 dist 保留。
-- [x] 未替换 `master`；Linux/GitHub CI 属于将来准备发布时的独立门禁。
+- [x] 本地验证完成后，以 legacy tag 保留旧 `master`，再把本地 `master` 指向候选提交；没有创建会把旧版 130 个提交重新引入新基线的普通 merge commit。`origin/master` 尚未更新，Linux/GitHub CI 仍属于将来准备推送或发布时的独立门禁。
 - [x] 验收包含构建、协议、完整 testsuite、实际 mudlib、测试角色与双向存档，不以构建成功代替运行验证。
 - [x] 候选 driver 只使用隔离存档副本，没有与旧 driver 并发写同一数据库或数据目录。
 - [x] TLS 策略调整与数据库配置改造没有并入 driver 重基线。
@@ -282,7 +282,7 @@
 
 - [x] 旧基线与候选基线的差异、验证结果和未验证项已汇总在本计划、独有能力清单和 upstream tracker。
 - [x] 已更新 `docs/superpowers/upstream-merge-tracker.md`，记录官方快照、保留能力、删除补丁和本地验证结果。
-- [x] 候选分支保持独立；本轮没有合并回 `master`、推送、发布或部署。
+- [x] 候选通过本地验收后，本地 `master` 以分支指针切换方式接纳新基线；没有把旧 `master` 普通 merge 到候选历史。未推送、未发布、未部署。
 - [x] legacy tag 与旧 `build/dist` 副本均保留。将来若决定上线，另写简短上线清单并重新取得授权。
 
 ---
